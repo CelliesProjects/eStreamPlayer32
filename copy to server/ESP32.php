@@ -11,7 +11,8 @@
 if(isset($_GET["folder"])){
   $path=rawurldecode($_GET["folder"]);
   if(strpos($path,"..")!==false)die();//no folder traversing
-  if(substr($path,0,1)==="/")$path=substr($path,1);//no root folder access
+  //if(substr($path,0,1)==="/")$path=substr($path,1);//no root folder access
+  if(strlen($path)>1&&substr($path,0,1)==="/")$path=substr($path,1);//no root folder access
 
   if ($path=='/')$path='';
 

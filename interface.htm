@@ -155,7 +155,7 @@ $(document).ready(function(){
   };
   ws.onopen=function(event){
     console.log('[WebSocket] Connected');
-    ws.send("getfolder\n/\n");
+    ws.send("getfolder/");
   }
   ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);};
   ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message)};
@@ -171,19 +171,19 @@ $(document).ready(function(){
     //else currentpath='/';
     if(!currentpath)currentpath='/';
     console.log("new folder ="+currentpath);
-    ws.send("getfolder\n"+currentpath+"\n");
+    ws.send("getfolder"+currentpath);
   });
 
   $('body').on('click','.folderlink',function(){
     if ('/'!=currentpath) currentpath+="/";
     currentpath += $(this).text();
     console.log("new folder ="+currentpath);
-    ws.send("getfolder\n"+currentpath+"\n");
+    ws.send("getfolder"+currentpath);
   });
 
   $('body').on('click','.filelink',function(){
     console.log(currentpath+'/'+$(this).text());
-    ws.send("playdirect\n"+currentpath+'/'+$(this).text()+"\n");
+    ws.send("playdirect"+currentpath+'/'+$(this).text());
   });
 
 });

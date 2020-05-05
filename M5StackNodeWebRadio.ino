@@ -57,19 +57,18 @@ String urlEncode(String s) {
   return s;
 }
 
-bool updateClientFolder(const String librarypath, String &result, AsyncWebSocketClient * const client) {
+bool updateClientFolder(const String librarypath, const uint32_t clientId) {
   HTTPClient http;
   String url = (String)(FILESERVER_URL) + '/' + (String)(FILESERVER_SCRIPTNAME) + "?folder=" + librarypath;
-  ESP_LOGI(TAG, "getting url: %s", url.c_str());
   http.begin(urlEncode(url));
   const int httpCode = http.GET();
   if (httpCode > 0) {
-    ESP_LOGD(TAG, "[HTTP] GET %s code: %d", url.c_str(), httpCode);
     if (httpCode == HTTP_CODE_OK) {
       ESP_LOGE(TAG, "[HTTP] GET %s code: %i", url.c_str(), httpCode);
-      result = http.getString();
+      String result = http.getString();
       http.end();
-      client->printf("folder\n%s\n%s", librarypath.c_str(), result.c_str());
+      result = String("folder\n") + librarypath + String("\n") + result;
+      ws.text(clientId, result);
       return true;
     } else {
       ESP_LOGE(TAG, "[HTTP] GET %s code: %i", url.c_str(), httpCode);
@@ -77,17 +76,18 @@ bool updateClientFolder(const String librarypath, String &result, AsyncWebSocket
   } else {
     http.end();
     ESP_LOGE(TAG, "[HTTP] GET %s failed, error: %s", url, http.errorToString(httpCode).c_str());
-    client->printf("[HTTP] GET %s failed, error: %s", url, http.errorToString(httpCode).c_str());
+    ws.printf(clientId, "[HTTP] GET %s failed, error: %s", url, http.errorToString(httpCode).c_str());
     return false;
   }
 }
 
+// https://stackoverflow.com/questions/17158890/transform-char-array-into-string/40311667#40311667
 
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
-    ESP_LOGD(TAG, "ws[%s][%u] connect", server->url(), client->id());
+    ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
   } else if (type == WS_EVT_DISCONNECT) {
-    ESP_LOGD(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
+    ESP_LOGI(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
     ESP_LOGE(TAG, "ws[%s][%u] error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
   } else if (type == WS_EVT_DATA) {
@@ -95,34 +95,24 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     if (info->final && info->index == 0 && info->len == len) {
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
-        char *pch = strtok((char*)data, "\n");  // start searching for items separated by newlines
-
-        if (!strcmp("getfolder", pch)) {
-          pch = strtok(NULL, "\n");
-          ESP_LOGI(TAG, "request for folder: %s", pch);
- //         updateLibrary.clientId = client->id();
- //         updateLibrary.folder = (String)pch;
- //         updateLibrary.waiting = true;
-String res;
- updateClientFolder(pch, res, client);
-
-
-
-
- 
+        String test = (char*)data;
+        if (test.startsWith("getfolder")) {
+          //ESP_LOGI(TAG, "req for folder:'%s'", test.c_str(), test.substring(9).c_str());
+          updateLibrary.folder = test.substring(9);
+          updateLibrary.clientId = client->id();
+          updateLibrary.waiting = true;
           return;
         }
-        if (!strcmp("playdirect", pch)) {
-          pch = strtok(NULL, "\n");
-          ESP_LOGI(TAG, "request for direct url: %s", pch);
-          newUrl.url = (String)(FILESERVER_URL) + pch;
+        if (test.startsWith("playdirect")) {
+          ESP_LOGI(TAG, "req for direct play: '%s'", test.substring(10).c_str());
+          newUrl.url = (String)(FILESERVER_URL)+"/"+test.substring(10).c_str();
           newUrl.waiting = true;
-          return;
         }
       }
     }
   }
 }
+
 
 void setup() {
   pinMode(25, OUTPUT);
@@ -180,14 +170,13 @@ void loop() {
     audio.connecttohost(urlEncode(newUrl.url));
     newUrl.waiting = false;
   }
-/*
+
   if (updateLibrary.waiting) {
-    String res;
-    if (!updateClientFolder(updateLibrary.folder, res, updateLibrary.clientId))
-      ESP_LOGE(TAG, "error getting folder");
+    if (!updateClientFolder(updateLibrary.folder, updateLibrary.clientId))
+      ESP_LOGE(TAG, "error updating folder for client %i", updateLibrary.clientId);
     updateLibrary.waiting = false;
   }
-  */
+
 }
 
 void audio_info(const char *info) {
