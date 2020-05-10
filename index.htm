@@ -1,12 +1,17 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>
+var libraryURL="http://192.168.0.50/muziek/ESP32.php";
+//setting for dev/debug */
+const debugip="192.168.0.106";  //change this to the esp32 ip for remote running of this page
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
 <link rel="icon" href="data:;base64,iVBORw0KGgo="><!--prevent favicon requests-->
 <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
 <script src="https://code.jquery.com/jquery-3.4.1.js"></script>
-<title>ESP32WebRadio</title>
+<title>M5StackNodePlayer</title>
 <meta name="description" content="ESP32WebRadio">
 <meta name="author" content="Cellie">
 <script>!function(a,b){"function"==typeof define&&define.amd?define([],b):"undefined"!=typeof module&&module.exports?module.exports=b():a.ReconnectingWebSocket=b()}(this,function(){function a(b,c,d){function l(a,b){var c=document.createEvent("CustomEvent");return c.initCustomEvent(a,!1,!1,b),c}var e={debug:!1,automaticOpen:!0,reconnectInterval:1e3,maxReconnectInterval:3e4,reconnectDecay:1.5,timeoutInterval:2e3};d||(d={});for(var f in e)this[f]="undefined"!=typeof d[f]?d[f]:e[f];this.url=b,this.reconnectAttempts=0,this.readyState=WebSocket.CONNECTING,this.protocol=null;var h,g=this,i=!1,j=!1,k=document.createElement("div");k.addEventListener("open",function(a){g.onopen(a)}),k.addEventListener("close",function(a){g.onclose(a)}),k.addEventListener("connecting",function(a){g.onconnecting(a)}),k.addEventListener("message",function(a){g.onmessage(a)}),k.addEventListener("error",function(a){g.onerror(a)}),this.addEventListener=k.addEventListener.bind(k),this.removeEventListener=k.removeEventListener.bind(k),this.dispatchEvent=k.dispatchEvent.bind(k),this.open=function(b){h=new WebSocket(g.url,c||[]),b||k.dispatchEvent(l("connecting")),(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","attempt-connect",g.url);var d=h,e=setTimeout(function(){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","connection-timeout",g.url),j=!0,d.close(),j=!1},g.timeoutInterval);h.onopen=function(){clearTimeout(e),(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onopen",g.url),g.protocol=h.protocol,g.readyState=WebSocket.OPEN,g.reconnectAttempts=0;var d=l("open");d.isReconnect=b,b=!1,k.dispatchEvent(d)},h.onclose=function(c){if(clearTimeout(e),h=null,i)g.readyState=WebSocket.CLOSED,k.dispatchEvent(l("close"));else{g.readyState=WebSocket.CONNECTING;var d=l("connecting");d.code=c.code,d.reason=c.reason,d.wasClean=c.wasClean,k.dispatchEvent(d),b||j||((g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onclose",g.url),k.dispatchEvent(l("close")));var e=g.reconnectInterval*Math.pow(g.reconnectDecay,g.reconnectAttempts);setTimeout(function(){g.reconnectAttempts++,g.open(!0)},e>g.maxReconnectInterval?g.maxReconnectInterval:e)}},h.onmessage=function(b){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onmessage",g.url,b.data);var c=l("message");c.data=b.data,k.dispatchEvent(c)},h.onerror=function(b){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onerror",g.url,b),k.dispatchEvent(l("error"))}},1==this.automaticOpen&&this.open(!1),this.send=function(b){if(h)return(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","send",g.url,b),h.send(b);throw"INVALID_STATE_ERR : Pausing to reconnect websocket"},this.close=function(a,b){"undefined"==typeof a&&(a=1e3),i=!0,h&&h.close(a,b)},this.refresh=function(){h&&h.close()}}return a.prototype.onopen=function(){},a.prototype.onclose=function(){},a.prototype.onconnecting=function(){},a.prototype.onmessage=function(){},a.prototype.onerror=function(){},a.debugAll=!1,a.CONNECTING=WebSocket.CONNECTING,a.OPEN=WebSocket.OPEN,a.CLOSING=WebSocket.CLOSING,a.CLOSED=WebSocket.CLOSED,a});</script>
@@ -63,6 +68,10 @@ a{
 
 /* Style the tab content */
 .tabcontent {
+  width:100%;
+  float:left;
+  overflow-y:auto;
+  text-align:left;
   position:absolute;
   bottom:0;
   left:0;
@@ -72,14 +81,10 @@ a{
   border: 1px solid #ccc;
   border-top: none;
 }
-.librarylist{
-  width:100%;
-  float:left;
-  height:100%;
-  overflow-y:auto;
-  text-align:left;
+#HOME{
+  //text-align:center;
 }
-#uplink, .folderlink, .filelink{
+#uplink, .folderlink, .filelink, .plitem{
   background:beige;
   margin:2px;
   font-size:20px;
@@ -99,53 +104,72 @@ a{
   <button class="tablinks">SDCARD</button>
   <button class="tablinks">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
+  <button class="tablinks">SETUP</button>
 </div>
+
 <div id="HOME" class="tabcontent">
   <h3>CURRENT NAME</h3>
   <p>Show currently playing.</p>
 </div>
+
 <div id="PLAYLIST" class="tabcontent">
   <h3>PLAYLIST</h3>
   <p>Show and edit playlist.</p>
 </div>
+
 <div id="SDCARD" class="tabcontent">
   <h3>SDCARD</h3>
   <p>Browse SD card and add to playlist.</p>
 </div>
+
 <div id="LIBRARY" class="tabcontent">
-  <div class="librarylist" id="browselist">browselist</div>
+  <div id="librarylist" id="librarylist">Setup your library in SETUP</div>
 </div>
+
 <div id="WEBRADIO" class="tabcontent">
   <h3>WEBRADIO</h3>
   <p>Browse webradio and add to playlist.</p>
 </div>
+
+<div id="SETUP" class="tabcontent">
+  <h3>SETUP</h3>
+  <p>Library url:<input type="text" id="libraryurl"></p>
+  <p id="libwarning">&nbsp;</p>
+  <p>Script name:<input type="text" id="scriptname"></p>
+</div>
+
 <script>
+var currentpath='/';
+var url="http://";
+if (window.location.hostname)url+=window.location.hostname;
+else url+=debugip;
+
+var ws_host="ws://";
+if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
+else ws_host+=debugip+"/ws";
+
+function updateLibraryFolder(folder,oldfolder){
+  console.log(libraryURL+"?folder="+encodeURIComponent(folder));
+  var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
+  .done(function(data) {
+    $('#LIBRARY').html(data);
+  })
+  .fail(function(){
+    alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
+    currentpath=oldfolder;
+  });
+}
+
 $(document).ready(function(){
-  const debugip="192.168.0.105";  //change this to the esp32 ip for remote running of this page
-  var currentpath='/';
-  $('.tabcontent').css('top',$('.tab').css('height'));
-
-  var url="http://";
-  if (window.location.hostname)url+=window.location.hostname;
-  else url+=debugip;
-
-  var ws_host="ws://";
-  if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
-  else ws_host+=debugip+"/ws";
   var ws=new ReconnectingWebSocket(ws_host);
   ws.onmessage=function(e){
     var command=e.data.split("\n");
     switch(command[0]){
-      case "folder":
-        currentpath=command[1];
-        $('#browselist').html(command[2]);
-        $('#infobar').html("Library: "+currentpath);
-      break;
       case "current":
         $('#current').html(command[1]);
       break;
-      case "updatfav":
-        if($('#favorites').css('color')==="rgb(0, 0, 255)")$('#favorites').click();
+      case "playlist":
+        $('#PLAYLIST').html(command[1]);
       break;
       case "icyurl":
         $('#station').html('<a href="'+command[1]+'" target="_blank">'+$('#station').html()+'</a>');
@@ -153,37 +177,65 @@ $(document).ready(function(){
       default:break;
     }
   };
+
   ws.onopen=function(event){
     console.log('[WebSocket] Connected');
-    ws.send("getfolder/");
   }
   ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);};
   ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message)};
 
+  $('.tabcontent').css('top',$('.tab').css('height'));
+
+  updateLibraryFolder(currentpath);
+  
   $('.tablinks').first().click();
+
+//setup done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   $('.tablinks').on('click',function(){
     $('.tabcontent').hide().eq($(this).index('.tablinks')).show();
   });
 
   $('body').on('click','#uplink',function(){
+    const oldpath = currentpath;
     if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
-    //else currentpath='/';
     if(!currentpath)currentpath='/';
     console.log("new folder ="+currentpath);
-    ws.send("getfolder"+currentpath);
+    updateLibraryFolder(currentpath,oldpath);
   });
 
   $('body').on('click','.folderlink',function(){
+    const oldpath = currentpath;
     if ('/'!=currentpath) currentpath+="/";
     currentpath += $(this).text();
     console.log("new folder ="+currentpath);
-    ws.send("getfolder"+currentpath);
+    updateLibraryFolder(currentpath,oldpath);
   });
 
   $('body').on('click','.filelink',function(){
-    console.log(currentpath+'/'+$(this).text());
-    ws.send("playdirect"+currentpath+'/'+$(this).text());
+    //console.log(libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+    //ws.send("playdirect/"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+    ws.send("toplaylist/"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+  });
+/*
+  $('#libraryurl_DEBUG').on('change',function(){
+    //check if lib exists
+    $.get($(this).val())
+    .done(function(){
+      $('#libwarning').html('trying to connect...');
+      //const oldpath = currentpath;
+      //updateLibraryFolder(currentpath,oldpath);
+      
+    })
+    .fail(function(){
+      $('#libwarning').html('does not exist');
+    });
+
+    //send new library url to esp32
+  });
+*/
+  $('scriptname').on('change',function(){
+    //send new scriptname to esp32
   });
 
 });
