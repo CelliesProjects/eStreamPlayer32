@@ -64,7 +64,7 @@ bool clientConnect{false};
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
-    client->text(playList.toHTML());
+    clientConnect = true;
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
@@ -74,7 +74,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     if (info->final && info->index == 0 && info->len == len) {
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
-        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<String*>(&data)->c_str());
+        ESP_LOGI(TAG, "ws request: %s", reinterpret_cast<String*>(&data)->c_str());
+
         static const String* test = reinterpret_cast<String*>(&data);
         ESP_LOGD(TAG, "test: %s", test->c_str());
 
@@ -155,10 +156,11 @@ void loop() {
   audio.loop();
   ws.cleanupClients();
 
-  if (playList.isUpdated) {
+  if (playList.isUpdated || clientConnect) {
     ws.textAll(playList.toHTML());
     sendCurrentItem();
-    playList.isUpdated = false;
+    if (playList.isUpdated) playList.isUpdated = false;
+    if (clientConnect) clientConnect = false;
   }
 
   if (newUrl.waiting) {
@@ -168,19 +170,17 @@ void loop() {
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     currentItem++;
-    playList.isUpdated = true;
-
     if (playList.size() == currentItem) {
       currentItem = PLAYLIST_END_REACHED;
       ESP_LOGI(TAG, "End of playlist.");
       playerStatus = PAUSED;
-      return;
+    } else {
+      ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
+      playListItem item;
+      playList.get(currentItem, item);
+      audio.connecttohost(urlEncode(item.url));
     }
-
-    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
-    playListItem item;
-    playList.get(currentItem, item);
-    audio.connecttohost(urlEncode(item.url));
+    sendCurrentItem();
   }
   delay(1);
 }
