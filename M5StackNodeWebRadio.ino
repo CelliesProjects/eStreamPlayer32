@@ -27,7 +27,7 @@
 #define I2S_MCLKPIN  0
 #define I2S_MFREQ  (24 * 1000 * 1000)
 
-WM8978 dac;
+//WM8978 dac;
 Audio audio;
 
 playList playList;
@@ -57,8 +57,6 @@ String urlEncode(String s) {
   return s;
 }
 
-// https://stackoverflow.com/questions/17158890/transform-char-array-into-string/40311667#40311667
-
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
@@ -72,7 +70,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     if (info->final && info->index == 0 && info->len == len) {
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
-        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<String*>(&data)->c_str());
+        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<char*>(&data));
         char *pch = strtok((char*)data, "\n");
         if (!strcmp("toplaylist", pch)) {
           pch = strtok(NULL, "\n");
@@ -104,6 +102,8 @@ void setup() {
     ESP_LOGE(TAG, "Could not set %.2fMHz clock signal on GPIO %i", I2S_MFREQ / (1000.0 * 1000.0), I2S_MCLKPIN);
     else
     ESP_LOGI(TAG, "Generating %.2fMHz clock on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
+    //dac.setSPKvol(40); // max 63
+    //dac.setHPvol(16, 16);
   */
   WiFi.setSleep(false);
   WiFi.begin();
@@ -112,8 +112,6 @@ void setup() {
   }
   ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
 
-  dac.setSPKvol(40); /* max 63 */
-  dac.setHPvol(16, 16);
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
 
   ws.onEvent(onEvent);
@@ -165,13 +163,12 @@ void loop() {
       playerStatus = PAUSED;
     } else {
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
-      playListItem item;
+      static playListItem item;
       playList.get(currentItem, item);
-      audio.connecttohost(urlEncode(item.url));
+      if (HTTP == item.type) audio.connecttohost(urlEncode(item.url));  // TODO: check for result?
     }
     sendCurrentItem();
   }
-  delay(1);
 }
 /*
   void audio_info(const char *info) {
