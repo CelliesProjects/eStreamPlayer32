@@ -87,6 +87,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         /* delete an item and adjust currentItem */
         else if (!strcmp("deleteitem", pch)) {
+          if (!playList.size()) return;  //nothing to delete get outta here
           pch = strtok(NULL, "\n");
           int num = atoi(pch);
 
