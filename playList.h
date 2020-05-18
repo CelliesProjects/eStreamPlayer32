@@ -26,6 +26,7 @@ class playList {
     bool add(playListItem item){list.push_back(item);isUpdated=true;}
     bool remove(size_t num) {if (num < list.size()) list.erase(list.begin() + num);isUpdated=true;}
     String toHTML();
+    String toString();
 
   private:
     std::vector<playListItem> list;

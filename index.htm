@@ -79,7 +79,7 @@ a{
   font-size:20px;
   padding:2px 10px;
 }
-.foldericon{
+.foldericon, .icon{
   width:30px;
   height:30px;
 }
@@ -169,7 +169,14 @@ $(document).ready(function(){
         if(-1!=command[1])$('.plitem').eq(command[1]).css("background-color","red");
       break;
       case "playlist":
-        $('#PLAYLIST').html(command[1]);
+        // make a playlist from the newline separated data
+        const previous='<svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg>'; //"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg>';
+        const remove='<svg class="icon deletebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/><path fill="none" d="M0 0h24v24H0V0z"/></svg>';
+        console.log("playlist size:"+(command.length-2));
+        $('#PLAYLIST').html('');
+        for(var i=1;i<command.length-1;i++){
+          $('#PLAYLIST').append('<p class="plitem">'+remove+command[i]+'</p>');
+        }
       break;
       case "icyurl":
         $('#station').html('<a href="'+command[1]+'" target="_blank">'+$('#station').html()+'</a>');
@@ -216,14 +223,19 @@ $(document).ready(function(){
     ws.send("playitem\n"+$(this).index());
   });
 
+  $('body').on('click','.deletebutton',function(e){
+    ws.send("deleteitem\n"+$(this).index('.deletebutton'));
+    e.stopPropagation();
+  });
+
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   $('.tabcontent').css('top',$('.tab').css('height'));
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
 
   updateLibraryFolder(currentpath);
-  
-  
+
+
   $('.tablinks').first().click();
 });
 

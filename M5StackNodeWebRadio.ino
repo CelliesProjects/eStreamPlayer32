@@ -84,6 +84,29 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           currentItem = atoi(pch) - 1;
           playerStatus = PLAYING;
         }
+
+        /* delete an item and adjust currentItem */
+        else if (!strcmp("deleteitem", pch)) {
+          pch = strtok(NULL, "\n");
+          int num = atoi(pch);
+
+          if (playList.size() && num == currentItem) {
+            audio.stopSong();
+            currentItem--;
+            playList.remove(num);
+            return;
+          }
+
+          if (playList.size() && num > -1 && num < playList.size()) {
+            playList.remove(num);
+          } else {
+            return;
+          }
+
+          if (num < currentItem) {
+            currentItem--;
+          }
+        }
       }
     }
   }
@@ -135,7 +158,8 @@ void setup() {
   ESP_LOGI(TAG, "HTTP server started.");
 }
 
-inline void sendCurrentItem() {
+inline __attribute__((always_inline))
+void sendCurrentItem() {
   ws.textAll("currentPLitem\n" + String(currentItem));
 }
 
@@ -144,13 +168,14 @@ void loop() {
   ws.cleanupClients();
 
   if (playList.isUpdated || clientConnect) {
-    ws.textAll(playList.toHTML());
+    ws.textAll(playList.toString());
     sendCurrentItem();
-    if (playList.isUpdated) playList.isUpdated = false;
-    if (clientConnect) clientConnect = false;
+    playList.isUpdated = false;
+    clientConnect = false;
   }
 
   if (newUrl.waiting) {
+    //TODO: Add to end of playlist
     audio.connecttohost(urlEncode(newUrl.url));
     newUrl.waiting = false;
   }
