@@ -213,7 +213,7 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.plitem',function(){
-    ws.send("playitem/"+$(this).index());
+    ws.send("playitem\n"+$(this).index());
   });
 
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

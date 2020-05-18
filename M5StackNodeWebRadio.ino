@@ -3,7 +3,6 @@
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <WM8978.h>
 #include <Audio.h>
-#include <vector>
 
 #include "playList.h"
 #include "index_htm.h"
@@ -33,6 +32,7 @@ Audio audio;
 
 playList playList;
 int currentItem{PLAYLIST_END_REACHED};
+bool clientConnect{false};
 
 enum {
   PAUSED,
@@ -59,8 +59,6 @@ String urlEncode(String s) {
 
 // https://stackoverflow.com/questions/17158890/transform-char-array-into-string/40311667#40311667
 
-bool clientConnect{false};
-
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
@@ -74,24 +72,18 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     if (info->final && info->index == 0 && info->len == len) {
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
-        ESP_LOGI(TAG, "ws request: %s", reinterpret_cast<String*>(&data)->c_str());
-
-        static const String* test = reinterpret_cast<String*>(&data);
-        ESP_LOGD(TAG, "test: %s", test->c_str());
-
-        if (test->startsWith("toplaylist")) {
-          //items are added one at a time
-          //for now we just get a single item
-          static playListItem item;
-          item.url = test->substring(test->indexOf("http"));
-          item.type = HTTP;
-          playList.add(item);
-          ESP_LOGI(TAG, "Playlist add %s", test->substring(test->indexOf("http")).c_str());
+        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<String*>(&data)->c_str());
+        char *pch = strtok((char*)data, "\n");
+        if (!strcmp("toplaylist", pch)) {
+          pch = strtok(NULL, "\n");
+          playList.add({HTTP, pch});
+          ESP_LOGD(TAG, "Added: %s", pch);
         }
-        if (test->startsWith("playitem")) {
-          ESP_LOGD(TAG, "Playlist item %i was pressed", test->substring(9).toInt());
+
+        else if (!strcmp("playitem", pch)) {
+          pch = strtok(NULL, "\n");
           audio.stopSong();
-          currentItem = test->substring(9).toInt() - 1;
+          currentItem = atoi(pch) - 1;
           playerStatus = PLAYING;
         }
       }
@@ -100,14 +92,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 }
 
 void setup() {
-  pinMode(25, OUTPUT);
-  WiFi.setSleep(false);
-  WiFi.begin();
-  while (!WiFi.isConnected()) {
-    delay(10);
-  }
-  ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
   /* // M5Stack wm8978 setup
+    //pinMode(25, OUTPUT);
     if (!dac.begin(I2C_SDA, I2C_SCL)) {
     ESP_LOGE(TAG, "Error setting up dac. System halted");
     while (1) delay(100);
@@ -119,10 +105,16 @@ void setup() {
     else
     ESP_LOGI(TAG, "Generating %.2fMHz clock on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
   */
+  WiFi.setSleep(false);
+  WiFi.begin();
+  while (!WiFi.isConnected()) {
+    delay(10);
+  }
+  ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
+
   dac.setSPKvol(40); /* max 63 */
   dac.setHPvol(16, 16);
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-
 
   ws.onEvent(onEvent);
   server.addHandler(&ws);
@@ -143,9 +135,6 @@ void setup() {
 
   server.begin();
   ESP_LOGI(TAG, "HTTP server started.");
-  //audio.connecttohost("http://192.168.0.50/muziek/De%20Raggende%20Manne/2001%20-%20Het%20Rottigste%20Van%20De%20Raggende%20Manne/35%20-%20Nee%27s%20Niks.mp3");
-  //audio.connecttohost("http://icecast.omroep.nl/radio2-bb-mp3");
-  //audio.connecttohost("http://www.bbc.co.uk/sounds/brand/p089sfrz");
 }
 
 inline void sendCurrentItem() {
