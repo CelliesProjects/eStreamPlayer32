@@ -4,7 +4,7 @@
 <script>
 var libraryURL="http://192.168.0.50/muziek/ESP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.106";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.107";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -41,10 +41,8 @@ a{
 /* Style the tab */
 .tab {
   overflow: hidden;
-  border: 1px solid #ccc;
   background-color: #f1f1f1;
 }
-
 /* Style the buttons that are used to open the tab content */
 .tab button {
   background-color: inherit;
@@ -55,17 +53,10 @@ a{
   padding: 14px 16px;
   transition: 0.3s;
 }
-
 /* Change background color of buttons on hover */
 .tab button:hover {
   background-color: #ddd;
 }
-
-/* Create an active/current tablink class */
-.tab button.active {
-  background-color: #ccc;
-}
-
 /* Style the tab content */
 .tabcontent {
   width:100%;
@@ -78,13 +69,11 @@ a{
   right:0;
   display: none;
   padding: 6px 12px;
-  border: 1px solid #ccc;
+  //border: 1px solid #ccc;
   border-top: none;
 }
-#HOME{
-  //text-align:center;
-}
-#uplink, .folderlink, .filelink, .plitem{
+
+#uplink, .folderlink, .filelink, .plitem, .disconnect{
   background:beige;
   margin:2px;
   font-size:20px;
@@ -93,6 +82,13 @@ a{
 .foldericon{
   width:30px;
   height:30px;
+}
+#controlpanel{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  background:red;
 }
 </style>
 </head>
@@ -138,6 +134,9 @@ a{
   <p>Script name:<input type="text" id="scriptname"></p>
 </div>
 
+<div id="controlpanel">
+  <p>Just some text ipsum lorum etc blabla...</p>
+</div>
 <script>
 var currentpath='/';
 var url="http://";
@@ -165,8 +164,9 @@ $(document).ready(function(){
   ws.onmessage=function(e){
     var command=e.data.split("\n");
     switch(command[0]){
-      case "current":
-        $('#current').html(command[1]);
+      case "currentPLitem":
+        $('.plitem').css("background-color","");
+        if(-1!=command[1])$('.plitem').eq(command[1]).css("background-color","red");
       break;
       case "playlist":
         $('#PLAYLIST').html(command[1]);
@@ -180,19 +180,15 @@ $(document).ready(function(){
 
   ws.onopen=function(event){
     console.log('[WebSocket] Connected');
+    //ws.send("current");
+    ws.send("hello server!");
   }
-  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);};
+  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="disconnect"></p>')};
   ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message)};
 
-  $('.tabcontent').css('top',$('.tab').css('height'));
-
-  updateLibraryFolder(currentpath);
-  
-  $('.tablinks').first().click();
-
-//setup done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
   $('.tablinks').on('click',function(){
+    $('.tablinks').css("background-color","");
+    $(this).css("background-color","red")
     $('.tabcontent').hide().eq($(this).index('.tablinks')).show();
   });
 
@@ -200,7 +196,7 @@ $(document).ready(function(){
     const oldpath = currentpath;
     if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
     if(!currentpath)currentpath='/';
-    console.log("new folder ="+currentpath);
+    console.log("current folder ="+currentpath);
     updateLibraryFolder(currentpath,oldpath);
   });
 
@@ -208,36 +204,27 @@ $(document).ready(function(){
     const oldpath = currentpath;
     if ('/'!=currentpath) currentpath+="/";
     currentpath += $(this).text();
-    console.log("new folder ="+currentpath);
+    console.log("current folder ="+currentpath);
     updateLibraryFolder(currentpath,oldpath);
   });
 
   $('body').on('click','.filelink',function(){
-    //console.log(libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
-    //ws.send("playdirect/"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
-    ws.send("toplaylist/"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
-  });
-/*
-  $('#libraryurl_DEBUG').on('change',function(){
-    //check if lib exists
-    $.get($(this).val())
-    .done(function(){
-      $('#libwarning').html('trying to connect...');
-      //const oldpath = currentpath;
-      //updateLibraryFolder(currentpath,oldpath);
-      
-    })
-    .fail(function(){
-      $('#libwarning').html('does not exist');
-    });
-
-    //send new library url to esp32
-  });
-*/
-  $('scriptname').on('change',function(){
-    //send new scriptname to esp32
+    ws.send("toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
   });
 
+  $('body').on('click','.plitem',function(){
+    ws.send("playitem/"+$(this).index());
+  });
+
+  //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  $('.tabcontent').css('top',$('.tab').css('height'));
+  $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
+
+  updateLibraryFolder(currentpath);
+  
+  
+  $('.tablinks').first().click();
 });
 
 </script>

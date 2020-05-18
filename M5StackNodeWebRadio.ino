@@ -1,30 +1,29 @@
 #include <Preferences.h>
-#include <HTTPClient.h>
-#include <M5Stack.h>
-#include <WM8978.h>
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
+#include <WM8978.h>
 #include <Audio.h>
 #include <vector>
 
 #include "playList.h"
-
 #include "index_htm.h"
-
-#define EXAMPLE_I2S_NUM (i2s_port_t)0
-#define SAMPLE_RATE     11025
-#define BITS_PER_SAMPLE 16
 
 /* M5Stack Node WM8978 I2C pins */
 #define I2C_SDA     21
 #define I2C_SCL     22
 
-/* M5Stack Node I2S pins */
-#define I2S_BCK      5
-#define I2S_WS      13
-#define I2S_DOUT     2
+/* dev board with wm8978 breakout  */
+#define I2S_BCK     21
+#define I2S_WS      17
+#define I2S_DOUT    22
 #define I2S_DIN     34
 
+/* M5Stack Node I2S pins
+  #define I2S_BCK      5
+  #define I2S_WS      13
+  #define I2S_DOUT     2
+  #define I2S_DIN     34
+*/
 /* M5Stack WM8978 MCLK gpio number and frequency */
 #define I2S_MCLKPIN  0
 #define I2S_MFREQ  (24 * 1000 * 1000)
@@ -33,7 +32,12 @@ WM8978 dac;
 Audio audio;
 
 playList playList;
-size_t currentItem{0};
+int currentItem{PLAYLIST_END_REACHED};
+
+enum {
+  PAUSED,
+  PLAYING
+} playerStatus{PLAYING};
 
 struct newUrl {
   bool waiting{false};
@@ -55,10 +59,11 @@ String urlEncode(String s) {
 
 // https://stackoverflow.com/questions/17158890/transform-char-array-into-string/40311667#40311667
 
+bool clientConnect{false};
+
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
-    //send playlist to new client
     client->text(playList.toHTML());
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
@@ -69,20 +74,24 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     if (info->final && info->index == 0 && info->len == len) {
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
-        String* test = reinterpret_cast<String*>(&data);
-        if (test->startsWith("playdirect")) {
-          ESP_LOGI(TAG, "req for direct play: '%s'", test->substring(test->indexOf("http")).c_str());
-          newUrl.url = test->substring(test->indexOf("http"));
-          newUrl.waiting = true;
-        }
+        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<String*>(&data)->c_str());
+        static const String* test = reinterpret_cast<String*>(&data);
+        ESP_LOGD(TAG, "test: %s", test->c_str());
+
         if (test->startsWith("toplaylist")) {
-          ESP_LOGD(TAG, "req for playlist add: '%s'", test->substring(test->indexOf("http")).c_str());
           //items are added one at a time
           //for now we just get a single item
-          playListItem tmp;
-          tmp.url = test->substring(test->indexOf("http"));
-          tmp.type = HTTP;
-          playList.add(tmp);
+          static playListItem item;
+          item.url = test->substring(test->indexOf("http"));
+          item.type = HTTP;
+          playList.add(item);
+          ESP_LOGI(TAG, "Playlist add %s", test->substring(test->indexOf("http")).c_str());
+        }
+        if (test->startsWith("playitem")) {
+          ESP_LOGD(TAG, "Playlist item %i was pressed", test->substring(9).toInt());
+          audio.stopSong();
+          currentItem = test->substring(9).toInt() - 1;
+          playerStatus = PLAYING;
         }
       }
     }
@@ -96,23 +105,22 @@ void setup() {
   while (!WiFi.isConnected()) {
     delay(10);
   }
-  M5.begin();
   ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
-
-  if (!dac.begin(I2C_SDA, I2C_SCL)) {
+  /* // M5Stack wm8978 setup
+    if (!dac.begin(I2C_SDA, I2C_SCL)) {
     ESP_LOGE(TAG, "Error setting up dac. System halted");
     while (1) delay(100);
-  }
-  double retval = dac.setPinMCLK(I2S_MCLKPIN, I2S_MFREQ);
-  if (!retval)
-    ESP_LOGE(TAG, "Could not set %.2fMHz clock signal on GPIO %i", I2S_MFREQ / (1000.0 * 1000.0), I2S_MCLKPIN);
-  else
-    ESP_LOGI(TAG, "Generating %.2fMHz clock on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
+    }
 
+    double retval = dac.setPinMCLK(I2S_MCLKPIN, I2S_MFREQ);
+    if (!retval)
+    ESP_LOGE(TAG, "Could not set %.2fMHz clock signal on GPIO %i", I2S_MFREQ / (1000.0 * 1000.0), I2S_MCLKPIN);
+    else
+    ESP_LOGI(TAG, "Generating %.2fMHz clock on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
+  */
   dac.setSPKvol(40); /* max 63 */
   dac.setHPvol(16, 16);
-
-  audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT, I2S_DIN);
+  audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
 
 
   ws.onEvent(onEvent);
@@ -128,38 +136,61 @@ void setup() {
     request->send(404);
   });
 
-  //server.serveStatic("/", SD, "/");
+  server.serveStatic("/", SD, "/");
 
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 
   server.begin();
   ESP_LOGI(TAG, "HTTP server started.");
-
+  //audio.connecttohost("http://192.168.0.50/muziek/De%20Raggende%20Manne/2001%20-%20Het%20Rottigste%20Van%20De%20Raggende%20Manne/35%20-%20Nee%27s%20Niks.mp3");
+  //audio.connecttohost("http://icecast.omroep.nl/radio2-bb-mp3");
+  //audio.connecttohost("http://www.bbc.co.uk/sounds/brand/p089sfrz");
 }
 
-
+inline void sendCurrentItem() {
+  ws.textAll("currentPLitem\n" + String(currentItem));
+}
 
 void loop() {
-  M5.update();
   audio.loop();
+  ws.cleanupClients();
+
+  if (playList.isUpdated) {
+    ws.textAll(playList.toHTML());
+    sendCurrentItem();
+    playList.isUpdated = false;
+  }
 
   if (newUrl.waiting) {
     audio.connecttohost(urlEncode(newUrl.url));
     newUrl.waiting = false;
   }
 
-  if (playList.isUpdated) {
-    if (!audio.isRunning()) {
-      ESP_LOGI(TAG,"No audio running");
-      playListItem item;
-      playList.get(currentItem, item);
-      audio.connecttohost(urlEncode(item.url));
-    }
-    ws.textAll(playList.toHTML());
-    playList.isUpdated = false;
-  }
-}
+  if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
+    currentItem++;
+    playList.isUpdated = true;
 
-void audio_info(const char *info) {
-  ESP_LOGI(TAG, "audio info: %s", info);
+    if (playList.size() == currentItem) {
+      currentItem = PLAYLIST_END_REACHED;
+      ESP_LOGI(TAG, "End of playlist.");
+      playerStatus = PAUSED;
+      return;
+    }
+
+    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
+    playListItem item;
+    playList.get(currentItem, item);
+    audio.connecttohost(urlEncode(item.url));
+  }
+  delay(1);
 }
+/*
+  void audio_info(const char *info) {
+  ESP_LOGI(TAG, "audio info: %s", info);
+  }
+*/
+/*
+  void audio_lasthost(const char *info) {
+  ESP_LOGI(TAG, "audio EOF: %s", info);
+  }
+*/
