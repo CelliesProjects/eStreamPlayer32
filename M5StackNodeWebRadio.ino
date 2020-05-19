@@ -97,17 +97,31 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             playList.remove(num);
             return;
           }
-
           if (playList.size() && num > -1 && num < playList.size()) {
             playList.remove(num);
           } else {
             return;
           }
-
           if (num < currentItem) {
             currentItem--;
           }
         }
+
+        else if (!strcmp("previous", pch)) {
+          if (currentItem > 0) {
+            currentItem--;
+            currentItem--;
+            audio.stopSong();
+          }
+          else return;
+        }
+
+        else if (!strcmp("next", pch)) {
+          if (currentItem < playList.size() - 1) audio.stopSong();
+          else return;
+        }
+
+
       }
     }
   }
