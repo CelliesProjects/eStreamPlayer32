@@ -8,12 +8,12 @@
   const saveicon='<svg class="foldericon savebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>';
   const folderup='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0V0z"/><path d="M11 9l1.42 1.42L8.83 14H18V4h2v12H8.83l3.59 3.58L11 21l-6-6 6-6z"/></svg>';
 
+header('Access-Control-Allow-Origin: *');
+
 if(isset($_GET["folder"])){
   $path=rawurldecode($_GET["folder"]);
-  if(strpos($path,"..")!==false)die();//no folder traversing
-  //if(substr($path,0,1)==="/")$path=substr($path,1);//no root folder access
+  if(strpos($path,"..")!==false)die("No traversing");//no folder traversing
   if(strlen($path)>1&&substr($path,0,1)==="/")$path=substr($path,1);//no root folder access
-
   if ($path=='/')$path='';
 
   if($path<>''){
@@ -24,7 +24,7 @@ if(isset($_GET["folder"])){
     }
     echo '<div id="uplink">'.folderup.'</div>';
   }
-  $validFiles="*.{[Mm][Pp]3,[Oo][Gg][Gg],[Ww][Aa][Vv]}";
+  $validFiles="*.{[Mm][Pp]3,[Aa][Aa][Cc]}";
   foreach(glob($path."*",GLOB_ONLYDIR)as$filename){
     echo '<div class="folderlink">';
     $pieces=explode('/',$filename);
