@@ -82,7 +82,7 @@ a{
   border-top: none;
 }
 
-#uplink, .folderlink, .filelink, .plitem, .disconnect{
+#uplink, .folderlink, .sdfolderlink, .filelink, .sdfilelink, .plitem, .disconnect{
   background:beige;
   margin:2px;
   font-size:20px;
@@ -110,12 +110,14 @@ a{
 <body class="noselect">
 <div class="tab">
   <p id="infobar">infobar</p>
+  <div id="tabbar">
   <button class="tablinks">HOME</button>
   <button class="tablinks">PLAYLIST</button>
   <button class="tablinks">SDCARD</button>
   <button class="tablinks">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
   <button class="tablinks">SETUP</button>
+  </div>
 </div>
 
 <div id="HOME" class="tabcontent">
@@ -200,6 +202,13 @@ $(document).ready(function(){
           $('#PLAYLIST').append('<p class="plitem">'+removebutton+command[i]+'</p>');
         }
       break;
+      case "sdfolder":
+        console.log("Items in folder:"+(command.length-2));
+        $('#SDCARD').html('');
+        for(var i=1;i<command.length-1;i++){
+          $('#SDCARD').append(command[i]);
+        }
+      break;
       case "icyurl":
         $('#station').html('<a href="'+command[1]+'" target="_blank">'+$('#station').html()+'</a>');
       break;
@@ -236,8 +245,17 @@ $(document).ready(function(){
     updateLibraryFolder(currentpath,oldpath);
   });
 
+  $('body').on('click','.sdfolderlink',function(){
+    console.log("clicked folder:"+$(this).text());
+    ws.send("sdfolder\n"+$(this).text());
+  });
+
   $('body').on('click','.filelink',function(){
     ws.send("toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+  });
+
+  $('body').on('click','.sdfilelink',function(){
+    ws.send("sdtoplaylist\n"+$(this).text());
   });
 
   $('body').on('click','.plitem',function(){

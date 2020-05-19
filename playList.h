@@ -7,11 +7,11 @@
 #define PLAYLIST_END_REACHED -1
 
 enum streamType {
-  HTTP, FS
+  HTTP, SDCARD
 };
 
 struct playListItem {
-  streamType type; //http,fs,
+  streamType type;
   String url;
 };
 
