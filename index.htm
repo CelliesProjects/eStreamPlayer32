@@ -164,14 +164,11 @@ var ws_host="ws://";
 if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
 else ws_host+=debugip+"/ws";
 
-function updateLibraryFolder(folder,oldfolder, restorescroll){
+function updateLibraryFolder(folder,oldfolder,restorescroll){
   var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data);
-    if(restorescroll){
-      console.log("popping folder scroll pos");
-      $('#LIBRARY').scrollTop(scrollPos.pop());
-    }
+    if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
   })
   .fail(function(){
     alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
@@ -239,16 +236,28 @@ $(document).ready(function(){
     ws.send("toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
   });
 
-  $('body').on('click','.sdfilelink',function(){
-    ws.send("sdtoplaylist\n"+$(this).text());
+  $('body').on('click','.addfolder',function(e){
+    console.log("fetching complete folder: "+currentpath+$(this).parent().text());
+    //get the filename items from the clicked folder in an array
+
+
+
+
+
+
+
+    //send items in folder to playlist
+
+    ws.send("alot_toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+"/"+$(this).parent().text()+"\n");
+    e.stopPropagation();
   });
 
   $('body').on('click','.plitem',function(){
-    ws.send("playitem\n"+$(this).index());
+    ws.send("playitem\n"+($(this).index('.plitem')-1));
   });
 
   $('body').on('click','.deletebutton',function(e){
-    ws.send("deleteitem\n"+$(this).index('.deletebutton'));
+    ws.send("deleteitem\n"+($(this).index('.deletebutton')));
     e.stopPropagation();
   });
 

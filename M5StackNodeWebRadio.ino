@@ -45,7 +45,7 @@ enum {
   PLAYLISTEND,
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
-int currentItem{0};
+int currentItem{ -1};
 
 struct newUrl {
   bool waiting{false};
@@ -87,10 +87,37 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           playList.add({HTTP, pch});
           ESP_LOGD(TAG, "Added http url: %s", pch);
           if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
-            currentItem = playList.size() - 1;
+            currentItem = playList.size() - 2;
             playerStatus = PLAYING;
           }
         }
+
+
+
+
+
+
+
+
+        else if (!strcmp("alot_toplaylist", pch)) {
+          pch = strtok(NULL, "\n");
+          while (pch) {
+            ESP_LOGI(TAG, "argument: %s", pch);
+            pch = strtok(NULL, "\n");
+          }
+          return;
+        }
+
+
+
+
+
+
+
+
+
+
+
 
         else if (!strcmp("playitem", pch)) {
           pch = strtok(NULL, "\n");
@@ -108,7 +135,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (num == currentItem) {
             audio.stopSong();
             playList.remove(num);
-            if (!playList.size()){
+            if (!playList.size()) {
               playerStatus = PLAYLISTEND;
               currentItem = 0;
             }
@@ -129,6 +156,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (currentItem > 0) {
             audio.stopSong();
             currentItem--;
+            currentItem--;
           }
           else return;
         }
@@ -137,7 +165,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           if (currentItem < playList.size() - 1) {
             audio.stopSong();
-            currentItem++;
           }
           else return;
         }
@@ -229,7 +256,8 @@ void loop() {
   }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
-    if (currentItem < playList.size()) {
+    if (currentItem < playList.size() - 1) {
+      currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
       static playListItem item;
       playList.get(currentItem, item);
@@ -250,6 +278,7 @@ void loop() {
   }
 */
 void audio_eof_mp3(const char *info) {
+  ESP_LOGI(TAG, "EOF");
   audio.stopSong();
   if (currentItem < playList.size()) currentItem++;
 }
