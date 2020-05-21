@@ -74,48 +74,6 @@ String urlEncode(String s) {
   return s;
 }
 
-// TODO: ombouwen van string naar char *
-String listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
-  File root = fs.open(dirname);
-  if (!root) {
-    ESP_LOGE(TAG, "Failed to open directory");
-    return "<p>Failed to open directory</p>";
-  }
-  if (!root.isDirectory()) {
-    ESP_LOGE(TAG, "Not a directory");
-    return "<p>Not a directory</p>";
-  }
-  String content{"sdfolder\n"};
-  File file = root.openNextFile();
-  while (file) {
-    audio.loop();
-    if (file.isDirectory()) {
-      ESP_LOGD(TAG, "DIR : %s", file.name());
-      content += "<p class=\"sdfolderlink\">" + String(file.name()) + "</p>\n";
-      audio.loop();
-      if (levels) {
-        listDir(fs, file.name(), levels - 1);
-      }
-    } else {
-      static char upperCased[200];
-      int len = strlen(file.name());
-      for (int i = 0; i < len; i++) {
-        upperCased[i] = toupper(file.name()[i]);
-      }
-      upperCased[len] = 0;
-      audio.loop();
-      ESP_LOGD(TAG, "Uppercased filename: %s", upperCased);
-      if (strstr(upperCased, ".MP3") || strstr(upperCased, ".AAC")) {
-        audio.loop();
-        content += "<p class=\"sdfilelink\">" + String(file.name()) + "</p>\n";
-      }
-    }
-    audio.loop();
-    file = root.openNextFile();
-  }
-  return content;
-}
-
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
@@ -167,8 +125,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           int num = atoi(pch);
 
           if (num == currentItem) {
-            playList.remove(num);
             audio.stopSong();
+            playList.remove(num);
+            if (!playList.size()){
+              playerStatus = PLAYLISTEND;
+              currentItem = 0;
+            }
             return;
           }
           if (num > -1 && num < playList.size()) {
@@ -238,7 +200,7 @@ void setup() {
     ESP_LOGI(TAG, "SD Mounted - capacity: %" PRId64 " Bytes - used: %" PRId64 " Bytes", SD.totalBytes(), SD.usedBytes());
   }
 
-  ESP_LOGD(TAG, "Root SD folder:\n%s", listDir(SD, "/", 0).c_str());
+  ESP_LOGD(TAG, "Root SD folder:\n%s", listcDir(SD, "/", 0));
 
   WiFi.begin();
   WiFi.setSleep(false);
@@ -281,10 +243,6 @@ void loop() {
   audio.loop();
   ws.cleanupClients();
 
-  if (clientConnect) {
-    ws.text(lastConnectedClient, listDir(SD, sdcardfolder.c_str(), 0));
-  }
-
   if (playList.isUpdated || clientConnect) {
     ws.textAll(playList.toString());
     sendCurrentItem();
@@ -313,11 +271,6 @@ void loop() {
       playerStatus = PLAYLISTEND;
     }
     sendCurrentItem();
-  }
-
-  if (clientSDfolder.changed) {
-    ws.text(clientSDfolder.id, listDir(SD, clientSDfolder.folder.c_str(), 0));
-    clientSDfolder.changed = false;
   }
 }
 /*

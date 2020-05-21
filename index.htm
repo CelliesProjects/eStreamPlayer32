@@ -113,7 +113,6 @@ a{
   <div id="tabbar">
   <button class="tablinks">HOME</button>
   <button class="tablinks">PLAYLIST</button>
-  <button class="tablinks">SDCARD</button>
   <button class="tablinks">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
   <button class="tablinks">SETUP</button>
@@ -128,11 +127,6 @@ a{
 <div id="PLAYLIST" class="tabcontent">
   <h3>PLAYLIST</h3>
   <p>Show and edit playlist.</p>
-</div>
-
-<div id="SDCARD" class="tabcontent">
-  <h3>SDCARD</h3>
-  <p>Browse SD card and add to playlist.</p>
 </div>
 
 <div id="LIBRARY" class="tabcontent">
@@ -200,13 +194,6 @@ $(document).ready(function(){
         console.log("Items in playlist:"+(command.length-2));
         for(var i=1;i<command.length-1;i++){
           $('#PLAYLIST').append('<p class="plitem">'+removebutton+command[i]+'</p>');
-        }
-      break;
-      case "sdfolder":
-        console.log("Items in folder:"+(command.length-2));
-        $('#SDCARD').html('');
-        for(var i=1;i<command.length-1;i++){
-          $('#SDCARD').append(command[i]);
         }
       break;
       case "icyurl":
