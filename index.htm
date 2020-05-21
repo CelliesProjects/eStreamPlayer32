@@ -155,6 +155,7 @@ a{
 </div>
 <script>
 var currentpath='/';
+var scrollPos=[]; //array to keep track of nested folders
 var url="http://";
 if (window.location.hostname)url+=window.location.hostname;
 else url+=debugip;
@@ -163,11 +164,14 @@ var ws_host="ws://";
 if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
 else ws_host+=debugip+"/ws";
 
-function updateLibraryFolder(folder,oldfolder){
-  console.log(libraryURL+"?folder="+encodeURIComponent(folder));
+function updateLibraryFolder(folder,oldfolder, restorescroll){
   var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data);
+    if(restorescroll){
+      console.log("popping folder scroll pos");
+      $('#LIBRARY').scrollTop(scrollPos.pop());
+    }
   })
   .fail(function(){
     alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
@@ -220,21 +224,15 @@ $(document).ready(function(){
     const oldpath = currentpath;
     if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
     if(!currentpath)currentpath='/';
-    console.log("current folder ="+currentpath);
-    updateLibraryFolder(currentpath,oldpath);
+    updateLibraryFolder(currentpath,oldpath,true);
   });
 
   $('body').on('click','.folderlink',function(){
     const oldpath = currentpath;
     if ('/'!=currentpath) currentpath+="/";
     currentpath += $(this).text();
-    console.log("current folder ="+currentpath);
+    scrollPos.push($('#LIBRARY').scrollTop());
     updateLibraryFolder(currentpath,oldpath);
-  });
-
-  $('body').on('click','.sdfolderlink',function(){
-    console.log("clicked folder:"+$(this).text());
-    ws.send("sdfolder\n"+$(this).text());
   });
 
   $('body').on('click','.filelink',function(){
