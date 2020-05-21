@@ -43,8 +43,7 @@ enum {
   PAUSED,
   PLAYING,
   PLAYLISTEND,
-  //PLAYLISTEMPTY
-} playerStatus{PLAYING};
+} playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
 int currentItem{0};
 
@@ -53,13 +52,6 @@ struct newUrl {
   String url;
 } newUrl;
 
-uint32_t lastConnectedClient;
-String sdcardfolder{"/"};
-struct {
-  uint32_t id;
-  String folder;
-  bool changed{false};
-} clientSDfolder;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -78,7 +70,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
     clientConnect = true;
-    lastConnectedClient = client->id();
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
@@ -95,16 +86,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           playList.add({HTTP, pch});
           ESP_LOGD(TAG, "Added http url: %s", pch);
-          if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
-            currentItem = playList.size() - 1;
-            playerStatus = PLAYING;
-          }
-        }
-
-        if (!strcmp("sdtoplaylist", pch)) {
-          pch = strtok(NULL, "\n");
-          playList.add({SDCARD, pch});
-          ESP_LOGD(TAG, "Added sd file: %s", pch);
           if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
             currentItem = playList.size() - 1;
             playerStatus = PLAYING;
@@ -160,16 +141,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           else return;
         }
-
-        else if (!strcmp("sdfolder", pch)) {
-          pch = strtok(NULL, "\n");
-          ESP_LOGI(TAG, "client %i changed sdfolder: %s", client->id(), pch);
-          clientSDfolder.id = client->id();
-          clientSDfolder.folder = pch;
-          clientSDfolder.changed = true;
-        }
-
-
       }
     }
   }
