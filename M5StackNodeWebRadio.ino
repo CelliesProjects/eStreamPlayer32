@@ -37,12 +37,13 @@
 Audio audio;
 
 playList playList;
-int currentItem{PLAYLIST_END_REACHED};
+int currentItem{-1};
 bool clientConnect{false};
 
 enum {
   PAUSED,
-  PLAYING
+  PLAYING,
+  PLAYLISTEND
 } playerStatus{PLAYING};
 
 struct newUrl {
@@ -129,16 +130,25 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         data[len] = 0;
         ESP_LOGI(TAG, "ws request: %s", reinterpret_cast<char*>(data));
         char *pch = strtok((char*)data, "\n");
+
         if (!strcmp("toplaylist", pch)) {
           pch = strtok(NULL, "\n");
           playList.add({HTTP, pch});
           ESP_LOGD(TAG, "Added http url: %s", pch);
+          if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
+            currentItem = playList.size() - 2;
+            playerStatus = PLAYING;
+          }
         }
 
         if (!strcmp("sdtoplaylist", pch)) {
           pch = strtok(NULL, "\n");
           playList.add({SDCARD, pch});
           ESP_LOGD(TAG, "Added sd file: %s", pch);
+          if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
+            currentItem = playList.size() - 2;
+            playerStatus = PLAYING;
+          }
         }
 
         else if (!strcmp("playitem", pch)) {
@@ -286,9 +296,9 @@ void loop() {
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     currentItem++;
     if (playList.size() == currentItem) {
-      currentItem = PLAYLIST_END_REACHED;
+      currentItem = -1;
       ESP_LOGI(TAG, "End of playlist.");
-      playerStatus = PAUSED;
+      playerStatus = PLAYLISTEND;
     } else {
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
       static playListItem item;
