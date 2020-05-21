@@ -37,14 +37,16 @@
 Audio audio;
 
 playList playList;
-int currentItem{-1};
 bool clientConnect{false};
 
 enum {
   PAUSED,
   PLAYING,
-  PLAYLISTEND
+  PLAYLISTEND,
+  //PLAYLISTEMPTY
 } playerStatus{PLAYING};
+
+int currentItem{0};
 
 struct newUrl {
   bool waiting{false};
@@ -136,7 +138,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           playList.add({HTTP, pch});
           ESP_LOGD(TAG, "Added http url: %s", pch);
           if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
-            currentItem = playList.size() - 2;
+            currentItem = playList.size() - 1;
             playerStatus = PLAYING;
           }
         }
@@ -146,15 +148,15 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           playList.add({SDCARD, pch});
           ESP_LOGD(TAG, "Added sd file: %s", pch);
           if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
-            currentItem = playList.size() - 2;
+            currentItem = playList.size() - 1;
             playerStatus = PLAYING;
           }
         }
 
         else if (!strcmp("playitem", pch)) {
           pch = strtok(NULL, "\n");
+          currentItem = atoi(pch);
           audio.stopSong();
-          currentItem = atoi(pch) - 1;
           playerStatus = PLAYING;
         }
 
@@ -164,13 +166,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           int num = atoi(pch);
 
-          if (playList.size() && num == currentItem) {
-            audio.stopSong();
-            currentItem--;
+          if (num == currentItem) {
             playList.remove(num);
+            audio.stopSong();
             return;
           }
-          if (playList.size() && num > -1 && num < playList.size()) {
+          if (num > -1 && num < playList.size()) {
             playList.remove(num);
           } else {
             return;
@@ -181,16 +182,20 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         }
 
         else if (!strcmp("previous", pch)) {
+          if (PLAYLISTEND == playerStatus) return;
           if (currentItem > 0) {
-            currentItem--;
-            currentItem--;
             audio.stopSong();
+            currentItem--;
           }
           else return;
         }
 
         else if (!strcmp("next", pch)) {
-          if (currentItem < playList.size() - 1) audio.stopSong();
+          if (PLAYLISTEND == playerStatus) return;
+          if (currentItem < playList.size() - 1) {
+            audio.stopSong();
+            currentItem++;
+          }
           else return;
         }
 
@@ -268,7 +273,8 @@ void setup() {
 
 inline __attribute__((always_inline))
 void sendCurrentItem() {
-  ws.textAll("currentPLitem\n" + String(currentItem));
+  if (playerStatus == PLAYLISTEND) ws.textAll("currentPLitem\n-1");
+  else ws.textAll("currentPLitem\n" + String(currentItem));
 }
 
 void loop() {
@@ -294,23 +300,22 @@ void loop() {
   }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
-    currentItem++;
-    if (playList.size() == currentItem) {
-      currentItem = -1;
-      ESP_LOGI(TAG, "End of playlist.");
-      playerStatus = PLAYLISTEND;
-    } else {
+    if (currentItem < playList.size()) {
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
       static playListItem item;
       playList.get(currentItem, item);
       if (HTTP == item.type) audio.connecttohost(urlEncode(item.url));  // TODO: check for result?
       if (SDCARD == item.type) audio.connecttoSD(item.url);             // TODO: check for result?
+
+    } else {
+      currentItem = 0;
+      ESP_LOGI(TAG, "End of playlist.");
+      playerStatus = PLAYLISTEND;
     }
     sendCurrentItem();
   }
 
   if (clientSDfolder.changed) {
-    //send changed folder to client
     ws.text(clientSDfolder.id, listDir(SD, clientSDfolder.folder.c_str(), 0));
     clientSDfolder.changed = false;
   }
@@ -322,6 +327,7 @@ void loop() {
 */
 void audio_eof_mp3(const char *info) {
   audio.stopSong();
+  if (currentItem < playList.size()) currentItem++;
 }
 /*
   void audio_lasthost(const char *info) {

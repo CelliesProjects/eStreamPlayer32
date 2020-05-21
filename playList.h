@@ -4,7 +4,6 @@
 #include <Arduino.h>
 #include <vector>
 
-#define PLAYLIST_END_REACHED -1
 
 enum streamType {
   HTTP, SDCARD
