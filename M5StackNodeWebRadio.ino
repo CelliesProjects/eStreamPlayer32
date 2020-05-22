@@ -91,6 +91,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             currentItem = playList.size() - 2;
             playerStatus = PLAYING;
           }
+          playList.isUpdated = true;
         }
 
         if (!strcmp("alot_toplaylist", pch)) {
@@ -169,8 +170,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         }
       }
     } else {
-      static char* buffer;
       //message is comprised of multiple frames or the frame is split into multiple packets
+      static char* buffer;
       if (info->index == 0) {
         if (info->num == 0)
           ESP_LOGD(TAG, "ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
@@ -183,7 +184,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
       ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
       //move the data to the buffer
       memcpy(buffer + info->index, data, len);
-      ESP_LOGD(TAG, "Moved %i bytes to buffer pos %llu", len, info->index);
+      ESP_LOGD(TAG, "Moved %i bytes to buffer new pos = %llu", len, info->index);
 
       if ((info->index + len) == info->len) {
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] end[%llu]", server->url(), client->id(), info->num, info->len);
@@ -324,6 +325,7 @@ void loop() {
   ws.cleanupClients();
 
   if (playList.isUpdated || clientConnect) {
+    ESP_LOGI(TAG, "Free mem: %i", ESP.getFreeHeap());
     ws.textAll(playList.toString());
     sendCurrentItem();
     playList.isUpdated = false;
