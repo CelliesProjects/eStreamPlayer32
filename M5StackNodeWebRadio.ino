@@ -52,7 +52,6 @@ struct newUrl {
   String url;
 } newUrl;
 
-
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 Preferences preferences;
@@ -65,8 +64,6 @@ String urlEncode(String s) {
   s.replace("'", "%27");
   return s;
 }
-
-char* buffer = nullptr;
 
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
@@ -96,16 +93,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
         }
 
-
-
-
         if (!strcmp("alot_toplaylist", pch)) {
-          //ESP_LOGI(TAG, "extended playlist");
-
           pch = strtok(NULL, "\n");
           int previousSize = playList.size();
           while (pch) {
-            //ESP_LOGI(TAG, "argument: %s", pch);
+            ESP_LOGD(TAG, "argument: %s", pch);
             playList.add({HTTP, pch});
             pch = strtok(NULL, "\n");
           }
@@ -117,34 +109,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           playList.isUpdated = true;
         }
 
-        /*
-
-                else if (!strcmp("alot_toplaylist", pch)) {
-                  ESP_LOGI(TAG, "length: %i", len);
-                  pch = strtok(NULL, "\n");
-                  while (pch) {
-                    ESP_LOGD(TAG, "argument: %s", pch);
-                    pch = strtok(NULL, "\n");
-                  }
-                  return;
-                }
-        */
-
-
         else if (!strcmp("clearlist", pch)) {
           audio.stopSong();
           playList.clear();
           currentItem = -1;
           playerStatus = PLAYLISTEND;
         }
-
-
-
-
-
-
-
-
 
         else if (!strcmp("playitem", pch)) {
           pch = strtok(NULL, "\n");
@@ -163,9 +133,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             audio.stopSong();
             playList.remove(num);
             if (!playList.size()) {
+              currentItem = -1;
               playerStatus = PLAYLISTEND;
-              currentItem = 0;
+              return;
             }
+            currentItem--;
             return;
           }
           if (num > -1 && num < playList.size()) {
@@ -197,21 +169,21 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         }
       }
     } else {
+      static char* buffer;
       //message is comprised of multiple frames or the frame is split into multiple packets
-
       if (info->index == 0) {
         if (info->num == 0)
           ESP_LOGD(TAG, "ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
 
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
         //allocate info->len bytes of memory
-        buffer = (char*)malloc(info->len);
+        buffer = new char[info->len + 1];  //TODO: check if allocation succeeds
       }
 
       ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
       //move the data to the buffer
       memcpy(buffer + info->index, data, len);
-      ESP_LOGI(TAG, "Moved %i bytes to buffer pos %llu", len, info->index);
+      ESP_LOGD(TAG, "Moved %i bytes to buffer pos %llu", len, info->index);
 
       if ((info->index + len) == info->len) {
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] end[%llu]", server->url(), client->id(), info->num, info->len);
@@ -220,21 +192,17 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
           //we should have the complete message now stored in buffer
           buffer[info->len] = 0;
-          //ESP_LOGI(TAG, "complete multi frame request: %s", reinterpret_cast<char*>(buffer));
+          ESP_LOGD(TAG, "complete multi frame request: %s", reinterpret_cast<char*>(buffer));
 
           //proces the data
-
-
-
           char* pch = strtok(buffer, "\n");
-
           if (!strcmp("alot_toplaylist", pch)) {
-            //ESP_LOGI(TAG, "extended playlist");
+            ESP_LOGD(TAG, "multi frame playlist");
 
             pch = strtok(NULL, "\n");
             int previousSize = playList.size();
             while (pch) {
-              //ESP_LOGI(TAG, "argument: %s", pch);
+              ESP_LOGD(TAG, "argument: %s", pch);
               playList.add({HTTP, pch});
               pch = strtok(NULL, "\n");
             }
@@ -244,49 +212,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               playerStatus = PLAYING;
             }
             playList.isUpdated = true;
+            delete []buffer;
           }
-
-
-
-
-
-
-          if (info->message_opcode == WS_TEXT)
-            client->text("I got your text message");
-          else
-            client->binary("I got your binary message");
         }
       }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   }
 }
 
@@ -398,7 +328,6 @@ void loop() {
     sendCurrentItem();
     playList.isUpdated = false;
     clientConnect = false;
-    //if (nullptr != buffer) free (buffer);
   }
 
 
