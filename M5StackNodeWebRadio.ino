@@ -100,6 +100,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
 
         else if (!strcmp("alot_toplaylist", pch)) {
+          ESP_LOGI(TAG, "length: %i", len);
           pch = strtok(NULL, "\n");
           while (pch) {
             ESP_LOGI(TAG, "argument: %s", pch);
@@ -110,6 +111,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
 
 
+        else if (!strcmp("clearlist", pch)) {
+          audio.stopSong();
+          playList.clear();
+          currentItem = -1;
+          playerStatus = PLAYLISTEND;
+        }
 
 
 
@@ -173,6 +180,29 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
   }
 }
 
+void startWebServer(void * pvParameters) {
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+
+  server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_htm, index_htm_len);
+    request->send(response);
+  });
+
+  server.onNotFound([](AsyncWebServerRequest * request) {
+    ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
+    request->send(404);
+  });
+
+  //server.serveStatic("/", SD, "/");
+
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+
+  server.begin();
+  ESP_LOGI(TAG, "HTTP server started.");
+  vTaskDelete(NULL);
+}
+
 void setup() {
   /* // M5Stack wm8978 setup
     //pinMode(25, OUTPUT);
@@ -209,26 +239,38 @@ void setup() {
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
 
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
+  //start webserver on other core
 
-  server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_htm, index_htm_len);
-    request->send(response);
-  });
+  xTaskCreatePinnedToCore(
+    startWebServer,                       /* Function to implement the task */
+    "http_ws",                     /* Name of the task */
+    3000,                           /* Stack size in words */
+    NULL,                           /* Task input parameter */
+    5,               /* Priority of the task */
+    NULL,                           /* Task handle. */
+    0);
 
-  server.onNotFound([](AsyncWebServerRequest * request) {
-    ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
-    request->send(404);
-  });
+  /*
+    ws.onEvent(onEvent);
+    server.addHandler(&ws);
 
-  //server.serveStatic("/", SD, "/");
+    server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_htm, index_htm_len);
+      request->send(response);
+    });
 
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+    server.onNotFound([](AsyncWebServerRequest * request) {
+      ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
+      request->send(404);
+    });
 
-  server.begin();
-  ESP_LOGI(TAG, "HTTP server started.");
+    //server.serveStatic("/", SD, "/");
 
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+
+    server.begin();
+    ESP_LOGI(TAG, "HTTP server started.");
+  */
 }
 
 inline __attribute__((always_inline))

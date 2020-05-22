@@ -24,6 +24,7 @@ class playList {
     bool get(size_t num, playListItem &item){if (num < list.size()) item = list[num];}
     bool add(playListItem item){list.push_back(item);isUpdated=true;}
     bool remove(size_t num) {if (num < list.size()) list.erase(list.begin() + num);isUpdated=true;}
+    void clear(){list.clear();isUpdated=true;}
     String toHTML();
     String toString();
 

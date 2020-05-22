@@ -236,21 +236,80 @@ $(document).ready(function(){
     ws.send("toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
   });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   $('body').on('click','.addfolder',function(e){
-    console.log("fetching complete folder: "+currentpath+$(this).parent().text());
-    //get the filename items from the clicked folder in an array
+    console.log("Location:"+libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length)));
+    var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
+    console.log("Need to ask the server nicely for: "+currentpath.substring(1)+"/"+$(this).parent().text());
+    var requestpath=encodeURIComponent(currentpath.substring(1))+"/"+encodeURIComponent($(this).parent().text());
+    if (!requestpath.startsWith('/')) requestpath = '/' + requestpath;
+    let content="alot_toplaylist\n";
+    $.get(libraryURL+"?folder="+encodeURIComponent(currentpath.substring(1))+"/"+encodeURIComponent($(this).parent().text()))
+    .done(function(data){
+      //make an invisible navList
+      const nList=document.createElement("div");
+      nList.style.display="none";
+      nList.id="invisFolder";
+      document.body.appendChild(nList);
+      $(nList).html(data);
+      //add each .filelink from the invisible navList
+      $('#invisFolder .filelink').each(function(index,item){
+        console.log(location+requestpath+'/'+encodeURIComponent($(this).text()));
+        content+=location+requestpath+'/'+encodeURIComponent($(this).text())+"\n";
+        //ws.send("toplaylist\n"+location+requestpath+'/'+$(this).text()+"\n");
 
-
-
-
-
-
-
-    //send items in folder to playlist
-
-    ws.send("alot_toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+"/"+$(this).parent().text()+"\n");
+      });
+      document.body.removeChild(nList);
+      ws.send(content);
+    });
     e.stopPropagation();
   });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   $('body').on('click','.plitem',function(){
     ws.send("playitem\n"+($(this).index('.plitem')-1));
@@ -271,6 +330,11 @@ $(document).ready(function(){
 
   $('body').on('click','#nextbutton',function(){
     ws.send("next\n");
+  });
+
+  $('body').on('click','#clearbutton',function(){
+    //clear the playlist, stop current song etc.
+    ws.send("clearlist\n");
   });
 
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
