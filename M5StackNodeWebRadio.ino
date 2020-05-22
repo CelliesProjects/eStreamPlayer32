@@ -66,6 +66,8 @@ String urlEncode(String s) {
   return s;
 }
 
+char* buffer = nullptr;
+
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
@@ -76,10 +78,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     ESP_LOGE(TAG, "ws[%s][%u] error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
   } else if (type == WS_EVT_DATA) {
     AwsFrameInfo * info = (AwsFrameInfo*)arg;
+
+    // here all data is contained in a single packet
     if (info->final && info->index == 0 && info->len == len) {
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
-        ESP_LOGI(TAG, "ws request: %s", reinterpret_cast<char*>(data));
+        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<char*>(data));
         char *pch = strtok((char*)data, "\n");
 
         if (!strcmp("toplaylist", pch)) {
@@ -95,20 +99,36 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
 
 
+        if (!strcmp("alot_toplaylist", pch)) {
+          //ESP_LOGI(TAG, "extended playlist");
 
-
-
-
-        else if (!strcmp("alot_toplaylist", pch)) {
-          ESP_LOGI(TAG, "length: %i", len);
           pch = strtok(NULL, "\n");
+          int previousSize = playList.size();
           while (pch) {
-            ESP_LOGI(TAG, "argument: %s", pch);
+            //ESP_LOGI(TAG, "argument: %s", pch);
+            playList.add({HTTP, pch});
             pch = strtok(NULL, "\n");
           }
-          return;
+          // start playing at the correct position if not already playing
+          if (!audio.isRunning()) {
+            currentItem = previousSize - 1;
+            playerStatus = PLAYING;
+          }
+          playList.isUpdated = true;
         }
 
+        /*
+
+                else if (!strcmp("alot_toplaylist", pch)) {
+                  ESP_LOGI(TAG, "length: %i", len);
+                  pch = strtok(NULL, "\n");
+                  while (pch) {
+                    ESP_LOGD(TAG, "argument: %s", pch);
+                    pch = strtok(NULL, "\n");
+                  }
+                  return;
+                }
+        */
 
 
         else if (!strcmp("clearlist", pch)) {
@@ -176,7 +196,97 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           else return;
         }
       }
+    } else {
+      //message is comprised of multiple frames or the frame is split into multiple packets
+
+      if (info->index == 0) {
+        if (info->num == 0)
+          ESP_LOGD(TAG, "ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
+
+        ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
+        //allocate info->len bytes of memory
+        buffer = (char*)malloc(info->len);
+      }
+
+      ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
+      //move the data to the buffer
+      memcpy(buffer + info->index, data, len);
+      ESP_LOGI(TAG, "Moved %i bytes to buffer pos %llu", len, info->index);
+
+      if ((info->index + len) == info->len) {
+        ESP_LOGD(TAG, "ws[%s][%u] frame[%u] end[%llu]", server->url(), client->id(), info->num, info->len);
+        if (info->final) {
+          ESP_LOGD(TAG, "ws[%s][%u] %s-message end", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
+
+          //we should have the complete message now stored in buffer
+          buffer[info->len] = 0;
+          //ESP_LOGI(TAG, "complete multi frame request: %s", reinterpret_cast<char*>(buffer));
+
+          //proces the data
+
+
+
+          char* pch = strtok(buffer, "\n");
+
+          if (!strcmp("alot_toplaylist", pch)) {
+            //ESP_LOGI(TAG, "extended playlist");
+
+            pch = strtok(NULL, "\n");
+            int previousSize = playList.size();
+            while (pch) {
+              //ESP_LOGI(TAG, "argument: %s", pch);
+              playList.add({HTTP, pch});
+              pch = strtok(NULL, "\n");
+            }
+            // start playing at the correct position if not already playing
+            if (!audio.isRunning()) {
+              currentItem = previousSize - 1;
+              playerStatus = PLAYING;
+            }
+            playList.isUpdated = true;
+          }
+
+
+
+
+
+
+          if (info->message_opcode == WS_TEXT)
+            client->text("I got your text message");
+          else
+            client->binary("I got your binary message");
+        }
+      }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }
 }
 
@@ -238,39 +348,39 @@ void setup() {
   ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-
-  //start webserver on other core
-
-  xTaskCreatePinnedToCore(
-    startWebServer,                       /* Function to implement the task */
-    "http_ws",                     /* Name of the task */
-    3000,                           /* Stack size in words */
-    NULL,                           /* Task input parameter */
-    5,               /* Priority of the task */
-    NULL,                           /* Task handle. */
-    0);
-
   /*
-    ws.onEvent(onEvent);
-    server.addHandler(&ws);
+    //start webserver on other core
 
-    server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_htm, index_htm_len);
-      request->send(response);
-    });
-
-    server.onNotFound([](AsyncWebServerRequest * request) {
-      ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
-      request->send(404);
-    });
-
-    //server.serveStatic("/", SD, "/");
-
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-
-    server.begin();
-    ESP_LOGI(TAG, "HTTP server started.");
+    xTaskCreatePinnedToCore(
+      startWebServer,
+      "http_ws",
+      8000,
+      NULL,
+      5,
+      NULL,
+      0);
   */
+
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+
+  server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_htm, index_htm_len);
+    request->send(response);
+  });
+
+  server.onNotFound([](AsyncWebServerRequest * request) {
+    ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
+    request->send(404);
+  });
+
+  //server.serveStatic("/", SD, "/");
+
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+
+  server.begin();
+  ESP_LOGI(TAG, "HTTP server started.");
+
 }
 
 inline __attribute__((always_inline))
@@ -288,6 +398,7 @@ void loop() {
     sendCurrentItem();
     playList.isUpdated = false;
     clientConnect = false;
+    //if (nullptr != buffer) free (buffer);
   }
 
 

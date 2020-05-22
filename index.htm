@@ -273,7 +273,7 @@ $(document).ready(function(){
       //add each .filelink from the invisible navList
       $('#invisFolder .filelink').each(function(index,item){
         console.log(location+requestpath+'/'+encodeURIComponent($(this).text()));
-        content+=location+requestpath+'/'+encodeURIComponent($(this).text())+"\n";
+        content+=location+requestpath+'/'+$(this).text()+"\n";
         //ws.send("toplaylist\n"+location+requestpath+'/'+$(this).text()+"\n");
 
       });
