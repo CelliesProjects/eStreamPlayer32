@@ -37,7 +37,11 @@
 Audio audio;
 
 playList playList;
-bool clientConnect{false};
+
+struct {
+  uint32_t id;
+  bool connected{false};
+} newClient;
 
 enum {
   PAUSED,
@@ -68,7 +72,8 @@ String urlEncode(String s) {
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
-    clientConnect = true;
+    newClient.connected = true;
+    newClient.id = client->id();
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
@@ -80,30 +85,19 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     if (info->final && info->index == 0 && info->len == len) {
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
+
         ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<char*>(data));
+
         char *pch = strtok((char*)data, "\n");
-
         if (!strcmp("toplaylist", pch)) {
-          pch = strtok(NULL, "\n");
-          playList.add({HTTP, pch});
-          ESP_LOGI(TAG, "Added a single item to playlist");
-          client->printf("message\nAdded 1 item to playlist");
-          if (!audio.isRunning() && PAUSED != playerStatus) {
-            currentItem = playList.size() - 2;
-            playerStatus = PLAYING;
-          }
-          playList.isUpdated = true;
-        }
-
-        if (!strcmp("alot_toplaylist", pch)) {
-          pch = strtok(NULL, "\n");
           int previousSize = playList.size();
+          pch = strtok(NULL, "\n");
           while (pch) {
             ESP_LOGD(TAG, "argument: %s", pch);
             playList.add({HTTP, pch});
             pch = strtok(NULL, "\n");
           }
-          ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
+          ESP_LOGI(TAG, "Added %i items to playlist", playList.size() - previousSize);
           client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
           // start playing at the correct position if not already playing
           if (!audio.isRunning() && PAUSED != playerStatus) {
@@ -127,12 +121,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           playerStatus = PLAYING;
         }
 
-        /* delete an item and adjust currentItem */
         else if (!strcmp("deleteitem", pch)) {
-          if (!playList.size()) return;  //nothing to delete get outta here
+          if (!playList.size()) return;
           pch = strtok(NULL, "\n");
           int num = atoi(pch);
-
           if (num == currentItem) {
             audio.stopSong();
             playList.remove(num);
@@ -193,7 +185,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
       ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
       //move the data to the buffer
       memcpy(buffer + info->index, data, len);
-      ESP_LOGD(TAG, "Moved %i bytes to buffer new pos = %llu", len, info->index);
+      ESP_LOGD(TAG, "Copied %i bytes to buffer at pos %llu", len, info->index);
 
       if ((info->index + len) == info->len) {
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] end[%llu]", server->url(), client->id(), info->num, info->len);
@@ -204,13 +196,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           buffer[info->len] = 0;
           ESP_LOGD(TAG, "complete multi frame request: %s", reinterpret_cast<char*>(buffer));
 
-          //proces the data
           char* pch = strtok(buffer, "\n");
-          if (!strcmp("alot_toplaylist", pch)) {
+          if (!strcmp("toplaylist", pch)) {
             ESP_LOGD(TAG, "multi frame playlist");
 
-            pch = strtok(NULL, "\n");
             int previousSize = playList.size();
+            pch = strtok(NULL, "\n");
             while (pch) {
               ESP_LOGD(TAG, "argument: %s", pch);
               playList.add({HTTP, pch});
@@ -327,25 +318,29 @@ void setup() {
 
 inline __attribute__((always_inline))
 void sendCurrentItem() {
-  if (playerStatus == PLAYLISTEND) ws.textAll("currentPLitem\n-1");
-  else ws.textAll("currentPLitem\n" + String(currentItem));
+  ws.textAll("currentPLitem\n" + String(currentItem));
 }
 
 void loop() {
   audio.loop();
+
   ws.cleanupClients();
 
-  if (playList.isUpdated || clientConnect) {
+  if (playList.isUpdated) {
     ESP_LOGI(TAG, "Free mem: %i", ESP.getFreeHeap());
-    ws.textAll(playList.toString());
+    ws.textAll(playList.toClientString());
     sendCurrentItem();
     playList.isUpdated = false;
-    clientConnect = false;
   }
 
+  if (newClient.connected) {
+    ws.text(newClient.id, playList.toClientString());
+    ws.text(newClient.id, "currentPLitem\n" + String(currentItem));
+    newClient.connected = false;
+  }
 
   if (newUrl.waiting) {
-    //TODO: Add to end of playlist
+    //TODO: Add to end of playlist (((( OR PLAY 'INBETWEEN' OR 'PREVIEW' MODE ))))
     audio.connecttohost(urlEncode(newUrl.url));
     newUrl.waiting = false;
   }
