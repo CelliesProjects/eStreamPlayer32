@@ -236,30 +236,11 @@ $(document).ready(function(){
     ws.send("toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
   });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   $('body').on('click','.addfolder',function(e){
     console.log("Location:"+libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length)));
     var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
     console.log("Need to ask the server nicely for: "+currentpath.substring(1)+"/"+$(this).parent().text());
-    var requestpath=encodeURIComponent(currentpath.substring(1))+"/"+encodeURIComponent($(this).parent().text());
+    var requestpath=currentpath.substring(1)+"/"+$(this).parent().text();
     if (!requestpath.startsWith('/')) requestpath = '/' + requestpath;
     let content="alot_toplaylist\n";
     $.get(libraryURL+"?folder="+encodeURIComponent(currentpath.substring(1))+"/"+encodeURIComponent($(this).parent().text()))
@@ -272,44 +253,14 @@ $(document).ready(function(){
       $(nList).html(data);
       //add each .filelink from the invisible navList
       $('#invisFolder .filelink').each(function(index,item){
-        console.log(location+requestpath+'/'+encodeURIComponent($(this).text()));
+        console.log(location+requestpath+'/'+$(this).text());
         content+=location+requestpath+'/'+$(this).text()+"\n";
-        //ws.send("toplaylist\n"+location+requestpath+'/'+$(this).text()+"\n");
-
       });
       document.body.removeChild(nList);
       ws.send(content);
     });
     e.stopPropagation();
   });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   $('body').on('click','.plitem',function(){
     ws.send("playitem\n"+($(this).index('.plitem')-1));
@@ -324,6 +275,10 @@ $(document).ready(function(){
     ws.send("pause\n");
   });
 
+  $('body').on('click','#playbutton',function(){
+    ws.send("play\n");
+  });
+
   $('body').on('click','#previousbutton',function(){
     ws.send("previous\n");
   });
@@ -333,7 +288,6 @@ $(document).ready(function(){
   });
 
   $('body').on('click','#clearbutton',function(){
-    //clear the playlist, stop current song etc.
     ws.send("clearlist\n");
   });
 
