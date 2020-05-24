@@ -86,8 +86,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         if (!strcmp("toplaylist", pch)) {
           pch = strtok(NULL, "\n");
           playList.add({HTTP, pch});
-          ESP_LOGD(TAG, "Added http url: %s", pch);
-          if (!audio.isRunning() && playerStatus == PLAYLISTEND) {
+          ESP_LOGI(TAG, "Added a single item to playlist");
+          if (!audio.isRunning() && PAUSED != playerStatus) {
             currentItem = playList.size() - 2;
             playerStatus = PLAYING;
           }
@@ -102,8 +102,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             playList.add({HTTP, pch});
             pch = strtok(NULL, "\n");
           }
+          ESP_LOGI(TAG, "Added %i items to playlist", playList.size() - previousSize);
           // start playing at the correct position if not already playing
-          if (!audio.isRunning()) {
+          if (!audio.isRunning() && PAUSED != playerStatus) {
             currentItem = previousSize - 1;
             playerStatus = PLAYING;
           }
@@ -168,6 +169,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           else return;
         }
+
+        else if (!strcmp("pause", pch)) {
+          if (PLAYING == playerStatus) playerStatus = PAUSED;
+          else if (PAUSED == playerStatus) playerStatus = PLAYING;
+          if (PLAYLISTEND != playerStatus) audio.pauseResume();
+        }
       }
     } else {
       //message is comprised of multiple frames or the frame is split into multiple packets
@@ -178,7 +185,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
         //allocate info->len bytes of memory
-        buffer = new char[info->len + 1];  //TODO: check if allocation succeeds
+        buffer = new char[info->len + 1];  //TODO: check if enough mem is available and if allocation succeeds
       }
 
       ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
@@ -207,13 +214,14 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               playList.add({HTTP, pch});
               pch = strtok(NULL, "\n");
             }
+            delete []buffer;
+            ESP_LOGI(TAG, "Added %i items to playlist", playList.size() - previousSize);
             // start playing at the correct position if not already playing
-            if (!audio.isRunning()) {
+            if (!audio.isRunning() && PAUSED != playerStatus) {
               currentItem = previousSize - 1;
               playerStatus = PLAYING;
             }
             playList.isUpdated = true;
-            delete []buffer;
           }
         }
       }
@@ -355,6 +363,7 @@ void loop() {
     }
     sendCurrentItem();
   }
+  delay(1);
 }
 /*
   void audio_info(const char *info) {
