@@ -247,7 +247,7 @@ $(document).ready(function(){
     console.log("Need to ask the server nicely for: "+currentpath.substring(1)+"/"+$(this).parent().text());
     var requestpath=currentpath.substring(1)+"/"+$(this).parent().text();
     if (!requestpath.startsWith('/')) requestpath = '/' + requestpath;
-    let content="alot_toplaylist\n";
+    let content="toplaylist\n";
     $.get(libraryURL+"?folder="+encodeURIComponent(currentpath.substring(1))+"/"+encodeURIComponent($(this).parent().text()))
     .done(function(data){
       //make an invisible navList
