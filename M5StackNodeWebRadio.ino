@@ -104,7 +104,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             currentItem = previousSize - 1;
             playerStatus = PLAYING;
           }
-          playList.isUpdated = true;
         }
 
         else if (!strcmp("clearlist", pch)) {
@@ -215,7 +214,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               currentItem = previousSize - 1;
               playerStatus = PLAYING;
             }
-            playList.isUpdated = true;
           }
         }
       }
