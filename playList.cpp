@@ -11,7 +11,7 @@ String playList::toHTML() {
   return s;
 }
 
-String playList::toString() {
+String playList::toClientString() {
   String s{"playlist\n"};
   if (!list.size()) return s;
   playListItem item;
