@@ -87,6 +87,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           playList.add({HTTP, pch});
           ESP_LOGI(TAG, "Added a single item to playlist");
+          client->printf("message\nAdded 1 item to playlist");
           if (!audio.isRunning() && PAUSED != playerStatus) {
             currentItem = playList.size() - 2;
             playerStatus = PLAYING;
@@ -102,7 +103,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             playList.add({HTTP, pch});
             pch = strtok(NULL, "\n");
           }
-          ESP_LOGI(TAG, "Added %i items to playlist", playList.size() - previousSize);
+          ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
+          client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
           // start playing at the correct position if not already playing
           if (!audio.isRunning() && PAUSED != playerStatus) {
             currentItem = previousSize - 1;
@@ -215,7 +217,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               pch = strtok(NULL, "\n");
             }
             delete []buffer;
-            ESP_LOGI(TAG, "Added %i items to playlist", playList.size() - previousSize);
+            ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
+            client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
             // start playing at the correct position if not already playing
             if (!audio.isRunning() && PAUSED != playerStatus) {
               currentItem = previousSize - 1;
@@ -351,14 +354,13 @@ void loop() {
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
-      static playListItem item;
+      playListItem item;
       playList.get(currentItem, item);
       if (HTTP == item.type) audio.connecttohost(urlEncode(item.url));  // TODO: check for result?
       if (SDCARD == item.type) audio.connecttoSD(item.url);             // TODO: check for result?
-
     } else {
-      currentItem = 0;
       ESP_LOGI(TAG, "End of playlist.");
+      currentItem = -1;
       playerStatus = PLAYLISTEND;
     }
     sendCurrentItem();

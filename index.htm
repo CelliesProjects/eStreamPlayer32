@@ -46,6 +46,7 @@ a{
 }
 #infobar{
   margin:2px;
+  //background-color:green;
 }
 /* Style the tab */
 .tab {
@@ -167,7 +168,7 @@ else ws_host+=debugip+"/ws";
 function updateLibraryFolder(folder,oldfolder,restorescroll){
   var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
-    $('#LIBRARY').html(data);
+    $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
   })
   .fail(function(){
@@ -196,6 +197,10 @@ $(document).ready(function(){
         for(var i=1;i<command.length-1;i++){
           $('#PLAYLIST').append('<p class="plitem">'+removebutton+command[i]+'</p>');
         }
+      break;
+      case "message":
+        $('#infobar').css("opacity","1");
+        $('#infobar').html(command[1])/*.css("background-color","green")*/.animate({"opacity":"0"},{queue:false,duration:1500});
       break;
       case "icyurl":
         $('#station').html('<a href="'+command[1]+'" target="_blank">'+$('#station').html()+'</a>');
