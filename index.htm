@@ -83,7 +83,7 @@ a{
   border-top: none;
 }
 
-#uplink, .folderlink, .sdfolderlink, .filelink, .sdfilelink, .plitem, .disconnect{
+#uplink, .folderlink, .sdfolderlink, .filelink, .streamlink, .plitem, .disconnect{
   background:beige;
   margin:2px;
   font-size:20px;
@@ -93,9 +93,29 @@ a{
   width:30px;
   height:30px;
 }
-.foldericon:hover, .icon:hover, .plitem:hover, #uplink:hover, .folderlink:hover, filelink:hover{
+.foldericon:hover, .icon:hover, .plitem:hover, #uplink:hover, .folderlink:hover, filelink:hover, .streamlink{
   cursor:pointer;
 }
+
+
+
+#stream_container{
+  position:absolute;
+  background:grey;
+  top:0;
+  bottom:0;
+  right:0;
+  z-index:10;
+  //width:0;
+}
+#stream_type{
+  margin:0;
+  height:50px;
+}
+
+
+
+
 #controlpanel{
   position:absolute;
   bottom:0;
@@ -136,14 +156,12 @@ a{
 
 <div id="WEBRADIO" class="tabcontent">
   <h3>WEBRADIO</h3>
-  <p>Browse webradio and add to playlist.</p>
+  <p>Show and select a web radio station.</p>
 </div>
 
 <div id="SETUP" class="tabcontent">
   <h3>SETUP</h3>
-  <p>Library url:<input type="text" id="libraryurl"></p>
-  <p id="libwarning">&nbsp;</p>
-  <p>Script name:<input type="text" id="scriptname"></p>
+  <p>Setup the device.</p>
 </div>
 
 <div id="controlpanel">
@@ -200,7 +218,7 @@ $(document).ready(function(){
       break;
       case "message":
         $('#infobar').css("opacity","1");
-        $('#infobar').html(command[1])/*.css("background-color","green")*/.animate({"opacity":"0"},{queue:false,duration:1500});
+        $('#infobar').html(command[1]).animate({"opacity":"0"},{queue:false,duration:2000});
       break;
       case "icyurl":
         $('#station').html('<a href="'+command[1]+'" target="_blank">'+$('#station').html()+'</a>');
@@ -224,7 +242,9 @@ $(document).ready(function(){
 
   $('body').on('click','#uplink',function(){
     const oldpath = currentpath;
+    console.log("path before uplink:"+currentpath);
     if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
+    console.log("path after uplink:"+currentpath);
     if(!currentpath)currentpath='/';
     updateLibraryFolder(currentpath,oldpath,true);
   });
@@ -258,7 +278,6 @@ $(document).ready(function(){
       $(nList).html(data);
       //add each .filelink from the invisible navList
       $('#invisFolder .filelink').each(function(index,item){
-        console.log(location+requestpath+'/'+$(this).text());
         content+=location+requestpath+'/'+$(this).text()+"\n";
       });
       document.body.removeChild(nList);
@@ -296,6 +315,10 @@ $(document).ready(function(){
     ws.send("clearlist\n");
   });
 
+  $('body').on('click','.streamlink',function(){
+    ws.send("presetstation\n"+$(this).index());
+  });
+
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   $('.tabcontent').css('top',$('.tab').css('height'));
@@ -303,8 +326,19 @@ $(document).ready(function(){
 
   updateLibraryFolder(currentpath);
 
-
   $('.tablinks').first().click();
+
+  $.get(url+"/stations")
+  .done(function(data){
+    var stations=data.split('\n');
+    $('#WEBRADIO').html('');
+    stations.forEach(function(item){
+      if(item)$('#WEBRADIO').append('<p class="streamlink">'+item+'</p>');
+    })
+  })
+  .fail(function(){
+    $('#WEBRADIO').html('Could not open station list');
+  });
 });
 
 </script>

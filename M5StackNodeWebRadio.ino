@@ -7,6 +7,9 @@
 #include "playList.h"
 #include "index_htm.h"
 
+/* webserver core */
+#define HTTP_RUN_CORE 0
+
 /* M5Stack Node WM8978 I2C pins */
 #define I2C_SDA     21
 #define I2C_SCL     22
@@ -94,10 +97,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           while (pch) {
             ESP_LOGD(TAG, "argument: %s", pch);
-            playList.add({HTTP, pch});
+            playList.add({HTTP_FILE, pch});
             pch = strtok(NULL, "\n");
           }
-          ESP_LOGI(TAG, "Added %i items to playlist", playList.size() - previousSize);
+          ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
           client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
           // start playing at the correct position if not already playing
           if (!audio.isRunning() && PAUSED != playerStatus) {
@@ -168,6 +171,22 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           else if (PAUSED == playerStatus) playerStatus = PLAYING;
           if (PLAYLISTEND != playerStatus) audio.pauseResume();
         }
+
+        else if (!strcmp("presetstation", pch)) {
+          pch = strtok(NULL, "\n");
+          playList.add({HTTP_PRESET, "", atoi(pch)});
+          ESP_LOGD(TAG, "Added 1 preset item to playlist");
+          client->printf("message\nAdded 1 preset item to playlist");
+          // start playing at the correct position if not already playing
+          if (!audio.isRunning() && PAUSED != playerStatus) {
+            currentItem = playList.size() - 2;
+            playerStatus = PLAYING;
+          }
+        }
+
+
+
+
       }
     } else {
       //message is comprised of multiple frames or the frame is split into multiple packets
@@ -203,7 +222,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             pch = strtok(NULL, "\n");
             while (pch) {
               ESP_LOGD(TAG, "argument: %s", pch);
-              playList.add({HTTP, pch});
+              playList.add({HTTP_FILE, pch});
               pch = strtok(NULL, "\n");
             }
             delete []buffer;
@@ -230,6 +249,14 @@ void startWebServer(void * pvParameters) {
     request->send(response);
   });
 
+  server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncResponseStream *response = request->beginResponseStream("text/html");
+    for (uint16_t i = 0; i < sizeof(preset) / sizeof(station); i++) {
+      response->printf("%s\n", preset[i].name.c_str());
+    }
+    request->send(response);
+  });
+
   server.onNotFound([](AsyncWebServerRequest * request) {
     ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
     request->send(404);
@@ -240,7 +267,7 @@ void startWebServer(void * pvParameters) {
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 
   server.begin();
-  ESP_LOGI(TAG, "HTTP server started.");
+  ESP_LOGI(TAG, "HTTP server started on core %i.", HTTP_RUN_CORE);
   vTaskDelete(NULL);
 }
 
@@ -279,39 +306,15 @@ void setup() {
   ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-  /*
-    //start webserver on other core
 
-    xTaskCreatePinnedToCore(
-      startWebServer,
-      "http_ws",
-      8000,
-      NULL,
-      5,
-      NULL,
-      0);
-  */
-
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
-
-  server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_htm, index_htm_len);
-    request->send(response);
-  });
-
-  server.onNotFound([](AsyncWebServerRequest * request) {
-    ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
-    request->send(404);
-  });
-
-  //server.serveStatic("/", SD, "/");
-
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-
-  server.begin();
-  ESP_LOGI(TAG, "HTTP server started.");
-
+  xTaskCreatePinnedToCore(
+    startWebServer,
+    "http_ws",
+    8000,
+    NULL,
+    5,
+    NULL,
+    HTTP_RUN_CORE);
 }
 
 inline __attribute__((always_inline))
@@ -349,8 +352,22 @@ void loop() {
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
       playListItem item;
       playList.get(currentItem, item);
-      if (HTTP == item.type) audio.connecttohost(urlEncode(item.url));  // TODO: check for result?
-      if (SDCARD == item.type) audio.connecttoSD(item.url);             // TODO: check for result?
+
+      if (HTTP_FILE == item.type) {
+        audio.connecttohost(urlEncode(item.url));
+      }
+
+      else if (HTTP_PRESET == item.type) {
+        audio.connecttohost(urlEncode(preset[item.index].url));
+      }
+
+      else if (HTTP_STREAM == item.type) {
+        audio.connecttohost(urlEncode(item.url));
+      }
+
+      else if (SDCARD_FILE == item.type) {
+        audio.connecttoSD(item.url);
+      }
     } else {
       ESP_LOGI(TAG, "End of playlist.");
       currentItem = -1;

@@ -3,15 +3,16 @@
 
 #include <Arduino.h>
 #include <vector>
-
+#include "presets.h"
 
 enum streamType {
-  HTTP, SDCARD
+  HTTP_FILE, HTTP_STREAM, HTTP_PRESET, SDCARD_FILE
 };
 
 struct playListItem {
   streamType type;
   String url;
+  int index; // used for (type == HTTP_PRESET) to indicate which preset to play
 };
 
 class playList {
