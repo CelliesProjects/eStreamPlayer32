@@ -188,6 +188,7 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
+    $('#LIBRARY').css({"opacity":1});
   })
   .fail(function(){
     alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
@@ -241,6 +242,7 @@ $(document).ready(function(){
   });
 
   $('body').on('click','#uplink',function(){
+    $('#LIBRARY').css({"opacity":0.5});
     const oldpath = currentpath;
     console.log("path before uplink:"+currentpath);
     if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
@@ -250,6 +252,8 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.folderlink',function(){
+    $('#LIBRARY').css({"opacity":0.5});
+
     const oldpath = currentpath;
     if ('/'!=currentpath) currentpath+="/";
     currentpath += $(this).text();
