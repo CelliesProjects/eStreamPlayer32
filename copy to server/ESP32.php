@@ -13,10 +13,12 @@ header('Access-Control-Allow-Origin: *');
 if(isset($_GET["folder"])){
   $path=rawurldecode($_GET["folder"]);
   if(strpos($path,"..")!==false)die("No traversing");//no folder traversing
-  if(strlen($path)>1&&substr($path,0,1)==="/")$path=substr($path,1);//no root folder access
-  if ($path=='/')$path='';
+  //don't serve an absolute path but make it relative by removing all leading '/' chars
+  $cnt=0;
+  while($path[$cnt]==='/')$cnt++;
+  $path=substr($path,$cnt);
 
-  if($path<>''){
+  if($path!==''){
     $path=$path.'/';
     if(!file_exists($path)){
       header($_SERVER["SERVER_PROTOCOL"]." 404 Not Found",true,404);
