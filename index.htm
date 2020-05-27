@@ -82,7 +82,6 @@ a{
   //border: 1px solid #ccc;
   border-top: none;
 }
-
 #uplink, .folderlink, .sdfolderlink, .filelink, .streamlink, .plitem, .disconnect{
   background:beige;
   margin:2px;
@@ -96,9 +95,9 @@ a{
 .foldericon:hover, .icon:hover, .plitem:hover, #uplink:hover, .folderlink:hover, filelink:hover, .streamlink{
   cursor:pointer;
 }
-
-
-
+#showstation, #streamtitle, #streaminfo{
+  text-align:center;
+}
 #stream_container{
   position:absolute;
   background:grey;
@@ -112,10 +111,6 @@ a{
   margin:0;
   height:50px;
 }
-
-
-
-
 #controlpanel{
   position:absolute;
   bottom:0;
@@ -209,7 +204,10 @@ $(document).ready(function(){
         if(-1!=command[1]){
           $('.plitem').eq(command[1]).css("background-color","red");
           $('#playerstatus').html($('.plitem').eq(command[1]).text());
-        }else $('#playerstatus').html("Nothing playing");
+        }else {
+          $('#playerstatus').html("Nothing playing");
+          $('#showstation').text("");
+        }
       break;
       case "playlist":
         // make a playlist from the newline separated data
