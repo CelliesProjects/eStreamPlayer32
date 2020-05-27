@@ -402,8 +402,6 @@ void loop() {
   }
 */
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
-    audio_showstreamtitle("&nbsp;");
-    audio_showstation("&nbsp;");
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
@@ -428,6 +426,8 @@ void loop() {
         audio.connecttoSD(item.url);
       }
     } else {
+      audio_showstreamtitle("&nbsp;");
+      audio_showstation("&nbsp;");
       ESP_LOGI(TAG, "End of playlist.");
       currentItem = -1;
       playerStatus = PLAYLISTEND;
