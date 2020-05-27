@@ -141,8 +141,10 @@ a{
 </div>
 
 <div id="HOME" class="tabcontent">
-  <h3>CURRENT NAME</h3>
-  <p>Show currently playing.</p>
+  <h3 id="showstation"></h3>
+  <p id="bitrate"></p>
+  <p id="streamtitle"></p>
+  <p id="streaminfo"></p>
 </div>
 
 <div id="PLAYLIST" class="tabcontent">
@@ -202,6 +204,7 @@ $(document).ready(function(){
     var command=e.data.split("\n");
     switch(command[0]){
       case "currentPLitem":
+        $('#showstation').html($('.plitem').eq(command[1]).text());
         $('.plitem').css("background-color","");
         if(-1!=command[1]){
           $('.plitem').eq(command[1]).css("background-color","red");
@@ -221,9 +224,24 @@ $(document).ready(function(){
         $('#infobar').css("opacity","1");
         $('#infobar').html(command[1]).animate({"opacity":"0"},{queue:false,duration:2000});
       break;
-      case "icyurl":
-        $('#station').html('<a href="'+command[1]+'" target="_blank">'+$('#station').html()+'</a>');
+
+      case "showstation":
+        if(command[1])$('#showstation').html(command[1]);
       break;
+
+      case "streamtitle":
+        $('#streamtitle').html(command[1]);
+      break;
+
+      case "bitrate":
+        if(command[1])$('#bitrate').html("Bitrate: "+command[1]+"kbps");
+      break;
+
+      case "streaminfo":
+        $('#streaminfo').html(command[1]);
+      break;
+
+
       default:break;
     }
   };
@@ -268,7 +286,7 @@ $(document).ready(function(){
     console.log("Current path: "+currentpath);
     var requestpath=currentpath+"/"+$(this).parent().text();
     let content="toplaylist\n";
-    console.log("Asking the server nicely: "+"?folder="+currentpath+"/"+$(this).parent().text());
+    console.log("Asking the server: "+"?folder="+currentpath+"/"+$(this).parent().text());
     $.get(libraryURL+"?folder="+encodeURIComponent(currentpath)+"/"+encodeURIComponent($(this).parent().text()))
     .done(function(data){
       //make an invisible navList

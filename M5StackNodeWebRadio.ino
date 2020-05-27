@@ -71,6 +71,52 @@ String urlEncode(String s) {
   s.replace("'", "%27");
   return s;
 }
+/*
+  void audio_info(const char *info) {
+  ESP_LOGI(TAG, "Info: %s", info);
+  }
+*/
+
+static char showstation[400]; ///////////////////////////////////////////////////??
+void audio_showstation(const char *info) {
+  ESP_LOGI(TAG, "showstation: %s", info);
+  snprintf(showstation, sizeof(showstation), "showstation\n%s", info);
+  ws.textAll(showstation);
+}
+/*
+  void audio_bitrate(const char *info) {
+  ESP_LOGI(TAG, "bitrate: %s", info);
+  ws.printfAll("bitrate\n%s", info);
+  }
+*/
+
+static char streamtitle[400]; ///////////////////////////////////////////////////??
+void audio_showstreamtitle(const char *info) {
+  ESP_LOGI(TAG, "streamtitle: %s", info);
+  snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
+  ws.printfAll("streamtitle\n%s", info);
+}
+
+/*
+  void audio_showstreaminfo(const char *info) {
+  ESP_LOGI(TAG, "streaminfo: %s", info);
+  ws.printfAll("streaminfo\n%s",info);
+  }
+*/
+void audio_id3data(const char *info) {
+  ESP_LOGI(TAG, "id3data: %s", info);
+  ws.printfAll("id3data\n%s", info);
+}
+
+void audio_eof_mp3(const char *info) {
+  ESP_LOGI(TAG, "EOF");
+  audio.stopSong();
+}
+/*
+  void audio_lasthost(const char *info) {
+  ESP_LOGI(TAG, "audio EOF: %s", info);
+  }
+*/
 
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
@@ -112,6 +158,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         else if (!strcmp("clearlist", pch)) {
           audio.stopSong();
           playList.clear();
+          audio_showstreamtitle("&nbsp;");
+          //audio_showstation("&nbsp;");
           currentItem = -1;
           playerStatus = PLAYLISTEND;
         }
@@ -327,6 +375,12 @@ void loop() {
 
   ws.cleanupClients();
 
+  static uint32_t previousTime;
+  if (previousTime != audio.getAudioCurrentTime()) {
+    ESP_LOGI(TAG, "%i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
+    previousTime = audio.getAudioCurrentTime();
+  }
+
   if (playList.isUpdated) {
     ESP_LOGI(TAG, "Free mem: %i", ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
@@ -337,6 +391,8 @@ void loop() {
   if (newClient.connected) {
     ws.text(newClient.id, playList.toClientString());
     ws.text(newClient.id, "currentPLitem\n" + String(currentItem));
+    ws.text(newClient.id, showstation);
+    ws.text(newClient.id, streamtitle);
     newClient.connected = false;
   }
 
@@ -347,6 +403,8 @@ void loop() {
   }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
+    audio_showstreamtitle("&nbsp;");
+    audio_showstation("&nbsp;");
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
@@ -355,14 +413,19 @@ void loop() {
 
       if (HTTP_FILE == item.type) {
         audio.connecttohost(urlEncode(item.url));
+        audio_showstreamtitle(item.url.c_str());
+        ESP_LOGI(TAG, "Duration: %i", audio.getFileSize());
       }
 
       else if (HTTP_PRESET == item.type) {
+        ESP_LOGI(TAG, "preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
         audio.connecttohost(urlEncode(preset[item.index].url));
+
       }
 
       else if (HTTP_STREAM == item.type) {
         audio.connecttohost(urlEncode(item.url));
+        ESP_LOGI(TAG, "Duration: %i", audio.getFileSize());
       }
 
       else if (SDCARD_FILE == item.type) {
@@ -377,18 +440,3 @@ void loop() {
   }
   delay(1);
 }
-/*
-  void audio_info(const char *info) {
-  ESP_LOGI(TAG, "audio info: %s", info);
-  }
-*/
-void audio_eof_mp3(const char *info) {
-  ESP_LOGI(TAG, "EOF");
-  audio.stopSong();
-  if (currentItem < playList.size()) currentItem++;
-}
-/*
-  void audio_lasthost(const char *info) {
-  ESP_LOGI(TAG, "audio EOF: %s", info);
-  }
-*/
