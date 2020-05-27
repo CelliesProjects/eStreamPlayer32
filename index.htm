@@ -281,8 +281,8 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.addfolder',function(e){
-    console.log("Location:"+libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length)));
     var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
+    console.log("Location:"+location);
     console.log("Current path: "+currentpath);
     var requestpath=currentpath+"/"+$(this).parent().text();
     let content="toplaylist\n";
@@ -295,6 +295,7 @@ $(document).ready(function(){
       nList.id="invisFolder";
       document.body.appendChild(nList);
       $(nList).html(data);
+      if(requestpath.startsWith("//"))requestpath=requestpath.substring(1);
       //add each .filelink from the invisible navList
       $('#invisFolder .filelink').each(function(index,item){
         content+=location+requestpath+'/'+$(this).text()+"\n";
