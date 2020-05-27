@@ -79,7 +79,7 @@ String urlEncode(String s) {
 
 static char showstation[400]; ///////////////////////////////////////////////////??
 void audio_showstation(const char *info) {
-  ESP_LOGI(TAG, "showstation: %s", info);
+  ESP_LOGD(TAG, "showstation: %s", info);
   snprintf(showstation, sizeof(showstation), "showstation\n%s", info);
   ws.textAll(showstation);
 }
@@ -92,7 +92,7 @@ void audio_showstation(const char *info) {
 
 static char streamtitle[400]; ///////////////////////////////////////////////////??
 void audio_showstreamtitle(const char *info) {
-  ESP_LOGI(TAG, "streamtitle: %s", info);
+  ESP_LOGD(TAG, "streamtitle: %s", info);
   snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
   ws.printfAll("streamtitle\n%s", info);
 }
@@ -159,7 +159,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           audio.stopSong();
           playList.clear();
           audio_showstreamtitle("&nbsp;");
-          //audio_showstation("&nbsp;");
           currentItem = -1;
           playerStatus = PLAYLISTEND;
         }
@@ -395,13 +394,13 @@ void loop() {
     ws.text(newClient.id, streamtitle);
     newClient.connected = false;
   }
-
+/*
   if (newUrl.waiting) {
     //TODO: Add to end of playlist (((( OR PLAY 'INBETWEEN' OR 'PREVIEW' MODE ))))
     audio.connecttohost(urlEncode(newUrl.url));
     newUrl.waiting = false;
   }
-
+*/
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     audio_showstreamtitle("&nbsp;");
     audio_showstation("&nbsp;");
@@ -414,18 +413,15 @@ void loop() {
       if (HTTP_FILE == item.type) {
         audio.connecttohost(urlEncode(item.url));
         audio_showstreamtitle(item.url.c_str());
-        ESP_LOGI(TAG, "Duration: %i", audio.getFileSize());
       }
 
       else if (HTTP_PRESET == item.type) {
-        ESP_LOGI(TAG, "preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+        ESP_LOGD(TAG, "preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
         audio.connecttohost(urlEncode(preset[item.index].url));
-
       }
 
       else if (HTTP_STREAM == item.type) {
         audio.connecttohost(urlEncode(item.url));
-        ESP_LOGI(TAG, "Duration: %i", audio.getFileSize());
       }
 
       else if (SDCARD_FILE == item.type) {
