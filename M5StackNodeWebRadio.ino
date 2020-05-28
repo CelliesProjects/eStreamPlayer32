@@ -159,6 +159,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           audio.stopSong();
           playList.clear();
           audio_showstreamtitle("&nbsp;");
+          audio_showstation("&nbsp;");
           currentItem = -1;
           playerStatus = PLAYLISTEND;
         }
@@ -394,14 +395,16 @@ void loop() {
     ws.text(newClient.id, streamtitle);
     newClient.connected = false;
   }
-/*
-  if (newUrl.waiting) {
-    //TODO: Add to end of playlist (((( OR PLAY 'INBETWEEN' OR 'PREVIEW' MODE ))))
-    audio.connecttohost(urlEncode(newUrl.url));
-    newUrl.waiting = false;
-  }
-*/
+  /*
+    if (newUrl.waiting) {
+      //TODO: Add to end of playlist (((( OR PLAY 'INBETWEEN' OR 'PREVIEW' MODE ))))
+      audio.connecttohost(urlEncode(newUrl.url));
+      newUrl.waiting = false;
+    }
+  */
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
+      audio_showstreamtitle("&nbsp;");
+      //audio_showstation("&nbsp;");
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
@@ -426,8 +429,6 @@ void loop() {
         audio.connecttoSD(item.url);
       }
     } else {
-      audio_showstreamtitle("&nbsp;");
-      audio_showstation("&nbsp;");
       ESP_LOGI(TAG, "End of playlist.");
       currentItem = -1;
       playerStatus = PLAYLISTEND;

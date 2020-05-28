@@ -44,9 +44,11 @@ a{
   color:black;
   text-decoration:none;
 }
+#locationbar{
+  margin:0;
+}
 #infobar{
-  margin:2px;
-  //background-color:green;
+  margin:0;
 }
 /* Style the tab */
 .tab {
@@ -118,6 +120,9 @@ a{
   right:0;
   background:red;
 }
+#playerstatus{
+  margin:0;
+}
 .playercontrol{
   display:inline;
 }
@@ -125,11 +130,12 @@ a{
 </head>
 <body class="noselect">
 <div class="tab">
-  <p id="infobar">infobar</p>
+  <p id="locationbar">&nbsp;</p>
+  <p id="infobar">&nbsp;</p>
   <div id="tabbar">
   <button class="tablinks">HOME</button>
   <button class="tablinks">PLAYLIST</button>
-  <button class="tablinks">LIBRARY</button>
+  <button class="tablinks" id="librarybutton">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
   <button class="tablinks">SETUP</button>
   </div>
@@ -180,12 +186,16 @@ var ws_host="ws://";
 if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
 else ws_host+=debugip+"/ws";
 
+function updateLocationBar(){
+  $('#locationbar').html("Current path: "+currentpath);
+}
 function updateLibraryFolder(folder,oldfolder,restorescroll){
   var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
     $('#LIBRARY').css({"opacity":1});
+    updateLocationBar();
   })
   .fail(function(){
     alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
@@ -206,7 +216,7 @@ $(document).ready(function(){
           $('#playerstatus').html($('.plitem').eq(command[1]).text());
         }else {
           $('#playerstatus').html("Nothing playing");
-          $('#showstation').text("");
+          $('#showstation').html("");
         }
       break;
       case "playlist":
@@ -256,10 +266,14 @@ $(document).ready(function(){
     $(this).css("background-color","red")
     $('.tabcontent').hide().eq($(this).index('.tablinks')).show();
   });
-
+/*
+  $('#librarybutton').on('click',function(){
+    updateLocationBar();
+  });
+*/
   $('body').on('click','#uplink',function(){
     $('#LIBRARY').css({"opacity":0.5});
-    const oldpath = currentpath;
+    const oldpath=currentpath;
     if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
     if(!currentpath)currentpath='/';
     updateLibraryFolder(currentpath,oldpath,true);
@@ -267,9 +281,9 @@ $(document).ready(function(){
 
   $('body').on('click','.folderlink',function(){
     $('#LIBRARY').css({"opacity":0.5});
-    const oldpath = currentpath;
-    if ('/'!=currentpath) currentpath+="/";
-    currentpath += $(this).text();
+    const oldpath=currentpath;
+    if ('/'!=currentpath)currentpath+="/";
+    currentpath+=$(this).text();
     scrollPos.push($('#LIBRARY').scrollTop());
     updateLibraryFolder(currentpath,oldpath);
   });
@@ -338,6 +352,7 @@ $(document).ready(function(){
   });
 
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
   $('.tabcontent').css('top',$('.tab').css('height'));
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
