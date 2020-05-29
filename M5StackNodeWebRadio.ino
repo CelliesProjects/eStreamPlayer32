@@ -63,14 +63,21 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 Preferences preferences;
 
-String urlEncode(String s) {
+String urlEncode(const String& s) {
   //https://en.wikipedia.org/wiki/Percent-encoding
-  s.replace(" ", "%20");
-  s.replace("!", "%21");
-  s.replace("&", "%26");
-  s.replace("'", "%27");
-  return s;
+  char c;
+  String encodedstr{""};
+  for (int i = 0; i < s.length(); i++) {
+    c = s.charAt(i);
+    if (c == ' ') encodedstr += "%20";
+    else if (c == '!') encodedstr += "%21";
+    else if (c == '&') encodedstr += "%26";
+    else if (c == 39) encodedstr += "%27"; //39 == single quote
+    else encodedstr += c;
+  }
+  return encodedstr;
 }
+
 /*
   void audio_info(const char *info) {
   ESP_LOGI(TAG, "Info: %s", info);
@@ -231,10 +238,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             playerStatus = PLAYING;
           }
         }
-
-
-
-
       }
     } else {
       //message is comprised of multiple frames or the frame is split into multiple packets
@@ -374,13 +377,13 @@ void loop() {
   audio.loop();
 
   ws.cleanupClients();
-
-  static uint32_t previousTime;
-  if (previousTime != audio.getAudioCurrentTime()) {
-    ESP_LOGI(TAG, "%i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
-    previousTime = audio.getAudioCurrentTime();
-  }
-
+  /*
+    static uint32_t previousTime;
+    if (previousTime != audio.getAudioCurrentTime()) {
+      ESP_LOGI(TAG, "%i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
+      previousTime = audio.getAudioCurrentTime();
+    }
+  */
   if (playList.isUpdated) {
     ESP_LOGI(TAG, "Free mem: %i", ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
@@ -403,8 +406,8 @@ void loop() {
     }
   */
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
-      audio_showstreamtitle("&nbsp;");
-      //audio_showstation("&nbsp;");
+    audio_showstreamtitle("&nbsp;");
+    //audio_showstation("&nbsp;");
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
