@@ -63,7 +63,7 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 Preferences preferences;
 
-String urlEncode(const String& s) {
+const String urlEncode(const String& s) {
   //https://en.wikipedia.org/wiki/Percent-encoding
   char c;
   String encodedstr{""};
@@ -72,10 +72,21 @@ String urlEncode(const String& s) {
     if (c == ' ') encodedstr += "%20";
     else if (c == '!') encodedstr += "%21";
     else if (c == '&') encodedstr += "%26";
-    else if (c == 39) encodedstr += "%27"; //39 == single quote
+    else if (c == 39) encodedstr += "%27"; //39 == single quote '
+    //else if (c == '@') encodedstr += "%40";
+    //else if (c == '[') encodedstr += "%5B";
+    //else if (c == ']') encodedstr += "%5D";
     else encodedstr += c;
   }
+  ESP_LOGD(TAG, "%s", encodedstr.c_str());
   return encodedstr;
+}
+
+void playListHasEnded() {
+  currentItem = -1;
+  playerStatus = PLAYLISTEND;
+  audio_showstation("Nothing playing");
+  audio_showstreamtitle("&nbsp;");
 }
 
 /*
@@ -84,7 +95,7 @@ String urlEncode(const String& s) {
   }
 */
 
-static char showstation[400]; ///////////////////////////////////////////////////??
+static char showstation[200]; /////////////////////////////////////////////////// These are kept to update new clients only on connection
 void audio_showstation(const char *info) {
   ESP_LOGD(TAG, "showstation: %s", info);
   snprintf(showstation, sizeof(showstation), "showstation\n%s", info);
@@ -97,7 +108,7 @@ void audio_showstation(const char *info) {
   }
 */
 
-static char streamtitle[400]; ///////////////////////////////////////////////////??
+static char streamtitle[200]; /////////////////////////////////////////////////// These are kept to update new clients only on connection
 void audio_showstreamtitle(const char *info) {
   ESP_LOGD(TAG, "streamtitle: %s", info);
   snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
@@ -114,11 +125,12 @@ void audio_id3data(const char *info) {
   ESP_LOGI(TAG, "id3data: %s", info);
   ws.printfAll("id3data\n%s", info);
 }
-
+/*
 void audio_eof_mp3(const char *info) {
   ESP_LOGI(TAG, "EOF");
   audio.stopSong();
 }
+*/
 /*
   void audio_lasthost(const char *info) {
   ESP_LOGI(TAG, "audio EOF: %s", info);
@@ -165,10 +177,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         else if (!strcmp("clearlist", pch)) {
           audio.stopSong();
           playList.clear();
-          audio_showstreamtitle("&nbsp;");
-          audio_showstation("&nbsp;");
-          currentItem = -1;
-          playerStatus = PLAYLISTEND;
+          playListHasEnded();
         }
 
         else if (!strcmp("playitem", pch)) {
@@ -186,8 +195,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             audio.stopSong();
             playList.remove(num);
             if (!playList.size()) {
-              currentItem = -1;
-              playerStatus = PLAYLISTEND;
+              playListHasEnded();
               return;
             }
             currentItem--;
@@ -195,6 +203,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           if (num > -1 && num < playList.size()) {
             playList.remove(num);
+            if (!playList.size()) {
+              playListHasEnded();
+            }
           } else {
             return;
           }
@@ -207,6 +218,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           if (currentItem > 0) {
             audio.stopSong();
+            audio_showstation("&nbsp;");
             currentItem--;
             currentItem--;
           }
@@ -217,16 +229,17 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           if (currentItem < playList.size() - 1) {
             audio.stopSong();
+            audio_showstation("&nbsp;");
           }
           else return;
         }
-
-        else if (!strcmp("pause", pch)) {
-          if (PLAYING == playerStatus) playerStatus = PAUSED;
-          else if (PAUSED == playerStatus) playerStatus = PLAYING;
-          if (PLAYLISTEND != playerStatus) audio.pauseResume();
-        }
-
+        /*
+                else if (!strcmp("pause", pch)) {
+                  if (PLAYING == playerStatus) playerStatus = PAUSED;
+                  else if (PAUSED == playerStatus) playerStatus = PLAYING;
+                  if (PLAYLISTEND != playerStatus) audio.pauseResume();
+                }
+        */
         else if (!strcmp("presetstation", pch)) {
           pch = strtok(NULL, "\n");
           playList.add({HTTP_PRESET, "", atoi(pch)});
@@ -406,8 +419,6 @@ void loop() {
     }
   */
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
-    audio_showstreamtitle("&nbsp;");
-    //audio_showstation("&nbsp;");
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
@@ -415,26 +426,27 @@ void loop() {
       playList.get(currentItem, item);
 
       if (HTTP_FILE == item.type) {
+        //audio_showstreamtitle("&nbsp;");
+        ESP_LOGI(TAG, "file: %s", item.url.c_str());
         audio.connecttohost(urlEncode(item.url));
-        audio_showstreamtitle(item.url.c_str());
+        audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
       }
-
       else if (HTTP_PRESET == item.type) {
-        ESP_LOGD(TAG, "preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+        ESP_LOGI(TAG, "preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+        audio_showstreamtitle("&nbsp;");
         audio.connecttohost(urlEncode(preset[item.index].url));
       }
-
       else if (HTTP_STREAM == item.type) {
+        ESP_LOGI(TAG, "stream: %s", item.url.c_str());
         audio.connecttohost(urlEncode(item.url));
       }
-
       else if (SDCARD_FILE == item.type) {
+        ESP_LOGI(TAG, "sd file: %s", item.url.c_str());
         audio.connecttoSD(item.url);
       }
     } else {
       ESP_LOGI(TAG, "End of playlist.");
-      currentItem = -1;
-      playerStatus = PLAYLISTEND;
+      playListHasEnded();
     }
     sendCurrentItem();
   }
