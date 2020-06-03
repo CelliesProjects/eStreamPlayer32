@@ -130,8 +130,8 @@ a{
 </head>
 <body class="noselect">
 <div class="tab">
-  <p id="locationbar">&nbsp;</p>
   <p id="infobar">&nbsp;</p>
+  <p id="locationbar">&nbsp;</p>
   <div id="tabbar">
   <button class="tablinks">HOME</button>
   <button class="tablinks">PLAYLIST</button>
@@ -187,10 +187,12 @@ if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
 else ws_host+=debugip+"/ws";
 
 function updateLocationBar(){
-  $('#locationbar').html("Current path: "+currentpath);
+  $('#locationbar').html("Library path: "+currentpath);
 }
 function updateLibraryFolder(folder,oldfolder,restorescroll){
-  var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
+  console.log(folder);
+  //var jqxhr = $.get(libraryURL+"?folder="+escape(folder))
+  var jqxhr = $.get(libraryURL+"?folder="+folder)
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
@@ -200,6 +202,7 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
   .fail(function(){
     alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
     currentpath=oldfolder;
+    $('#LIBRARY').css({"opacity":1});
   });
 }
 
@@ -209,14 +212,12 @@ $(document).ready(function(){
     var command=e.data.split("\n");
     switch(command[0]){
       case "currentPLitem":
-        $('#showstation').html($('.plitem').eq(command[1]).text());
         $('.plitem').css("background-color","");
-        if(-1!=command[1]){
+        if(-1==command[1]){
+          $('#playerstatus, #showstation').html("Nothing playing");
+        }else{
           $('.plitem').eq(command[1]).css("background-color","red");
-          $('#playerstatus').html($('.plitem').eq(command[1]).text());
-        }else {
-          $('#playerstatus').html("Nothing playing");
-          $('#showstation').html("");
+          $('#playerstatus, #showstation').html($('.plitem').eq(command[1]).text());
         }
       break;
       case "playlist":
@@ -234,13 +235,13 @@ $(document).ready(function(){
       break;
 
       case "showstation":
-        if(command[1])$('#showstation').html(command[1]);
+        if(command[1])$('#playerstatus, #showstation').html(command[1]);
       break;
 
       case "streamtitle":
         $('#streamtitle').html(command[1]);
       break;
-
+/*
       case "bitrate":
         if(command[1])$('#bitrate').html("Bitrate: "+command[1]+"kbps");
       break;
@@ -248,7 +249,7 @@ $(document).ready(function(){
       case "streaminfo":
         $('#streaminfo').html(command[1]);
       break;
-
+*/
 
       default:break;
     }
@@ -258,7 +259,7 @@ $(document).ready(function(){
     console.log('[WebSocket] Connected');
     //ws.send("hello server!");
   }
-  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="disconnect"></p>')};
+  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="disconnect">No WS connection</p>')};
   ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message)};
 
   $('.tablinks').on('click',function(){
@@ -266,11 +267,7 @@ $(document).ready(function(){
     $(this).css("background-color","red")
     $('.tabcontent').hide().eq($(this).index('.tablinks')).show();
   });
-/*
-  $('#librarybutton').on('click',function(){
-    updateLocationBar();
-  });
-*/
+
   $('body').on('click','#uplink',function(){
     $('#LIBRARY').css({"opacity":0.5});
     const oldpath=currentpath;
@@ -307,9 +304,7 @@ $(document).ready(function(){
       nList.id="invisFolder";
       document.body.appendChild(nList);
       $(nList).html(data);
-      if(requestpath.startsWith("//"))requestpath=requestpath.substring(1);
-      //add each .filelink from the invisible navList
-      $('#invisFolder .filelink').each(function(index,item){
+      $('#invisFolder .filelink').each(function(){
         content+=location+requestpath+'/'+$(this).text()+"\n";
       });
       document.body.removeChild(nList);
