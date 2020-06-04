@@ -57,6 +57,7 @@ int currentItem{ -1};
 struct newUrl {
   bool waiting{false};
   String url;
+  uint32_t clientId;
 } newUrl;
 
 AsyncWebServer server(80);
@@ -126,10 +127,10 @@ void audio_id3data(const char *info) {
   ws.printfAll("id3data\n%s", info);
 }
 /*
-void audio_eof_mp3(const char *info) {
+  void audio_eof_mp3(const char *info) {
   ESP_LOGI(TAG, "EOF");
   audio.stopSong();
-}
+  }
 */
 /*
   void audio_lasthost(const char *info) {
@@ -154,7 +155,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
 
-        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<char*>(data));
+        ESP_LOGI(TAG, "ws request: %s", reinterpret_cast<char*>(data));
 
         char *pch = strtok((char*)data, "\n");
         if (!strcmp("toplaylist", pch)) {
@@ -216,6 +217,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("previous", pch)) {
           if (PLAYLISTEND == playerStatus) return;
+          ESP_LOGI(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem > 0) {
             audio.stopSong();
             audio_showstation("&nbsp;");
@@ -227,6 +229,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("next", pch)) {
           if (PLAYLISTEND == playerStatus) return;
+          ESP_LOGI(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem < playList.size() - 1) {
             audio.stopSong();
             audio_showstation("&nbsp;");
@@ -240,6 +243,36 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                   if (PLAYLISTEND != playerStatus) audio.pauseResume();
                 }
         */
+
+
+
+
+
+        else if (!strcmp("newurl", pch)) {
+          pch = strtok(NULL, "\n");
+          ESP_LOGI(TAG, "received new url: %s", pch);
+          newUrl.url = pch;
+          newUrl.clientId = client->id();
+          newUrl.waiting = true;
+          /*
+            if (audio.connecttohost(urlEncode(pch))) {
+            playList.add({HTTP_FILE, pch});
+            currentItem = playList.size() - 1;
+            playerStatus = PLAYING;
+            playList.isUpdated = true;
+            }
+            else {
+            //audio.stopSong();
+            client->text("message\nFailed to play stream");
+            playListHasEnded();
+            }
+          */
+          return;
+        }
+
+
+
+
         else if (!strcmp("presetstation", pch)) {
           pch = strtok(NULL, "\n");
           playList.add({HTTP_PRESET, "", atoi(pch)});
@@ -398,7 +431,7 @@ void loop() {
     }
   */
   if (playList.isUpdated) {
-    ESP_LOGI(TAG, "Free mem: %i", ESP.getFreeHeap());
+    ESP_LOGI(TAG, "%i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
     sendCurrentItem();
     playList.isUpdated = false;
@@ -411,13 +444,29 @@ void loop() {
     ws.text(newClient.id, streamtitle);
     newClient.connected = false;
   }
-  /*
-    if (newUrl.waiting) {
-      //TODO: Add to end of playlist (((( OR PLAY 'INBETWEEN' OR 'PREVIEW' MODE ))))
-      audio.connecttohost(urlEncode(newUrl.url));
-      newUrl.waiting = false;
+
+
+
+  if (newUrl.waiting) {
+    ESP_LOGI(TAG, "trying new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+    if (audio.connecttohost(urlEncode(newUrl.url))) {
+      playList.add({HTTP_FILE, newUrl.url});
+      currentItem = playList.size() - 1;
+      playerStatus = PLAYING;
+      playList.isUpdated = true;
     }
-  */
+    else {
+      playListHasEnded();
+      ws.text(newUrl.clientId, "message\nFailed to play stream");
+      sendCurrentItem();
+    }
+    newUrl.waiting = false;
+  }
+
+
+
+
+
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
       currentItem++;
@@ -426,7 +475,6 @@ void loop() {
       playList.get(currentItem, item);
 
       if (HTTP_FILE == item.type) {
-        //audio_showstreamtitle("&nbsp;");
         ESP_LOGI(TAG, "file: %s", item.url.c_str());
         audio.connecttohost(urlEncode(item.url));
         audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());

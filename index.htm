@@ -100,6 +100,24 @@ a{
 #showstation, #streamtitle, #streaminfo{
   text-align:center;
 }
+#newurlbar{
+  position: absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:40px;
+  display:flex;
+  margin:0;  
+}
+#newurl{
+  height:100%;
+  width:80%;
+  text-align:center;
+}
+#newurlbutton{
+  height:100%;
+  width:20%;
+}
 #stream_container{
   position:absolute;
   background:grey;
@@ -146,6 +164,7 @@ a{
   <p id="bitrate"></p>
   <p id="streamtitle"></p>
   <p id="streaminfo"></p>
+  <p id="newurlbar"><input type="text" id="newurl"><input id="newurlbutton" type="submit" value="Submit"></p>
 </div>
 
 <div id="PLAYLIST" class="tabcontent">
@@ -344,6 +363,10 @@ $(document).ready(function(){
 
   $('body').on('click','.streamlink',function(){
     ws.send("presetstation\n"+$(this).index());
+  });
+
+  $('body').on('click','#newurlbutton',function(){
+    ws.send("newurl\n"+$('#newurl').val());
   });
 
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
