@@ -89,10 +89,15 @@ a{
   margin:2px;
   font-size:20px;
   padding:2px 10px;
+  display:flex;
+  align-items:center;
+  overflow:hidden;
 }
 .foldericon, .icon{
   width:30px;
   height:30px;
+  vertical-align:middle;
+  margin:0 10px;
 }
 .foldericon:hover, .icon:hover, .plitem:hover, #uplink:hover, .folderlink:hover, filelink:hover, .streamlink{
   cursor:pointer;
@@ -155,6 +160,7 @@ a{
   <button class="tablinks">PLAYLIST</button>
   <button class="tablinks" id="librarybutton">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
+  <button class="tablinks">FAVORITES</button>
   <button class="tablinks">SETUP</button>
   </div>
 </div>
@@ -164,7 +170,7 @@ a{
   <p id="bitrate"></p>
   <p id="streamtitle"></p>
   <p id="streaminfo"></p>
-  <p id="newurlbar"><input type="text" id="newurl"><input id="newurlbutton" type="submit" value="Submit"></p>
+  <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Submit"></p>
 </div>
 
 <div id="PLAYLIST" class="tabcontent">
@@ -179,6 +185,11 @@ a{
 <div id="WEBRADIO" class="tabcontent">
   <h3>WEBRADIO</h3>
   <p>Show and select a web radio station.</p>
+</div>
+
+<div id="FAVORITES" class="tabcontent">
+  <h3>FAVORITES</h3>
+  <p>Show and select a saved file or station.</p>
 </div>
 
 <div id="SETUP" class="tabcontent">
@@ -210,7 +221,6 @@ function updateLocationBar(){
 }
 function updateLibraryFolder(folder,oldfolder,restorescroll){
   console.log(folder);
-  //var jqxhr = $.get(libraryURL+"?folder="+escape(folder))
   var jqxhr = $.get(libraryURL+"?folder="+folder)
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
@@ -226,6 +236,7 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
 }
 
 $(document).ready(function(){
+  let addicon='<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
   var ws=new ReconnectingWebSocket(ws_host);
   ws.onmessage=function(e){
     var command=e.data.split("\n");
@@ -237,6 +248,7 @@ $(document).ready(function(){
         }else{
           $('.plitem').eq(command[1]).css("background-color","red");
           $('#playerstatus, #showstation').html($('.plitem').eq(command[1]).text());
+          if($('#showstation').html()!="")$('#showstation').append(addicon);
         }
       break;
       case "playlist":
@@ -254,7 +266,36 @@ $(document).ready(function(){
       break;
 
       case "showstation":
-        if(command[1])$('#playerstatus, #showstation').html(command[1]);
+        //let favorite='<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>';
+        if(command[1]){
+          $('#playerstatus, #showstation').html(command[1]);
+          
+          
+          
+          
+          $('#showstation').append(addicon);
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+        }
       break;
 
       case "streamtitle":
@@ -269,7 +310,12 @@ $(document).ready(function(){
         $('#streaminfo').html(command[1]);
       break;
 */
-
+      case "favorites":
+        $('#FAVORITES').html("");
+        for(i=1;i<command.length-1;i++){
+          $('#FAVORITES').append("<p>"+command[i]+"</p>");
+        }
+      break
       default:break;
     }
   };
@@ -323,6 +369,7 @@ $(document).ready(function(){
       nList.id="invisFolder";
       document.body.appendChild(nList);
       $(nList).html(data);
+      if(requestpath.startsWith("//"))requestpath=requestpath.substring(1);
       $('#invisFolder .filelink').each(function(){
         content+=location+requestpath+'/'+$(this).text()+"\n";
       });
@@ -369,6 +416,9 @@ $(document).ready(function(){
     ws.send("newurl\n"+$('#newurl').val());
   });
 
+  $('body').on('click','#addfavorite',function(){
+    ws.send("addfavorite\n");    
+  });
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -376,6 +426,8 @@ $(document).ready(function(){
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
 
   updateLibraryFolder(currentpath);
+  
+
 
   $('.tablinks').first().click();
 
@@ -388,8 +440,9 @@ $(document).ready(function(){
     })
   })
   .fail(function(){
-    $('#WEBRADIO').html('Could not open station list');
+    $('#WEBRADIO').html('<p>Could not open station list</p>');
   });
+
 });
 
 </script>

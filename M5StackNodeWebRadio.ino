@@ -1,4 +1,4 @@
-#include <Preferences.h>
+#include <FFat.h>
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <WM8978.h>
@@ -8,7 +8,7 @@
 #include "index_htm.h"
 
 /* webserver core */
-#define HTTP_RUN_CORE 0
+#define HTTP_RUN_CORE 1
 
 /* M5Stack Node WM8978 I2C pins */
 #define I2C_SDA     21
@@ -60,9 +60,15 @@ struct newUrl {
   uint32_t clientId;
 } newUrl;
 
+bool addfavorite{false};
+struct {
+  bool requested{false};
+  uint32_t clientId;
+} favorites;
+
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
-Preferences preferences;
+//Preferences preferences;
 
 const String urlEncode(const String& s) {
   //https://en.wikipedia.org/wiki/Percent-encoding
@@ -143,6 +149,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
     newClient.connected = true;
     newClient.id = client->id();
+    favorites.requested = true;
+    favorites.clientId = client->id();
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGI(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
@@ -155,7 +163,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
       if (info->opcode == WS_TEXT) {
         data[len] = 0;
 
-        ESP_LOGI(TAG, "ws request: %s", reinterpret_cast<char*>(data));
+        ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<char*>(data));
 
         char *pch = strtok((char*)data, "\n");
         if (!strcmp("toplaylist", pch)) {
@@ -250,7 +258,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("newurl", pch)) {
           pch = strtok(NULL, "\n");
-          ESP_LOGI(TAG, "received new url: %s", pch);
+          ESP_LOGD(TAG, "received new url: %s", pch);
           newUrl.url = pch;
           newUrl.clientId = client->id();
           newUrl.waiting = true;
@@ -269,6 +277,21 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           */
           return;
         }
+
+
+
+
+
+        else if (!strcmp("addfavorite", pch)) {
+          addfavorite = true;
+        }
+
+        else if (!strcmp("favorites", pch)) {
+          //send favorites to current client
+          favorites.clientId = client->id();
+          favorites.requested = true;
+        }
+
 
 
 
@@ -354,6 +377,29 @@ void startWebServer(void * pvParameters) {
     request->send(response);
   });
 
+  /*
+    server.on("/favorites", HTTP_GET, [] (AsyncWebServerRequest * request) {
+      File root = FFat.open("/");
+      if (!root) {
+        ESP_LOGE(TAG, "ERROR- failed to open root");
+        return request->send(400, "text/html", "No SD found");
+      }
+      if (!root.isDirectory()) {
+        ESP_LOGE(TAG, "ERROR- root is not a directory");
+        return request->send(400, "text/html", "No root found");
+      }
+
+      AsyncResponseStream *response = request->beginResponseStream("text/html");
+      File file = root.openNextFile();
+      while (file) {
+        if (!file.isDirectory()) {
+          response->printf("%s\n", file.name());
+        }
+        file = root.openNextFile();
+      }
+      request->send(response);
+    });
+  */
   server.onNotFound([](AsyncWebServerRequest * request) {
     ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
     request->send(404);
@@ -385,16 +431,43 @@ void setup() {
     //dac.setHPvol(16, 16);
   */
 
-  SPI.begin(SPI_CLK, SPI_MISO, SPI_MOSI, SPI_SS);
-  SPI.setFrequency(40 * 1000 * 1000);
-  if (!SD.begin()) {
-    ESP_LOGE(TAG, "SD Mount Failed");
-  } else {
-    ESP_LOGI(TAG, "SD Mounted - capacity: %" PRId64 " Bytes - used: %" PRId64 " Bytes", SD.totalBytes(), SD.usedBytes());
+
+
+  /* check if a ffat partition is defined and halt the system if it is not defined*/
+  if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
+    ESP_LOGE( TAG, "No FFat partition defined. Halting.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a FFat partition." );
+    //const char * noffatStr = "No FFat found...";
+    while (true) delay(1000); /* system is halted */
   }
 
-  ESP_LOGD(TAG, "Root SD folder:\n%s", listcDir(SD, "/", 0));
+  /* partition is defined - try to mount it */
+  if ( FFat.begin() )
+    ESP_LOGI( TAG, "FFat mounted." );
 
+  /* partition is present, but does not mount so now we just format it */
+  else {
+    const char * formatStr = "Formatting...";
+    ESP_LOGI( TAG, "%s", formatStr );
+    if (!FFat.format( true, (char*)"ffat" ) || !FFat.begin()) {
+      ESP_LOGE( TAG, "FFat error while formatting. Halting." );
+      //const char * errorffatStr = "FFat error.";
+      while (true) delay(1000); /* system is halted */;
+    }
+  }
+
+
+
+  /*
+    SPI.begin(SPI_CLK, SPI_MISO, SPI_MOSI, SPI_SS);
+    SPI.setFrequency(40 * 1000 * 1000);
+    if (!SD.begin()) {
+      ESP_LOGE(TAG, "SD Mount Failed");
+    } else {
+      ESP_LOGI(TAG, "SD Mounted - capacity: %" PRId64 " Bytes - used: %" PRId64 " Bytes", SD.totalBytes(), SD.usedBytes());
+    }
+
+    ESP_LOGD(TAG, "Root SD folder:\n%s", listcDir(SD, "/", 0));
+  */
   WiFi.begin();
   WiFi.setSleep(false);
   while (!WiFi.isConnected()) {
@@ -467,6 +540,81 @@ void loop() {
 
 
 
+
+
+
+
+
+
+
+  if (favorites.requested) {
+    ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
+    //send favorites to client
+    File root = FFat.open("/");
+    if (!root) {
+      ESP_LOGE(TAG, "ERROR- failed to open root");
+      ws.text(favorites.clientId, "message\nNo SD found");
+      return;
+    }
+    if (!root.isDirectory()) {
+      ESP_LOGE(TAG, "ERROR- root is not a directory");
+      ws.text(favorites.clientId, "message\nNo root found");
+      return;
+    }
+
+    String response{"favorites\n"};
+    File file = root.openNextFile();
+    while (file) {
+      if (!file.isDirectory()) {
+        response += file.name() + String("\n");
+      }
+      file = root.openNextFile();
+    }
+    ws.text(favorites.clientId, response);
+    favorites.requested = false;
+  }
+
+
+  if (addfavorite) {
+    playListItem item;
+    playList.get(currentItem, item);
+    
+    if (item.type == HTTP_PRESET){
+      ESP_LOGI(TAG, "%s %s", &showstation[12], preset[item.index].url.c_str());
+    }
+    else if (item.type == HTTP_FILE){
+      ESP_LOGI(TAG, "%s %s", &showstation[12], item.url.substring(item.url.lastIndexOf("/")).c_str());
+    }
+    
+    File file = FFat.open("/"+String(&showstation[12]), FILE_WRITE);
+    audio.loop();
+    if (!file) {
+      ESP_LOGE(TAG, "- failed to open file for writing");
+      addfavorite = false;
+      return;
+    }
+    if (file.print((item.type == HTTP_PRESET) ? preset[item.index].url : item.url.substring(item.url.lastIndexOf("/")).c_str())) {
+      ESP_LOGI(TAG, "- file written");
+    } else {
+      ESP_LOGD(TAG, "- write failed");
+    }
+    file.close();
+    
+    addfavorite = false;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
       currentItem++;
@@ -498,5 +646,5 @@ void loop() {
     }
     sendCurrentItem();
   }
-  delay(1);
+  //delay(1);
 }
