@@ -11,8 +11,8 @@ const debugip="192.168.0.107";  //change this to the esp32 ip for remote running
 <link rel="icon" href="data:;base64,iVBORw0KGgo="><!--prevent favicon requests-->
 <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
 <script src="https://code.jquery.com/jquery-3.4.1.js"></script>
-<title>M5StackNodePlayer</title>
-<meta name="description" content="ESP32WebRadio">
+<title>eStreamPlayer32</title>
+<meta name="description" content="eStreamPlayer32 interface">
 <meta name="author" content="Cellie">
 <script>!function(a,b){"function"==typeof define&&define.amd?define([],b):"undefined"!=typeof module&&module.exports?module.exports=b():a.ReconnectingWebSocket=b()}(this,function(){function a(b,c,d){function l(a,b){var c=document.createEvent("CustomEvent");return c.initCustomEvent(a,!1,!1,b),c}var e={debug:!1,automaticOpen:!0,reconnectInterval:1e3,maxReconnectInterval:3e4,reconnectDecay:1.5,timeoutInterval:2e3};d||(d={});for(var f in e)this[f]="undefined"!=typeof d[f]?d[f]:e[f];this.url=b,this.reconnectAttempts=0,this.readyState=WebSocket.CONNECTING,this.protocol=null;var h,g=this,i=!1,j=!1,k=document.createElement("div");k.addEventListener("open",function(a){g.onopen(a)}),k.addEventListener("close",function(a){g.onclose(a)}),k.addEventListener("connecting",function(a){g.onconnecting(a)}),k.addEventListener("message",function(a){g.onmessage(a)}),k.addEventListener("error",function(a){g.onerror(a)}),this.addEventListener=k.addEventListener.bind(k),this.removeEventListener=k.removeEventListener.bind(k),this.dispatchEvent=k.dispatchEvent.bind(k),this.open=function(b){h=new WebSocket(g.url,c||[]),b||k.dispatchEvent(l("connecting")),(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","attempt-connect",g.url);var d=h,e=setTimeout(function(){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","connection-timeout",g.url),j=!0,d.close(),j=!1},g.timeoutInterval);h.onopen=function(){clearTimeout(e),(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onopen",g.url),g.protocol=h.protocol,g.readyState=WebSocket.OPEN,g.reconnectAttempts=0;var d=l("open");d.isReconnect=b,b=!1,k.dispatchEvent(d)},h.onclose=function(c){if(clearTimeout(e),h=null,i)g.readyState=WebSocket.CLOSED,k.dispatchEvent(l("close"));else{g.readyState=WebSocket.CONNECTING;var d=l("connecting");d.code=c.code,d.reason=c.reason,d.wasClean=c.wasClean,k.dispatchEvent(d),b||j||((g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onclose",g.url),k.dispatchEvent(l("close")));var e=g.reconnectInterval*Math.pow(g.reconnectDecay,g.reconnectAttempts);setTimeout(function(){g.reconnectAttempts++,g.open(!0)},e>g.maxReconnectInterval?g.maxReconnectInterval:e)}},h.onmessage=function(b){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onmessage",g.url,b.data);var c=l("message");c.data=b.data,k.dispatchEvent(c)},h.onerror=function(b){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onerror",g.url,b),k.dispatchEvent(l("error"))}},1==this.automaticOpen&&this.open(!1),this.send=function(b){if(h)return(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","send",g.url,b),h.send(b);throw"INVALID_STATE_ERR : Pausing to reconnect websocket"},this.close=function(a,b){"undefined"==typeof a&&(a=1e3),i=!0,h&&h.close(a,b)},this.refresh=function(){h&&h.close()}}return a.prototype.onopen=function(){},a.prototype.onclose=function(){},a.prototype.onconnecting=function(){},a.prototype.onmessage=function(){},a.prototype.onerror=function(){},a.debugAll=!1,a.CONNECTING=WebSocket.CONNECTING,a.OPEN=WebSocket.OPEN,a.CLOSING=WebSocket.CLOSING,a.CLOSED=WebSocket.CLOSED,a});</script>
 <!-- https://www.w3schools.com/howto/howto_js_tabs.asp -->
@@ -46,14 +46,22 @@ a{
 }
 #locationbar{
   margin:0;
+  white-space:nowrap;
+  padding:0 8px;
+  background:#f1f1f1;
 }
 #infobar{
   margin:0;
 }
 /* Style the tab */
 .tab {
-  overflow: hidden;
+  overflow: auto;
   background-color: #f1f1f1;
+}
+#tabbar{
+  overflow:unset;
+  width:max-content;
+  overflow-y:unset;
 }
 /* Style the buttons that are used to open the tab content */
 .tab button {
@@ -80,18 +88,17 @@ a{
   left:0;
   right:0;
   display: none;
-  padding: 6px 12px;
-  //border: 1px solid #ccc;
-  border-top: none;
+  border: none;
 }
-#uplink, .folderlink, .sdfolderlink, .filelink, .streamlink, .plitem, .disconnect{
+#uplink, .folderlink, .sdfolderlink, .filelink, .streamlink, .plitem, .favoritelink, .disconnect{
   background:beige;
-  margin:2px;
+  margin:2px 0;
   font-size:20px;
   padding:2px 10px;
-  display:flex;
   align-items:center;
   overflow:hidden;
+  white-space:nowrap;
+  display:list-item;
 }
 .foldericon, .icon{
   width:30px;
@@ -104,6 +111,7 @@ a{
 }
 #showstation, #streamtitle, #streaminfo{
   text-align:center;
+  margin:40px 10px;
 }
 #newurlbar{
   position: absolute;
@@ -112,7 +120,7 @@ a{
   right:0;
   height:40px;
   display:flex;
-  margin:0;  
+  margin:0;
 }
 #newurl{
   height:100%;
@@ -152,9 +160,8 @@ a{
 </style>
 </head>
 <body class="noselect">
-<div class="tab">
-  <p id="infobar">&nbsp;</p>
   <p id="locationbar">&nbsp;</p>
+<div class="tab">
   <div id="tabbar">
   <button class="tablinks">HOME</button>
   <button class="tablinks">PLAYLIST</button>
@@ -198,12 +205,13 @@ a{
 </div>
 
 <div id="controlpanel">
-  <p id="playerstatus">ESP32 file and stream player v0.1</p>
+  <p id="playerstatus">eStreamPlayer32</p>
   <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
   <p class="playercontrol" id="playpause"><svg class="icon" id="pausebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
   <p class="playercontrol"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
-  <input class="playercontrol" type="range" min="0" max="0" value="0" class="" id="slider">
+  <!--<input class="playercontrol" type="range" min="0" max="0" value="0" class="" id="slider">-->
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
+  <p id="infobar">&nbsp;</p>
 </div>
 <script>
 var currentpath='/';
@@ -235,8 +243,10 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
   });
 }
 
+const removebutton='<svg class="icon deletebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/><path fill="none" d="M0 0h24v24H0V0z"/></svg>';
+
 $(document).ready(function(){
-  let addicon='<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
+  const addicon='<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
   var ws=new ReconnectingWebSocket(ws_host);
   ws.onmessage=function(e){
     var command=e.data.split("\n");
@@ -248,12 +258,11 @@ $(document).ready(function(){
         }else{
           $('.plitem').eq(command[1]).css("background-color","red");
           $('#playerstatus, #showstation').html($('.plitem').eq(command[1]).text());
-          if($('#showstation').html()!="")$('#showstation').append(addicon);
+          if($('#showstation').html()!="")$('#showstation').prepend(addicon);
         }
       break;
       case "playlist":
         // make a playlist from the newline separated data
-        const removebutton='<svg class="icon deletebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/><path fill="none" d="M0 0h24v24H0V0z"/></svg>';
         $('#PLAYLIST').html('');
         console.log("Items in playlist:"+(command.length-2));
         for(var i=1;i<command.length-1;i++){
@@ -266,35 +275,9 @@ $(document).ready(function(){
       break;
 
       case "showstation":
-        //let favorite='<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>';
         if(command[1]){
           $('#playerstatus, #showstation').html(command[1]);
-          
-          
-          
-          
-          $('#showstation').append(addicon);
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
+          $('#showstation').prepend(addicon);
         }
       break;
 
@@ -313,7 +296,7 @@ $(document).ready(function(){
       case "favorites":
         $('#FAVORITES').html("");
         for(i=1;i<command.length-1;i++){
-          $('#FAVORITES').append("<p>"+command[i]+"</p>");
+          $('#FAVORITES').append('<p class="favoritelink">'+removebutton+command[i].substring(1)+'</p>');
         }
       break
       default:break;
@@ -355,6 +338,8 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.addfolder',function(e){
+    //TODO: something goes wrong here! 
+    // we have to check in the .done callback if there are multiple '/' chars at the start of the path
     var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
     console.log("Location:"+location);
     console.log("Current path: "+currentpath);
@@ -369,7 +354,7 @@ $(document).ready(function(){
       nList.id="invisFolder";
       document.body.appendChild(nList);
       $(nList).html(data);
-      if(requestpath.startsWith("//"))requestpath=requestpath.substring(1);
+      if(requestpath.startsWith("//"))requestpath=requestpath.substring(1);  //TODO: FIX! see above
       $('#invisFolder .filelink').each(function(){
         content+=location+requestpath+'/'+$(this).text()+"\n";
       });
@@ -383,7 +368,7 @@ $(document).ready(function(){
     ws.send("playitem\n"+($(this).index('.plitem')-1));
   });
 
-  $('body').on('click','.deletebutton',function(e){
+  $('body').on('click','.plitem .deletebutton',function(e){
     ws.send("deleteitem\n"+($(this).index('.deletebutton')));
     e.stopPropagation();
   });
@@ -417,16 +402,28 @@ $(document).ready(function(){
   });
 
   $('body').on('click','#addfavorite',function(){
-    ws.send("addfavorite\n");    
+    ws.send("currenttofavorites\n");
   });
+
+  $('body').on('click','.favoritelink',function(){
+    console.log("Favorite '"+$(this).text()+"' clicked");
+    ws.send("favoritetoplaylist\n"+$(this).text());
+  });
+
+  $('body').on('click','.favoritelink .deletebutton',function(e){
+    console.log("Delete button on favorite '"+$(this).parent().text()+"' clicked ");
+    ws.send("deletefavorite\n"+($(this).parent().text()));
+    e.stopPropagation();
+  });
+
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-  $('.tabcontent').css('top',$('.tab').css('height'));
+  //console.log($('.tab').height()+$('#infobar').height());
+  $('.tabcontent').css('top',$('.tab').height()+$('#locationbar').height()+"px");
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
 
   updateLibraryFolder(currentpath);
-  
+
 
 
   $('.tablinks').first().click();

@@ -6,6 +6,7 @@
 
 #include "playList.h"
 #include "index_htm.h"
+#include "icons.h"
 
 /* webserver core */
 #define HTTP_RUN_CORE 1
@@ -60,11 +61,23 @@ struct newUrl {
   uint32_t clientId;
 } newUrl;
 
-bool addfavorite{false};
+bool currentToFavorites{false};
 struct {
   bool requested{false};
+  bool updated{false};
   uint32_t clientId;
 } favorites;
+
+struct {
+  bool requested{false};
+  String name;
+} favoriteToPlaylist;
+
+struct {
+  bool requested{false};
+  String name;
+  uint32_t clientId;
+} deletefavorite;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -171,7 +184,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           while (pch) {
             ESP_LOGD(TAG, "argument: %s", pch);
-            playList.add({HTTP_FILE, pch});
+            playList.add({HTTP_FILE, "", pch});
             pch = strtok(NULL, "\n");
           }
           ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
@@ -225,7 +238,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("previous", pch)) {
           if (PLAYLISTEND == playerStatus) return;
-          ESP_LOGI(TAG, "current: %i size: %i", currentItem, playList.size());
+          ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem > 0) {
             audio.stopSong();
             audio_showstation("&nbsp;");
@@ -237,7 +250,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("next", pch)) {
           if (PLAYLISTEND == playerStatus) return;
-          ESP_LOGI(TAG, "current: %i size: %i", currentItem, playList.size());
+          ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem < playList.size() - 1) {
             audio.stopSong();
             audio_showstation("&nbsp;");
@@ -252,53 +265,39 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                 }
         */
 
-
-
-
-
         else if (!strcmp("newurl", pch)) {
           pch = strtok(NULL, "\n");
           ESP_LOGD(TAG, "received new url: %s", pch);
           newUrl.url = pch;
           newUrl.clientId = client->id();
           newUrl.waiting = true;
-          /*
-            if (audio.connecttohost(urlEncode(pch))) {
-            playList.add({HTTP_FILE, pch});
-            currentItem = playList.size() - 1;
-            playerStatus = PLAYING;
-            playList.isUpdated = true;
-            }
-            else {
-            //audio.stopSong();
-            client->text("message\nFailed to play stream");
-            playListHasEnded();
-            }
-          */
           return;
         }
 
-
-
-
-
-        else if (!strcmp("addfavorite", pch)) {
-          addfavorite = true;
+        else if (!strcmp("currenttofavorites", pch)) {
+          currentToFavorites = true;
         }
 
         else if (!strcmp("favorites", pch)) {
-          //send favorites to current client
+          //send favorites to requesting client
           favorites.clientId = client->id();
           favorites.requested = true;
         }
 
+        else if (!strcmp("favoritetoplaylist", pch)) {
+          favoriteToPlaylist.name = strtok(NULL, "\n");
+          client->printf("message\nAdded 1 favorite to playlist");
+          favoriteToPlaylist.requested = true;
+        }
 
-
-
+        else if (!strcmp("deletefavorite", pch)) {
+          deletefavorite.name = strtok(NULL, "\n");
+          deletefavorite.requested = true;
+        }
 
         else if (!strcmp("presetstation", pch)) {
           pch = strtok(NULL, "\n");
-          playList.add({HTTP_PRESET, "", atoi(pch)});
+          playList.add({HTTP_PRESET, "", "", atoi(pch)});
           ESP_LOGD(TAG, "Added 1 preset item to playlist");
           client->printf("message\nAdded 1 preset item to playlist");
           // start playing at the correct position if not already playing
@@ -342,7 +341,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             pch = strtok(NULL, "\n");
             while (pch) {
               ESP_LOGD(TAG, "argument: %s", pch);
-              playList.add({HTTP_FILE, pch});
+              playList.add({HTTP_FILE, "", pch});
               pch = strtok(NULL, "\n");
             }
             delete []buffer;
@@ -377,26 +376,42 @@ void startWebServer(void * pvParameters) {
     request->send(response);
   });
 
-  /*
-    server.on("/favorites", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      File root = FFat.open("/");
-      if (!root) {
-        ESP_LOGE(TAG, "ERROR- failed to open root");
-        return request->send(400, "text/html", "No SD found");
-      }
-      if (!root.isDirectory()) {
-        ESP_LOGE(TAG, "ERROR- root is not a directory");
-        return request->send(400, "text/html", "No root found");
-      }
+  ////////////////////////////////////////////////////////////  serve icons as files - use the cache to only serve each icon once
+  // TODO: set a 304 to save on bandwidth
 
-      AsyncResponseStream *response = request->beginResponseStream("text/html");
-      File file = root.openNextFile();
-      while (file) {
-        if (!file.isDirectory()) {
-          response->printf("%s\n", file.name());
-        }
-        file = root.openNextFile();
-      }
+  server.on("/addfolder.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", addfoldericon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/delete.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/empty.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", emptyicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/folderup.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", folderupicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/save.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", saveicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+  /*
+    server.on("/thrashcan.svg", HTTP_GET, [] (AsyncWebServerRequest * request) { // is the effing same icon as delete.svg!!
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", thrashcanicon);
+      response->addHeader("Vary","Accept-Encoding");
       request->send(response);
     });
   */
@@ -455,19 +470,6 @@ void setup() {
     }
   }
 
-
-
-  /*
-    SPI.begin(SPI_CLK, SPI_MISO, SPI_MOSI, SPI_SS);
-    SPI.setFrequency(40 * 1000 * 1000);
-    if (!SD.begin()) {
-      ESP_LOGE(TAG, "SD Mount Failed");
-    } else {
-      ESP_LOGI(TAG, "SD Mounted - capacity: %" PRId64 " Bytes - used: %" PRId64 " Bytes", SD.totalBytes(), SD.usedBytes());
-    }
-
-    ESP_LOGD(TAG, "Root SD folder:\n%s", listcDir(SD, "/", 0));
-  */
   WiFi.begin();
   WiFi.setSleep(false);
   while (!WiFi.isConnected()) {
@@ -518,12 +520,10 @@ void loop() {
     newClient.connected = false;
   }
 
-
-
   if (newUrl.waiting) {
     ESP_LOGI(TAG, "trying new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
     if (audio.connecttohost(urlEncode(newUrl.url))) {
-      playList.add({HTTP_FILE, newUrl.url});
+      playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
       currentItem = playList.size() - 1;
       playerStatus = PLAYING;
       playList.isUpdated = true;
@@ -536,29 +536,23 @@ void loop() {
     newUrl.waiting = false;
   }
 
-
-
-
-
-
-
-
-
-
-
-
-  if (favorites.requested) {
+  if (favorites.requested || favorites.updated) {
     ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
-    //send favorites to client
     File root = FFat.open("/");
     if (!root) {
       ESP_LOGE(TAG, "ERROR- failed to open root");
-      ws.text(favorites.clientId, "message\nNo SD found");
+      if (favorites.requested)
+        ws.text(favorites.clientId, "message\nNo FFat found");
+      else
+        ws.textAll("message\nNo FFat found");
       return;
     }
     if (!root.isDirectory()) {
       ESP_LOGE(TAG, "ERROR- root is not a directory");
-      ws.text(favorites.clientId, "message\nNo root found");
+      if (favorites.requested)
+        ws.text(favorites.clientId, "message\nNo root found");
+      else
+        ws.textAll("message\nNo root found");
       return;
     }
 
@@ -570,50 +564,78 @@ void loop() {
       }
       file = root.openNextFile();
     }
-    ws.text(favorites.clientId, response);
-    favorites.requested = false;
+    if (favorites.requested)
+      ws.text(favorites.clientId, response);
+    else
+      ws.textAll(response);
+
+    if (favorites.requested) favorites.requested = false;
+    if (favorites.updated) favorites.updated = false;
   }
 
-
-  if (addfavorite) {
+  if (currentToFavorites) {
     playListItem item;
     playList.get(currentItem, item);
-    
-    if (item.type == HTTP_PRESET){
-      ESP_LOGI(TAG, "%s %s", &showstation[12], preset[item.index].url.c_str());
+
+    if (item.type == HTTP_FILE) {
+      ESP_LOGI(TAG, "file (wont save) %s %s", &showstation[12], item.url.c_str());
     }
-    else if (item.type == HTTP_FILE){
-      ESP_LOGI(TAG, "%s %s", &showstation[12], item.url.substring(item.url.lastIndexOf("/")).c_str());
+
+    if (item.type == HTTP_PRESET) {
+      ESP_LOGI(TAG, "preset (wont save) %s %s", &showstation[12], preset[item.index].url.c_str());
     }
-    
-    File file = FFat.open("/"+String(&showstation[12]), FILE_WRITE);
-    audio.loop();
-    if (!file) {
-      ESP_LOGE(TAG, "- failed to open file for writing");
-      addfavorite = false;
-      return;
+
+    else if (item.type == HTTP_FAVORITE) {
+      ESP_LOGI(TAG, "favorite (wont save) %s %s", &showstation[12], item.url.c_str());
     }
-    if (file.print((item.type == HTTP_PRESET) ? preset[item.index].url : item.url.substring(item.url.lastIndexOf("/")).c_str())) {
-      ESP_LOGI(TAG, "- file written");
-    } else {
-      ESP_LOGD(TAG, "- write failed");
+
+    else if (item.type == HTTP_STREAM) {
+      ESP_LOGI(TAG, "saving stream: %s -> %s", &showstation[12], item.url.c_str());
+      File file = FFat.open("/" + String(&showstation[12]), FILE_WRITE);
+      audio.loop();
+      if (!file) {
+        ESP_LOGE(TAG, "- failed to open file for writing");
+        currentToFavorites = false;
+        return;
+      }
+
+      if (file.print(item.url.c_str())) {
+        ESP_LOGD(TAG, "FFat file %s written", &showstation[12]);
+        favorites.updated = true;
+      } else {
+        ESP_LOGE(TAG, "FFat writing to %s failed", &showstation[12]);
+      }
+      file.close();
     }
-    file.close();
-    
-    addfavorite = false;
+    currentToFavorites = false;
   }
 
+  if (favoriteToPlaylist.requested) {
+    File file = FFat.open("/" + favoriteToPlaylist.name);
+    String url;
+    if (file) {
+      while (file.available()) url += (char)file.read();
+      file.close();
+    }
+    playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
+    ESP_LOGI(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
+    if (!audio.isRunning() && PAUSED != playerStatus) {
+      currentItem = playList.size() - 2;
+      playerStatus = PLAYING;
+    }
+    favoriteToPlaylist.requested = false;
+  }
 
-
-
-
-
-
-
-
-
-
-
+  if (deletefavorite.requested) {
+    if (!FFat.exists("/" + deletefavorite.name)) {
+      ws.text(deletefavorite.clientId, "message\nCould not delete " + deletefavorite.name);
+    } else {
+      FFat.remove("/" + deletefavorite.name);
+      favorites.updated = true;
+      ws.textAll("message\nDeleted favorite " + deletefavorite.name);
+    }
+    deletefavorite.requested = false;
+  }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
@@ -622,8 +644,8 @@ void loop() {
       playListItem item;
       playList.get(currentItem, item);
 
-      if (HTTP_FILE == item.type) {
-        ESP_LOGI(TAG, "file: %s", item.url.c_str());
+      if (HTTP_FILE == item.type || HTTP_STREAM == item.type) {
+        ESP_LOGI(TAG, "file or stream: %s", item.url.c_str());
         audio.connecttohost(urlEncode(item.url));
         audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
       }
@@ -632,10 +654,13 @@ void loop() {
         audio_showstreamtitle("&nbsp;");
         audio.connecttohost(urlEncode(preset[item.index].url));
       }
-      else if (HTTP_STREAM == item.type) {
-        ESP_LOGI(TAG, "stream: %s", item.url.c_str());
+
+      else if (HTTP_FAVORITE == item.type) {
+        ESP_LOGI(TAG, "favorite stream %s -> %s", item.name.c_str(), item.url.c_str());
+        audio_showstreamtitle("&nbsp;");
         audio.connecttohost(urlEncode(item.url));
       }
+
       else if (SDCARD_FILE == item.type) {
         ESP_LOGI(TAG, "sd file: %s", item.url.c_str());
         audio.connecttoSD(item.url);
@@ -646,5 +671,4 @@ void loop() {
     }
     sendCurrentItem();
   }
-  //delay(1);
 }
