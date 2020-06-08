@@ -229,7 +229,7 @@ function updateLocationBar(){
 }
 function updateLibraryFolder(folder,oldfolder,restorescroll){
   console.log(folder);
-  var jqxhr = $.get(libraryURL+"?folder="+folder)
+  var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
