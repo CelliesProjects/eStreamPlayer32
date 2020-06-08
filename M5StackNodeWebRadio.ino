@@ -98,7 +98,7 @@ const String urlEncode(const String& s) {
     //else if (c == ']') encodedstr += "%5D";
     else encodedstr += c;
   }
-  ESP_LOGD(TAG, "%s", encodedstr.c_str());
+  ESP_LOGI(TAG, "encoded url: %s", encodedstr.c_str());
   return encodedstr;
 }
 
@@ -286,7 +286,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("favoritetoplaylist", pch)) {
           favoriteToPlaylist.name = strtok(NULL, "\n");
-          client->printf("message\nAdded 1 favorite to playlist");
           favoriteToPlaylist.requested = true;
         }
 
@@ -420,8 +419,6 @@ void startWebServer(void * pvParameters) {
     request->send(404);
   });
 
-  //server.serveStatic("/", SD, "/");
-
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 
   server.begin();
@@ -451,7 +448,6 @@ void setup() {
   /* check if a ffat partition is defined and halt the system if it is not defined*/
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
     ESP_LOGE( TAG, "No FFat partition defined. Halting.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a FFat partition." );
-    //const char * noffatStr = "No FFat found...";
     while (true) delay(1000); /* system is halted */
   }
 
@@ -465,7 +461,6 @@ void setup() {
     ESP_LOGI( TAG, "%s", formatStr );
     if (!FFat.format( true, (char*)"ffat" ) || !FFat.begin()) {
       ESP_LOGE( TAG, "FFat error while formatting. Halting." );
-      //const char * errorffatStr = "FFat error.";
       while (true) delay(1000); /* system is halted */;
     }
   }
@@ -506,7 +501,7 @@ void loop() {
     }
   */
   if (playList.isUpdated) {
-    ESP_LOGI(TAG, "%i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+    ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
     sendCurrentItem();
     playList.isUpdated = false;
@@ -584,27 +579,27 @@ void loop() {
     if (item.type == HTTP_PRESET) {
       ESP_LOGI(TAG, "preset (wont save) %s %s", &showstation[12], preset[item.index].url.c_str());
     }
-
+/*
     else if (item.type == HTTP_FAVORITE) {
       ESP_LOGI(TAG, "favorite (wont save) %s %s", &showstation[12], item.url.c_str());
     }
-
-    else if (item.type == HTTP_STREAM) {
+*/
+    else if (item.type == HTTP_STREAM || item.type == HTTP_FAVORITE) {
       ESP_LOGI(TAG, "saving stream: %s -> %s", &showstation[12], item.url.c_str());
       File file = FFat.open("/" + String(&showstation[12]), FILE_WRITE);
-      audio.loop();
       if (!file) {
-        ESP_LOGE(TAG, "- failed to open file for writing");
+        ESP_LOGE(TAG, "failed to open file for writing");
         currentToFavorites = false;
         return;
       }
-
+      audio.loop();
       if (file.print(item.url.c_str())) {
         ESP_LOGD(TAG, "FFat file %s written", &showstation[12]);
         favorites.updated = true;
       } else {
         ESP_LOGE(TAG, "FFat writing to %s failed", &showstation[12]);
       }
+      audio.loop();
       file.close();
     }
     currentToFavorites = false;
@@ -619,6 +614,7 @@ void loop() {
     }
     playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
     ESP_LOGI(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
+    ws.printfAll("message\nAdded '%s' to playlist", favoriteToPlaylist.name.c_str());
     if (!audio.isRunning() && PAUSED != playerStatus) {
       currentItem = playList.size() - 2;
       playerStatus = PLAYING;
@@ -627,12 +623,11 @@ void loop() {
   }
 
   if (deletefavorite.requested) {
-    if (!FFat.exists("/" + deletefavorite.name)) {
+    if (!FFat.remove("/" + deletefavorite.name)) {
       ws.text(deletefavorite.clientId, "message\nCould not delete " + deletefavorite.name);
     } else {
-      FFat.remove("/" + deletefavorite.name);
-      favorites.updated = true;
       ws.textAll("message\nDeleted favorite " + deletefavorite.name);
+      favorites.updated = true;
     }
     deletefavorite.requested = false;
   }
@@ -656,7 +651,7 @@ void loop() {
       }
 
       else if (HTTP_FAVORITE == item.type) {
-        ESP_LOGI(TAG, "favorite stream %s -> %s", item.name.c_str(), item.url.c_str());
+        ESP_LOGI(TAG, "favorite: %s -> %s", item.name.c_str(), item.url.c_str());
         audio_showstreamtitle("&nbsp;");
         audio.connecttohost(urlEncode(item.url));
       }
