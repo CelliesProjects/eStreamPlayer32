@@ -98,7 +98,7 @@ const String urlEncode(const String& s) {
     //else if (c == ']') encodedstr += "%5D";
     else encodedstr += c;
   }
-  ESP_LOGI(TAG, "encoded url: %s", encodedstr.c_str());
+  ESP_LOGD(TAG, "encoded url: %s", encodedstr.c_str());
   return encodedstr;
 }
 
@@ -279,7 +279,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         }
 
         else if (!strcmp("favorites", pch)) {
-          //send favorites to requesting client
           favorites.clientId = client->id();
           favorites.requested = true;
         }
@@ -576,14 +575,10 @@ void loop() {
       ESP_LOGI(TAG, "file (wont save) %s %s", &showstation[12], item.url.c_str());
     }
 
-    if (item.type == HTTP_PRESET) {
+    else if (item.type == HTTP_PRESET) {
       ESP_LOGI(TAG, "preset (wont save) %s %s", &showstation[12], preset[item.index].url.c_str());
     }
-/*
-    else if (item.type == HTTP_FAVORITE) {
-      ESP_LOGI(TAG, "favorite (wont save) %s %s", &showstation[12], item.url.c_str());
-    }
-*/
+
     else if (item.type == HTTP_STREAM || item.type == HTTP_FAVORITE) {
       ESP_LOGI(TAG, "saving stream: %s -> %s", &showstation[12], item.url.c_str());
       File file = FFat.open("/" + String(&showstation[12]), FILE_WRITE);
