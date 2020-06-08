@@ -126,10 +126,12 @@ a{
   height:100%;
   width:80%;
   text-align:center;
+  font-size:20px;
 }
 #newurlbutton{
   height:100%;
   width:20%;
+  font-size:20px;
 }
 #stream_container{
   position:absolute;
@@ -177,7 +179,7 @@ a{
   <p id="bitrate"></p>
   <p id="streamtitle"></p>
   <p id="streaminfo"></p>
-  <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Submit"></p>
+  <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
 </div>
 
 <div id="PLAYLIST" class="tabcontent">
@@ -227,8 +229,9 @@ else ws_host+=debugip+"/ws";
 function updateLocationBar(){
   $('#locationbar').html("Library path: "+currentpath);
 }
+
 function updateLibraryFolder(folder,oldfolder,restorescroll){
-  console.log(folder);
+  //console.log(folder);
   var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
@@ -258,6 +261,7 @@ $(document).ready(function(){
         }else{
           $('.plitem').eq(command[1]).css("background-color","red");
           $('#playerstatus, #showstation').html($('.plitem').eq(command[1]).text());
+          // TODO: only add the save icon on a stream of favorite
           if($('#showstation').html()!="")$('#showstation').prepend(addicon);
         }
       break;
@@ -338,14 +342,14 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.addfolder',function(e){
-    //TODO: something goes wrong here! 
+    //TODO: something goes wrong here!
     // we have to check in the .done callback if there are multiple '/' chars at the start of the path
     var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
-    console.log("Location:"+location);
-    console.log("Current path: "+currentpath);
+    //console.log("Location:"+location);
+    //console.log("Current path: "+currentpath);
     var requestpath=currentpath+"/"+$(this).parent().text();
     let content="toplaylist\n";
-    console.log("Asking the server: "+"?folder="+currentpath+"/"+$(this).parent().text());
+    //console.log("Asking the server: "+"?folder="+currentpath+"/"+$(this).parent().text());
     $.get(libraryURL+"?folder="+encodeURIComponent(currentpath)+"/"+encodeURIComponent($(this).parent().text()))
     .done(function(data){
       //make an invisible navList
@@ -397,8 +401,14 @@ $(document).ready(function(){
     ws.send("presetstation\n"+$(this).index());
   });
 
+  $('#newurl').on('keydown', function(e) {
+    if(e.which==13)$('#newurlbutton').click();
+  });
+
   $('body').on('click','#newurlbutton',function(){
+    if(!$('#newurl').val())return
     ws.send("newurl\n"+$('#newurl').val());
+    $('#newurl').val('');
   });
 
   $('body').on('click','#addfavorite',function(){
@@ -406,19 +416,16 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.favoritelink',function(){
-    console.log("Favorite '"+$(this).text()+"' clicked");
     ws.send("favoritetoplaylist\n"+$(this).text());
   });
 
   $('body').on('click','.favoritelink .deletebutton',function(e){
-    console.log("Delete button on favorite '"+$(this).parent().text()+"' clicked ");
     ws.send("deletefavorite\n"+($(this).parent().text()));
     e.stopPropagation();
   });
 
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  //console.log($('.tab').height()+$('#infobar').height());
   $('.tabcontent').css('top',$('.tab').height()+$('#locationbar').height()+"px");
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
 
