@@ -26,7 +26,8 @@ html,body{
   right:0;
   margin:0;
   padding:0;
-  background-color:grey;
+  //background:#f1f1f1;
+  background:radial-gradient(black, transparent);
   text-align:center;
   font-family:'Roboto',sans-serif;
   overflow:hidden;
@@ -52,11 +53,12 @@ a{
 }
 #infobar{
   margin:0;
+  overflow:hidden;
+  white-space:nowrap;
 }
 /* Style the tab */
 .tab {
   overflow: auto;
-  background-color: #f1f1f1;
 }
 #tabbar{
   overflow:unset;
@@ -80,17 +82,17 @@ a{
 /* Style the tab content */
 .tabcontent {
   width:100%;
-  float:left;
   overflow-y:auto;
   text-align:left;
   position:absolute;
   bottom:0;
   left:0;
   right:0;
-  display: none;
-  border: none;
+  display:none;
+  border:none;
+  background:grey;
 }
-#uplink, .folderlink, .sdfolderlink, .filelink, .streamlink, .plitem, .favoritelink, .disconnect{
+#uplink, .folderlink, .sdfolderlink, .filelink, .streamlink, .plitem, .favoritelink, .errormessage{
   background:beige;
   margin:2px 0;
   font-size:20px;
@@ -106,15 +108,16 @@ a{
   vertical-align:middle;
   margin:0 10px;
 }
-.foldericon:hover, .icon:hover, .plitem:hover, #uplink:hover, .folderlink:hover, filelink:hover, .streamlink{
+.foldericon:hover, .icon:hover, .plitem:hover, #uplink:hover, .folderlink:hover, filelink:hover, .streamlink:hover{
   cursor:pointer;
 }
 #showstation, #streamtitle, #streaminfo{
   text-align:center;
   margin:40px 10px;
+  overflow:hidden;
 }
 #newurlbar{
-  position: absolute;
+  position:absolute;
   bottom:0;
   left:0;
   right:0;
@@ -124,27 +127,14 @@ a{
 }
 #newurl{
   height:100%;
-  width:80%;
+  width:-webkit-fill-available;
   text-align:center;
   font-size:20px;
 }
 #newurlbutton{
   height:100%;
-  width:20%;
+  padding:0 20px;
   font-size:20px;
-}
-#stream_container{
-  position:absolute;
-  background:grey;
-  top:0;
-  bottom:0;
-  right:0;
-  z-index:10;
-  //width:0;
-}
-#stream_type{
-  margin:0;
-  height:50px;
 }
 #controlpanel{
   position:absolute;
@@ -155,6 +145,8 @@ a{
 }
 #playerstatus{
   margin:0;
+  overflow:hidden;
+  white-space:nowrap;
 }
 .playercontrol{
   display:inline;
@@ -163,6 +155,7 @@ a{
 </head>
 <body class="noselect">
   <p id="locationbar">&nbsp;</p>
+  <p id="infobar">&nbsp;</p>
 <div class="tab">
   <div id="tabbar">
   <button class="tablinks">HOME</button>
@@ -213,7 +206,6 @@ a{
   <p class="playercontrol"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
   <!--<input class="playercontrol" type="range" min="0" max="0" value="0" class="" id="slider">-->
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
-  <p id="infobar">&nbsp;</p>
 </div>
 <script>
 var currentpath='/';
@@ -243,6 +235,21 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
     alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
     currentpath=oldfolder;
     $('#LIBRARY').css({"opacity":1});
+  });
+}
+
+function getPresets(){
+  $.get(url+"/stations")
+  .done(function(data){
+    var stations=data.split('\n');
+    $('#WEBRADIO').html('');
+    var icon=url+'/radioicon.svg';
+    stations.forEach(function(item){
+      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="'+icon+'" class="icon">'+item+'</p>');
+    })
+  })
+  .fail(function(){
+    $('#WEBRADIO').html('<p>Could not open station list</p>');
   });
 }
 
@@ -288,6 +295,13 @@ $(document).ready(function(){
       case "streamtitle":
         $('#streamtitle').html(command[1]);
       break;
+
+      case "progress":
+        console.log(command[1]);
+        var now=new Date(null);
+        now.setSeconds(command[1]);
+        console.log(now.toISOString().substr(11,8));
+      break;
 /*
       case "bitrate":
         if(command[1])$('#bitrate').html("Bitrate: "+command[1]+"kbps");
@@ -311,7 +325,7 @@ $(document).ready(function(){
     console.log('[WebSocket] Connected');
     //ws.send("hello server!");
   }
-  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="disconnect">No WS connection</p>')};
+  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>')};
   ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message)};
 
   $('.tablinks').on('click',function(){
@@ -426,26 +440,13 @@ $(document).ready(function(){
 
   //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  $('.tabcontent').css('top',$('.tab').height()+$('#locationbar').height()+"px");
+  $('.tabcontent').css('top',$('.tab').height()+($('#locationbar').height()+$('#infobar').height())+"px");
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
 
   updateLibraryFolder(currentpath);
 
-
-
   $('.tablinks').first().click();
-
-  $.get(url+"/stations")
-  .done(function(data){
-    var stations=data.split('\n');
-    $('#WEBRADIO').html('');
-    stations.forEach(function(item){
-      if(item)$('#WEBRADIO').append('<p class="streamlink">'+item+'</p>');
-    })
-  })
-  .fail(function(){
-    $('#WEBRADIO').html('<p>Could not open station list</p>');
-  });
+  getPresets();
 
 });
 
