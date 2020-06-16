@@ -11,7 +11,7 @@ enum streamType {
 
 struct playListItem {
   streamType type;
-  String name; // used when (type == HTTP_FAVORITE ) to store the name of the stream
+  String name;      // used when (type == HTTP_FAVORITE ) to store the name of the stream
   String url;
   uint32_t index;   // used when (type == HTTP_PRESET) to indicate which preset to play
 };
@@ -25,22 +25,27 @@ class playList {
       return list.size();
     }
     bool isUpdated{false};
-    bool get(const size_t num, playListItem &item) {
-      if (num < list.size()) item = list[num];
+    void get(const size_t index, playListItem& item) {
+      if (index < list.size()) item = list[index];
+      else item = {};
     }
-    bool add(const playListItem &item) {
+    void add(const playListItem& item) {
+      size_t previousSize = list.size();
       list.push_back(item);
-      isUpdated = true;
+      if (previousSize < list.size())
+        isUpdated = true;
     }
-    bool remove(const size_t num) {
-      if (num < list.size()) {
-        list.erase(list.begin() + num);
+    void remove(const size_t index) {
+      if (index < list.size()) {
+        list.erase(list.begin() + index);
         isUpdated = true;
       }
     }
     void clear() {
-      list.clear();
-      isUpdated = true;
+      if (list.size()) {
+        list.clear();
+        isUpdated = true;
+      }
     }
     String toClientString();
 
