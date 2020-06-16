@@ -19,7 +19,7 @@
 #define I2S_BCK     21
 #define I2S_WS      17
 #define I2S_DOUT    22
-#define I2S_DIN     34
+//#define I2S_DIN     34
 
 /* M5Stack Node I2S pins
   #define I2S_BCK      5
@@ -294,27 +294,30 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         }
 
         else if (!strcmp("presetstation", pch)) {
-          pch = strtok(NULL, "\n");
-          playList.add({HTTP_PRESET, "", "", atoi(pch)});
-          ESP_LOGD(TAG, "Added 1 preset item to playlist");
-          client->printf("message\nAdded 1 preset item to playlist");
-          // start playing at the correct position if not already playing
-          if (!audio.isRunning() && PAUSED != playerStatus) {
-            currentItem = playList.size() - 2;
-            playerStatus = PLAYING;
+          const uint32_t index = atoi(strtok(NULL, "\n"));
+          if (index < sizeof(preset) / sizeof(station)) { // only add really existing presets to the playlist
+            playList.add({HTTP_PRESET, "", "", index});
+            ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
+            client->printf("message\nAdded '%s' to playlist", preset[index].name.c_str());
+            // start playing at the correct position if not already playing
+            if (!audio.isRunning() && PAUSED != playerStatus) {
+              currentItem = playList.size() - 2;
+              playerStatus = PLAYING;
+            }
           }
         }
       }
     } else {
       //message is comprised of multiple frames or the frame is split into multiple packets
-      static char* buffer;
+      static char* buffer = nullptr;
       if (info->index == 0) {
         if (info->num == 0)
           ESP_LOGD(TAG, "ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
 
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
         //allocate info->len bytes of memory
-        buffer = new char[info->len + 1];  //TODO: check if enough mem is available and if allocation succeeds
+        if (!buffer)
+          buffer = new char[info->len + 1];  //TODO: check if enough mem is available and if allocation succeeds
       }
 
       ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
@@ -343,6 +346,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               pch = strtok(NULL, "\n");
             }
             delete []buffer;
+            buffer = nullptr;
             ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
             client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
             // start playing at the correct position if not already playing
@@ -377,41 +381,41 @@ void startWebServer(void * pvParameters) {
   ////////////////////////////////////////////////////////////  serve icons as files - use the cache to only serve each icon once
   // TODO: set a 304 to save on bandwidth
 
-  server.on("/addfolder.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", addfoldericon);
-    response->addHeader("Vary", "Accept-Encoding");
-    request->send(response);
-  });
-
-  server.on("/delete.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
-    response->addHeader("Vary", "Accept-Encoding");
-    request->send(response);
-  });
-
-  server.on("/empty.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", emptyicon);
-    response->addHeader("Vary", "Accept-Encoding");
-    request->send(response);
-  });
-
-  server.on("/folderup.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", folderupicon);
-    response->addHeader("Vary", "Accept-Encoding");
-    request->send(response);
-  });
-
-  server.on("/save.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", saveicon);
+  server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", radioicon);
     response->addHeader("Vary", "Accept-Encoding");
     request->send(response);
   });
   /*
-    server.on("/thrashcan.svg", HTTP_GET, [] (AsyncWebServerRequest * request) { // is the effing same icon as delete.svg!!
-      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", thrashcanicon);
-      response->addHeader("Vary","Accept-Encoding");
+    server.on("/delete.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
+      response->addHeader("Vary", "Accept-Encoding");
       request->send(response);
     });
+
+    server.on("/empty.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", emptyicon);
+      response->addHeader("Vary", "Accept-Encoding");
+      request->send(response);
+    });
+
+    server.on("/folderup.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", folderupicon);
+      response->addHeader("Vary", "Accept-Encoding");
+      request->send(response);
+    });
+
+    server.on("/save.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", saveicon);
+      response->addHeader("Vary", "Accept-Encoding");
+      request->send(response);
+    });
+
+      server.on("/thrashcan.svg", HTTP_GET, [] (AsyncWebServerRequest * request) { // is the effing same icon as delete.svg!!
+        AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", thrashcanicon);
+        response->addHeader("Vary","Accept-Encoding");
+        request->send(response);
+      });
   */
   server.onNotFound([](AsyncWebServerRequest * request) {
     ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
@@ -481,6 +485,8 @@ void setup() {
     5,
     NULL,
     HTTP_RUN_CORE);
+
+  ESP_LOGI(TAG, "We have %i presets", sizeof(preset) / sizeof(station));
 }
 
 inline __attribute__((always_inline))
@@ -492,13 +498,21 @@ void loop() {
   audio.loop();
 
   ws.cleanupClients();
-  /*
-    static uint32_t previousTime;
-    if (previousTime != audio.getAudioCurrentTime()) {
-      ESP_LOGI(TAG, "%i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
-      previousTime = audio.getAudioCurrentTime();
-    }
-  */
+
+  static uint32_t previousTime;
+  if (previousTime != audio.getAudioCurrentTime()) {
+    ESP_LOGI(TAG, "filetime: %i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
+    //ws.textAll("progress\n" + String(audio.getAudioCurrentTime()) +"\n" + String(audio.getAudioFileDuration()) +"\n");
+    previousTime = audio.getAudioCurrentTime();
+  }
+
+  static uint32_t previousPos;
+  if (previousPos != audio.getFilePos()) {
+    ESP_LOGI(TAG, "position :%i - %i", audio.getFilePos(), audio.getFileSize());
+    //ws.textAll("progress\n" + String(audio.getFilePos()) +"\n" + String(audio.getFileSize()) +"\n");
+    previousPos = audio.getFilePos();
+  }
+
   if (playList.isUpdated) {
     ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
