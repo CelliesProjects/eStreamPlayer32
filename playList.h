@@ -13,7 +13,7 @@ struct playListItem {
   streamType type;
   String name; // used when (type == HTTP_FAVORITE ) to store the name of the stream
   String url;
-  int index;   // used when (type == HTTP_PRESET) to indicate which preset to play
+  uint32_t index;   // used when (type == HTTP_PRESET) to indicate which preset to play
 };
 
 class playList {
@@ -28,7 +28,7 @@ class playList {
     bool get(const size_t num, playListItem &item) {
       if (num < list.size()) item = list[num];
     }
-    bool add(playListItem item) {
+    bool add(const playListItem &item) {
       list.push_back(item);
       isUpdated = true;
     }
