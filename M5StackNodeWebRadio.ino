@@ -316,6 +316,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
         //allocate info->len bytes of memory
+
+        // we need at least twice the amount of free memory that is requested (buffer + playlist data)
+        if (info->len * 2 > ESP.getFreeHeap()) {
+           client->text("message\nOut of memory.");
+           return;
+        }
         if (!buffer)
           buffer = new char[info->len + 1];  //TODO: check if enough mem is available and if allocation succeeds
       }
