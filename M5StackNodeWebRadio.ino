@@ -81,7 +81,6 @@ struct {
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
-//Preferences preferences;
 
 const String urlEncode(const String& s) {
   //https://en.wikipedia.org/wiki/Percent-encoding
@@ -227,6 +226,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             playList.remove(num);
             if (!playList.size()) {
               playListHasEnded();
+              return;
             }
           } else {
             return;
