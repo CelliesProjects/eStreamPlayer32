@@ -20,7 +20,7 @@ class playList {
 
   public:
     playList() {}
-    ~playList() {}
+    ~playList() {clear();}
     int size() {
       return list.size();
     }
