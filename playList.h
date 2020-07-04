@@ -5,6 +5,8 @@
 #include <vector>
 #include "presets.h"
 
+# define PLAYLIST_MAX_ITEMS 200
+
 enum streamType {
   HTTP_FILE, HTTP_STREAM, HTTP_FAVORITE, HTTP_PRESET, SDCARD_FILE
 };
@@ -20,7 +22,7 @@ class playList {
 
   public:
     playList() {}
-    ~playList() {clear();}
+    ~playList() {list.clear();}
     int size() {
       return list.size();
     }
@@ -30,7 +32,8 @@ class playList {
       else item = {};
     }
     void add(const playListItem& item) {
-      size_t previousSize = list.size();
+      const size_t previousSize = list.size();
+      if (previousSize >= PLAYLIST_MAX_ITEMS) return;
       list.push_back(item);
       if (previousSize < list.size())
         isUpdated = true;
