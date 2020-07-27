@@ -528,7 +528,7 @@ void loop() {
 
   if (newClient.connected) {
     ws.text(newClient.id, playList.toClientString());
-    ws.text(newClient.id, "currentPLitem\n" + String(currentItem));
+    ws.text(newClient.id, String("currentPLitem\n" + currentItem));
     ws.text(newClient.id, showstation);
     ws.text(newClient.id, streamtitle);
     newClient.connected = false;
