@@ -3,15 +3,15 @@
 String playList::toClientString() {
   String s{"playlist\n"};
   if (list.size()) {
-    for (std::vector<playListItem>::const_iterator i = list.begin(); i != list.end(); ++i) {
-      switch (i->type) {
-        case HTTP_FILE : s += i->url.substring(i->url.lastIndexOf("/") + 1) + "\n";
+    for (auto& item : list) {
+      switch (item.type) {
+        case HTTP_FILE : s += item.url.substring(item.url.lastIndexOf("/") + 1) + "\n";
           break;
-        case HTTP_STREAM : s += i->name + "\n";
+        case HTTP_STREAM : s += item.name + "\n";
           break;
-        case HTTP_PRESET : s += preset[i->index].name + "\n";
+        case HTTP_PRESET : s += preset[item.index].name + "\n";
           break;
-        case HTTP_FAVORITE : s += i->name + "\n";
+        case HTTP_FAVORITE : s += item.name + "\n";
           break;
         default : break;
       }
