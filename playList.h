@@ -5,7 +5,7 @@
 #include <vector>
 #include "presets.h"
 
-# define PLAYLIST_MAX_ITEMS 200
+#define PLAYLIST_MAX_ITEMS 200
 
 enum streamType {
   HTTP_FILE, HTTP_STREAM, HTTP_FAVORITE, HTTP_PRESET, SDCARD_FILE
