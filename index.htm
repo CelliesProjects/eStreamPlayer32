@@ -4,7 +4,7 @@
 <script>
 var libraryURL="http://192.168.0.50/muziek/ESP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.106";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.107";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -57,7 +57,7 @@ a{
 /* Style the tab */
 .tab {
   overflow: auto;
-  display:inline-grid;
+  //display:inline-grid;
 }
 #tabbar{
   overflow:unset;
@@ -80,19 +80,24 @@ a{
 }
 /* Style the tab content */
 .tabcontent {
-  width:100%;
+  width:50%;
   overflow-y:scroll;
   text-align:left;
   position:absolute;
   bottom:0;
   left:0;
   right:0;
-  display:none;
+  //display:none;
   border:none;
   background:radial-gradient(green, #ccac0e);
 }
 #HOME{
+  width:100%;
   overflow-y:hidden;
+}
+#PLAYLIST{
+  right:0;
+  left:50%;
 }
 #uplink, .folderlink, .sdfolderlink, .filelink, .streamlink, .plitem, .favoritelink, .errormessage{
   background:#afaf09;
@@ -161,7 +166,7 @@ a{
 <div class="tab">
   <div id="tabbar">
   <button class="tablinks">HOME</button>
-  <button class="tablinks">PLAYLIST</button>
+  <!--<button class="tablinks">PLAYLIST</button>-->
   <button class="tablinks" id="librarybutton">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
   <button class="tablinks">FAVORITES</button>
@@ -194,11 +199,6 @@ a{
 <div id="FAVORITES" class="tabcontent">
   <h3>FAVORITES</h3>
   <p>Show and select a saved file or station.</p>
-</div>
-
-<div id="SETUP" class="tabcontent">
-  <h3>SETUP</h3>
-  <p>Setup the device.</p>
 </div>
 
 <div id="controlpanel">
@@ -333,7 +333,26 @@ $(document).ready(function(){
   $('.tablinks').on('click',function(){
     $('.tablinks').css("background-color","");
     $(this).css("background-color","#1db136")
-    $('.tabcontent').hide().eq($(this).index('.tablinks')).show();
+    console.log($(this).text()+' was clicked');
+    switch($(this).text()){
+      case 'HOME':
+        $('#LIBRARY, #WEBRADIO, #FAVORITES, #PLAYLIST').hide();
+        $('#HOME').show();
+      break;
+      case 'LIBRARY':
+        $('#HOME, #WEBRADIO, #FAVORITES').hide();
+        $('#LIBRARY, #PLAYLIST').show();
+      break;
+      case 'WEBRADIO':
+        $('#HOME, #LIBRARY, #FAVORITES').hide();
+        $('#WEBRADIO, #PLAYLIST').show();
+      break;
+      case 'FAVORITES':
+        $('#HOME, #LIBRARY, #WEBRADIO').hide();
+        $('#FAVORITES, #PLAYLIST').show();
+      break;
+      default:
+    }
   });
 
   $('body').on('click','#uplink',function(){
@@ -448,6 +467,7 @@ $(document).ready(function(){
   updateLibraryFolder(currentpath);
 
   $('.tablinks').first().click();
+
   getPresets();
 
 });
