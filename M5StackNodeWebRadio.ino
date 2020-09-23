@@ -4,6 +4,7 @@
 #include <WM8978.h>
 #include <Audio.h>
 
+#include "wifi_setup.h"
 #include "playList.h"
 #include "index_htm.h"
 #include "icons.h"
@@ -17,7 +18,7 @@
 
 /* dev board with wm8978 breakout  */
 #define I2S_BCK     21
-#define I2S_WS      17
+#define I2S_WS      26
 #define I2S_DOUT    22
 //#define I2S_DIN     34
 
@@ -30,12 +31,6 @@
 /* M5Stack WM8978 MCLK gpio number and frequency */
 #define I2S_MCLKPIN  0
 #define I2S_MFREQ  (24 * 1000 * 1000)
-
-/* sd card reader pins */
-#define SPI_CLK  18
-#define SPI_MISO 19
-#define SPI_MOSI 23
-#define SPI_SS   16
 
 //WM8978 dac;
 Audio audio;
@@ -319,8 +314,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         // we need at least twice the amount of free memory that is requested (buffer + playlist data)
         if (info->len * 2 > ESP.getFreeHeap()) {
-           client->text("message\nOut of memory.");
-           return;
+          client->text("message\nOut of memory.");
+          return;
         }
         if (!buffer)
           buffer = new char[info->len + 1];  //TODO: check if enough mem is available and if allocation succeeds
@@ -474,7 +469,7 @@ void setup() {
     }
   }
 
-  WiFi.begin();
+  WiFi.begin(SSID, PSK);
   WiFi.setSleep(false);
   while (!WiFi.isConnected()) {
     delay(10);
@@ -504,21 +499,21 @@ void loop() {
   audio.loop();
 
   ws.cleanupClients();
+  /*
+    static uint32_t previousTime;
+    if (previousTime != audio.getAudioCurrentTime()) {
+      ESP_LOGI(TAG, "filetime: %i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
+      //ws.textAll("progress\n" + String(audio.getAudioCurrentTime()) +"\n" + String(audio.getAudioFileDuration()) +"\n");
+      previousTime = audio.getAudioCurrentTime();
+    }
 
-  static uint32_t previousTime;
-  if (previousTime != audio.getAudioCurrentTime()) {
-    ESP_LOGI(TAG, "filetime: %i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
-    //ws.textAll("progress\n" + String(audio.getAudioCurrentTime()) +"\n" + String(audio.getAudioFileDuration()) +"\n");
-    previousTime = audio.getAudioCurrentTime();
-  }
-
-  static uint32_t previousPos;
-  if (previousPos != audio.getFilePos()) {
-    ESP_LOGI(TAG, "position :%i - %i", audio.getFilePos(), audio.getFileSize());
-    //ws.textAll("progress\n" + String(audio.getFilePos()) +"\n" + String(audio.getFileSize()) +"\n");
-    previousPos = audio.getFilePos();
-  }
-
+    static uint32_t previousPos;
+    if (previousPos != audio.getFilePos()) {
+      ESP_LOGI(TAG, "position :%i - %i", audio.getFilePos(), audio.getFileSize());
+      //ws.textAll("progress\n" + String(audio.getFilePos()) +"\n" + String(audio.getFileSize()) +"\n");
+      previousPos = audio.getFilePos();
+    }
+  */
   if (playList.isUpdated) {
     ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
