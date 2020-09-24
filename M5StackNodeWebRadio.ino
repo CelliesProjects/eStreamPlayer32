@@ -79,18 +79,24 @@ AsyncWebSocket ws("/ws");
 
 const String urlEncode(const String& s) {
   //https://en.wikipedia.org/wiki/Percent-encoding
-  char c;
   String encodedstr{""};
   for (int i = 0; i < s.length(); i++) {
-    c = s.charAt(i);
-    if (c == ' ') encodedstr += "%20";
-    else if (c == '!') encodedstr += "%21";
-    else if (c == '&') encodedstr += "%26";
-    else if (c == 39) encodedstr += "%27"; //39 == single quote '
-    //else if (c == '@') encodedstr += "%40";
-    //else if (c == '[') encodedstr += "%5B";
-    //else if (c == ']') encodedstr += "%5D";
-    else encodedstr += c;
+    switch (s.charAt(i)) {
+      case ' ' : encodedstr += "%20";
+        break;
+      case '!' : encodedstr += "%21";
+        break;
+      case '&' : encodedstr += "%26";
+        break;
+      case  39 : encodedstr += "%27"; //39 == single quote '
+        break;
+      default : encodedstr += s.charAt(i);
+    }
+    /*
+      //else if (c == '@') encodedstr += "%40";
+      //else if (c == '[') encodedstr += "%5B";
+      //else if (c == ']') encodedstr += "%5D";
+    */
   }
   ESP_LOGD(TAG, "encoded url: %s", encodedstr.c_str());
   return encodedstr;
