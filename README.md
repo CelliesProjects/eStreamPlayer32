@@ -1,7 +1,8 @@
 # eStreamPlayer32
 An esp32 app to play webstreams and music from a lamp server. Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket. Plays MP3, icy and AAC streams. WIP.
 
-![test](img/screenshot.png)
+![interface](img/interface.png)
+![screenshot](img/screenshot.png)
 
 ## Setup:
 1. Adjust your credentials in `wifi_setup.h`.
