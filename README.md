@@ -1,5 +1,5 @@
 # eStreamPlayer32
-An esp32 app to play webstreams and music from a lamp server. Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket. Plays MP3, icy and AAC streams. WIP.
+An web-based esp32 playlist app to play webstreams and music from a lamp server. Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket. Plays MP3, icy and AAC streams. WIP.
 
 ![interface](img/interface.png)
 ![screenshot](img/screenshot.png)
@@ -14,7 +14,7 @@ An esp32 app to play webstreams and music from a lamp server. Based on ESP32-aud
 5. Change the first line in `index_htm.h` to: `const uint8_t index_htm[] = {`
 <br>and change the last line to: `const unsigned int index_htm_len = xxxxxx;`
 where you leave the number xxxxxx unchanged.
-6. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip adress from the serial port.
+6. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
 7. Browse to the ip address shown in the serial port.
 
 ## Hardware needed:
@@ -25,6 +25,9 @@ where you leave the number xxxxxx unchanged.
 
 - [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) (GNU General Public License v3.0)
 - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (Not licensed)
+- A lamp webstack. 
+<br>Apache2 and lighttpd were tested and should work. The php script should be fairly version agnostic.
+<br>Note: Mp3 and aac files should have the `Content-Type: audio/mpeg` http headers set or the decoder will not recognise the files.
 
 ## Libraries used in the web interface:
 
