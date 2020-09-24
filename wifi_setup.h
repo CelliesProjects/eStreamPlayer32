@@ -1,2 +1,2 @@
-const char * SSID{"huiskamer"};
-const char * PSK{"0987654321"};
+const char * SSID{"networkname"};
+const char * PSK{"password"};
