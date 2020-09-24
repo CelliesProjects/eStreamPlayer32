@@ -25,7 +25,7 @@ where you leave the number xxxxxx unchanged.
 
 - [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) (GNU General Public License v3.0)
 - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (Not licensed)
-- A lamp webstack. 
+- A [lamp](https://en.wikipedia.org/wiki/LAMP_%28software_bundle%29) or llmp webstack. MySQL is not used.
 <br>Apache2 and lighttpd were tested and should work. The php script should be fairly version agnostic.
 <br>Note: Mp3 and aac files should have the `Content-Type: audio/mpeg` http headers set or the decoder will not recognise the files.
 
