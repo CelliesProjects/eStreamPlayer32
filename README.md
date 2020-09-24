@@ -17,6 +17,10 @@ where you leave the number xxxxxx unchanged.
 6. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip adress from the serial port.
 7. Browse to the ip address shown in the serial port.
 
+## Hardware needed:
+
+- A compatible dac like a `UDA1334A` or `wm8978`. Check the [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) repo for wiring info.
+
 ## Software needed:
 
 - [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) (GNU General Public License v3.0)
