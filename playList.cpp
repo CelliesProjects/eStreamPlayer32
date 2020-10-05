@@ -5,14 +5,17 @@ String playList::toClientString() {
   if (list.size()) {
     for (auto& item : list) {
       switch (item.type) {
-        case HTTP_FILE : s += item.url.substring(item.url.lastIndexOf("/") + 1) + "\n";
+
+        case HTTP_FILE : s += String(item.url.substring(item.url.lastIndexOf("/") + 1) + "\n");
           break;
-        case HTTP_STREAM : s += item.name + "\n";
+
+        case HTTP_PRESET : s += String(preset[item.index].name + "\n");
           break;
-        case HTTP_PRESET : s += preset[item.index].name + "\n";
+
+        case HTTP_STREAM :
+        case HTTP_FAVORITE : s += String(item.name + "\n");
           break;
-        case HTTP_FAVORITE : s += item.name + "\n";
-          break;
+
         default : break;
       }
     }

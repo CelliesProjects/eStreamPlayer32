@@ -13,7 +13,7 @@ enum streamType {
 
 struct playListItem {
   streamType type;
-  String name;      // used when (type == HTTP_FAVORITE ) to store the name of the stream
+  String name;      // used when (type == HTTP_FAVORITE) to store the name of the stream
   String url;
   uint32_t index;   // used when (type == HTTP_PRESET) to indicate which preset to play
 };
