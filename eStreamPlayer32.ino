@@ -1,7 +1,6 @@
 #include <FFat.h>
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
-#include <WM8978.h>
 #include <Audio.h>
 
 #include "wifi_setup.h"
@@ -12,29 +11,11 @@
 /* webserver core */
 #define HTTP_RUN_CORE 1
 
-/* M5Stack Node WM8978 I2C pins */
-#define I2C_SDA     21
-#define I2C_SCL     22
-
-/* dev board with wm8978 breakout  */
 #define I2S_BCK     21
 #define I2S_WS      26
 #define I2S_DOUT    22
-//#define I2S_DIN     34
 
-/* M5Stack Node I2S pins
-  #define I2S_BCK      5
-  #define I2S_WS      13
-  #define I2S_DOUT     2
-  #define I2S_DIN     34
-*/
-/* M5Stack WM8978 MCLK gpio number and frequency */
-#define I2S_MCLKPIN  0
-#define I2S_MFREQ  (24 * 1000 * 1000)
-
-//WM8978 dac;
 Audio audio;
-
 playList playList;
 
 struct {
@@ -48,9 +29,9 @@ enum {
   PLAYLISTEND,
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
-int currentItem{ -1};
+int currentItem{-1};
 
-struct newUrl {
+struct {
   bool waiting{false};
   String url;
   uint32_t clientId;
@@ -437,40 +418,22 @@ void startWebServer(void * pvParameters) {
 }
 
 void setup() {
-  /* // M5Stack wm8978 setup
-    //pinMode(25, OUTPUT);
-    if (!dac.begin(I2C_SDA, I2C_SCL)) {
-    ESP_LOGE(TAG, "Error setting up dac. System halted");
-    while (1) delay(100);
-    }
-
-    double retval = dac.setPinMCLK(I2S_MCLKPIN, I2S_MFREQ);
-    if (!retval)
-    ESP_LOGE(TAG, "Could not set %.2fMHz clock signal on GPIO %i", I2S_MFREQ / (1000.0 * 1000.0), I2S_MCLKPIN);
-    else
-    ESP_LOGI(TAG, "Generating %.2fMHz clock on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
-    //dac.setSPKvol(40); // max 63
-    //dac.setHPvol(16, 16);
-  */
-
-
-
   /* check if a ffat partition is defined and halt the system if it is not defined*/
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
-    ESP_LOGE( TAG, "No FFat partition defined. Halting.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a FFat partition." );
+    ESP_LOGE(TAG, "FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a FFat partition.");
     while (true) delay(1000); /* system is halted */
   }
 
   /* partition is defined - try to mount it */
-  if ( FFat.begin() )
-    ESP_LOGI( TAG, "FFat mounted." );
+  if (FFat.begin())
+    ESP_LOGI(TAG, "FFat mounted.");
 
   /* partition is present, but does not mount so now we just format it */
   else {
     const char * formatStr = "Formatting...";
-    ESP_LOGI( TAG, "%s", formatStr );
-    if (!FFat.format( true, (char*)"ffat" ) || !FFat.begin()) {
-      ESP_LOGE( TAG, "FFat error while formatting. Halting." );
+    ESP_LOGI(TAG, "%s", formatStr);
+    if (!FFat.format(true, (char*)"ffat") || !FFat.begin()) {
+      ESP_LOGE(TAG, "FFat error while formatting. Halting.");
       while (true) delay(1000); /* system is halted */;
     }
   }
