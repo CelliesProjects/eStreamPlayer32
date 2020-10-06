@@ -7,9 +7,8 @@
 
 #define PLAYLIST_MAX_ITEMS 200
 
-enum streamType {
-  HTTP_FILE, HTTP_STREAM, HTTP_FAVORITE, HTTP_PRESET, SDCARD_FILE
-};
+enum streamType                  {HTTP_FILE,   HTTP_STREAM,   HTTP_FAVORITE,   HTTP_PRESET,   SDCARD_FILE};
+static const char * typeStr[] = {"HTTP_FILE", "HTTP_STREAM", "HTTP_FAVORITE", "HTTP_PRESET", "SDCARD_FILE" };
 
 struct playListItem {
   streamType type;
@@ -22,7 +21,9 @@ class playList {
 
   public:
     playList() {}
-    ~playList() {list.clear();}
+    ~playList() {
+      list.clear();
+    }
     int size() {
       return list.size();
     }

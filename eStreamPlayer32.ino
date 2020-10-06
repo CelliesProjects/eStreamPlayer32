@@ -29,7 +29,7 @@ enum {
   PLAYLISTEND,
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
-int currentItem{-1};
+int currentItem{ -1};
 
 struct {
   bool waiting{false};
@@ -374,6 +374,24 @@ void startWebServer(void * pvParameters) {
     response->addHeader("Vary", "Accept-Encoding");
     request->send(response);
   });
+
+  server.on("/playicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", playicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/libraryicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", libraryicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/favoriteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", favoriteicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
   /*
     server.on("/delete.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
       AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
@@ -418,6 +436,9 @@ void startWebServer(void * pvParameters) {
 }
 
 void setup() {
+  btStop();
+  if (psramInit()) ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
+
   /* check if a ffat partition is defined and halt the system if it is not defined*/
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
     ESP_LOGE(TAG, "FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a FFat partition.");
@@ -456,7 +477,7 @@ void setup() {
     NULL,
     HTTP_RUN_CORE);
 
-  ESP_LOGI(TAG, "We have %i presets", sizeof(preset) / sizeof(station));
+  ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(station));
 }
 
 inline __attribute__((always_inline))
@@ -612,6 +633,7 @@ void loop() {
   }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
+    delay(2);
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
