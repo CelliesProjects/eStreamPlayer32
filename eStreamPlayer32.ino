@@ -392,6 +392,12 @@ void startWebServer(void * pvParameters) {
     response->addHeader("Vary", "Accept-Encoding");
     request->send(response);
   });
+
+  server.on("/streamicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", pasteicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
   /*
     server.on("/delete.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
       AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
@@ -633,7 +639,7 @@ void loop() {
   }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
-    delay(2);
+    delay(5);
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
