@@ -14,8 +14,9 @@ An web-based esp32 playlist app to play webstreams and music from a lamp server.
 5. Change the first line in `index_htm.h` to: `const uint8_t index_htm[] = {`
 <br>and change the last line to: `const unsigned int index_htm_len = xxxxxx;`
 where you leave the number xxxxxx unchanged.
-6. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
-7. Browse to the ip address shown in the serial port.
+6. Set `Tools->Partition Scheme` to `No OTA(2MB APP/2MB FATFS)` otherwise the app won't fit in flash memory.
+7. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
+8. Browse to the ip address shown in the serial port.
 
 ## Hardware needed:
 
