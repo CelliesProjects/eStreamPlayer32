@@ -398,19 +398,25 @@ void startWebServer(void * pvParameters) {
     response->addHeader("Vary", "Accept-Encoding");
     request->send(response);
   });
+
+  server.on("/deleteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/addfoldericon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", addfoldericon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
+
+  server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", emptyicon);
+    response->addHeader("Vary", "Accept-Encoding");
+    request->send(response);
+  });
   /*
-    server.on("/delete.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
-      response->addHeader("Vary", "Accept-Encoding");
-      request->send(response);
-    });
-
-    server.on("/empty.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", emptyicon);
-      response->addHeader("Vary", "Accept-Encoding");
-      request->send(response);
-    });
-
     server.on("/folderup.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
       AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", folderupicon);
       response->addHeader("Vary", "Accept-Encoding");
@@ -519,7 +525,7 @@ void loop() {
 
   if (newClient.connected) {
     ws.text(newClient.id, playList.toClientString());
-    ws.text(newClient.id, String("currentPLitem\n" + currentItem));
+    ws.text(newClient.id, "currentPLitem\n" + String(currentItem));
     ws.text(newClient.id, showstation);
     ws.text(newClient.id, streamtitle);
     newClient.connected = false;

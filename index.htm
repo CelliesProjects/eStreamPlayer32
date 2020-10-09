@@ -166,11 +166,9 @@ a{
 <div class="tab">
   <div id="tabbar">
   <button class="tablinks">HOME</button>
-  <!--<button class="tablinks">PLAYLIST</button>-->
   <button class="tablinks" id="librarybutton">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
   <button class="tablinks">FAVORITES</button>
-  <!--<button class="tablinks">SETUP</button>-->
   </div>
 </div>
 
@@ -225,7 +223,6 @@ function updateLocationBar(){
 }
 
 function updateLibraryFolder(folder,oldfolder,restorescroll){
-  //console.log(folder);
   var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
@@ -255,7 +252,7 @@ function getPresets(){
   });
 }
 
-const removebutton='<svg class="icon deletebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/><path fill="none" d="M0 0h24v24H0V0z"/></svg>';
+const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
 
 $(document).ready(function(){
   const addicon='<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
@@ -275,13 +272,11 @@ $(document).ready(function(){
         }
       break;
       case "playlist":
-        // make a playlist from the newline separated data
         $('#PLAYLIST').html('');
         console.log("Items in playlist:"+(command.length-2)/2);
-        var icon ="" 
+        var icon ="";
         for(var i=1;i<command.length-1;i=i+2){
-          console.log(command[i+1]);
-          //set the correct icon for item type
+          //console.log(command[i+1]);
           switch (command[i+1]){
             case "HTTP_FILE" :
               icon = '<img src="/libraryicon.svg/" class="icon">';
@@ -348,7 +343,6 @@ $(document).ready(function(){
 
   ws.onopen=function(event){
     console.log('[WebSocket] Connected');
-    //ws.send("hello server!");
   }
   ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>')};
   ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message)};
@@ -403,11 +397,8 @@ $(document).ready(function(){
     //TODO: something goes wrong here!
     // we have to check in the .done callback if there are multiple '/' chars at the start of the path
     var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
-    //console.log("Location:"+location);
-    //console.log("Current path: "+currentpath);
     var requestpath=currentpath+"/"+$(this).parent().text();
     let content="toplaylist\n";
-    //console.log("Asking the server: "+"?folder="+currentpath+"/"+$(this).parent().text());
     $.get(libraryURL+"?folder="+encodeURIComponent(currentpath)+"/"+encodeURIComponent($(this).parent().text()))
     .done(function(data){
       //make an invisible navList
@@ -482,8 +473,7 @@ $(document).ready(function(){
     e.stopPropagation();
   });
 
-  //setup and handlers done /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  //setup and handlers done 
   $('.tabcontent').css('top',$('.tab').height()+($('#locationbar').height()+$('#infobar').height())+"px");
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
 
