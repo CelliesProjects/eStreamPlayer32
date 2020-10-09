@@ -458,14 +458,14 @@ void setup() {
   }
 
   /* partition is defined - try to mount it */
-  if (FFat.begin())
+  if (FFat.begin(0, "", 2)) // see: https://github.com/lorol/arduino-esp32fs-plugin#notes-for-fatfs
     ESP_LOGI(TAG, "FFat mounted.");
 
   /* partition is present, but does not mount so now we just format it */
   else {
     const char * formatStr = "Formatting...";
     ESP_LOGI(TAG, "%s", formatStr);
-    if (!FFat.format(true, (char*)"ffat") || !FFat.begin()) {
+    if (!FFat.format(true, (char*)"ffat") || !FFat.begin(0, "", 2)) {
       ESP_LOGE(TAG, "FFat error while formatting. Halting.");
       while (true) delay(1000); /* system is halted */;
     }
