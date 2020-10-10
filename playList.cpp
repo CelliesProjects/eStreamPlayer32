@@ -1,7 +1,5 @@
 #include "playList.h"
 
-//Add a second argument to each playlist item. This new item should represent the type but should be sent as string.
-
 String playList::toClientString() {
   String s{"playlist\n"};
   if (list.size()) {
