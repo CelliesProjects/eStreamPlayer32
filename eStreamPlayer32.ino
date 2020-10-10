@@ -1,7 +1,7 @@
 #include <FFat.h>
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
-#include <Audio.h>
+#include <Audio.h>                                      /* https://github.com/schreibfaul1/ESP32-audioI2S */
 
 #include "wifi_setup.h"
 #include "playList.h"
@@ -29,7 +29,7 @@ enum {
   PLAYLISTEND,
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
-int currentItem{ -1};
+int currentItem{-1};
 
 struct {
   bool waiting{false};
@@ -353,6 +353,8 @@ void startWebServer(void * pvParameters) {
   ws.onEvent(onEvent);
   server.addHandler(&ws);
 
+  // TODO: set a 304 to save on bandwidth
+
   static const char* HTML_HEADER = "text/html";
 
   server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
@@ -369,7 +371,6 @@ void startWebServer(void * pvParameters) {
   });
 
   //  serve icons as files - use the browser cache to only serve each icon once
-  // TODO: set a 304 to save on bandwidth
 
   static const char* SVG_HEADER = "image/svg+xml";
   static const char* VARY_HEADER_STR = "Vary";
@@ -422,25 +423,7 @@ void startWebServer(void * pvParameters) {
     response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
-  /*
-    server.on("/folderup.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, folderupicon);
-      response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
-      request->send(response);
-    });
 
-    server.on("/save.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, saveicon);
-      response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
-      request->send(response);
-    });
-
-      server.on("/thrashcan.svg", HTTP_GET, [] (AsyncWebServerRequest * request) { // is the effing same icon as delete.svg!!
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, thrashcanicon);
-        response->addHeader(VARY_HEADER_STR,ACCEPTENCODING_HEADER_STR);
-        request->send(response);
-      });
-  */
   server.onNotFound([](AsyncWebServerRequest * request) {
     ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
     request->send(404);
@@ -632,7 +615,7 @@ void loop() {
       file.close();
     }
     playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
-    ESP_LOGI(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
+    ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
     ws.printfAll("message\nAdded '%s' to playlist", favoriteToPlaylist.name.c_str());
     if (!audio.isRunning() && PAUSED != playerStatus) {
       currentItem = playList.size() - 2;
@@ -654,7 +637,7 @@ void loop() {
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
       currentItem++;
-      ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
+      ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
       playListItem item;
       playList.get(currentItem, item);
 
