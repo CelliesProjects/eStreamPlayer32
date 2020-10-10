@@ -353,85 +353,91 @@ void startWebServer(void * pvParameters) {
   ws.onEvent(onEvent);
   server.addHandler(&ws);
 
+  static const char* HTML_HEADER = "text/html";
+
   server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_htm, index_htm_len);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_HEADER, index_htm, index_htm_len);
     request->send(response);
   });
 
   server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncResponseStream *response = request->beginResponseStream("text/html");
-    for (uint16_t i = 0; i < sizeof(preset) / sizeof(station); i++) {
+    AsyncResponseStream *response = request->beginResponseStream(HTML_HEADER);
+    for (int i = 0; i < sizeof(preset) / sizeof(station); i++) {
       response->printf("%s\n", preset[i].name.c_str());
     }
     request->send(response);
   });
 
-  ////////////////////////////////////////////////////////////  serve icons as files - use the cache to only serve each icon once
+  //  serve icons as files - use the browser cache to only serve each icon once
   // TODO: set a 304 to save on bandwidth
 
+  static const char* SVG_HEADER = "image/svg+xml";
+  static const char* VARY_HEADER_STR = "Vary";
+  static const char* ACCEPTENCODING_HEADER_STR = "Accept-Encoding";
+
   server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", radioicon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, radioicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
 
   server.on("/playicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", playicon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, playicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
 
   server.on("/libraryicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", libraryicon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, libraryicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
 
   server.on("/favoriteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", favoriteicon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, favoriteicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
 
   server.on("/streamicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", pasteicon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, pasteicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
 
   server.on("/deleteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", deleteicon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, deleteicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
 
   server.on("/addfoldericon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", addfoldericon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, addfoldericon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
 
   server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", emptyicon);
-    response->addHeader("Vary", "Accept-Encoding");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, emptyicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
   /*
     server.on("/folderup.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", folderupicon);
-      response->addHeader("Vary", "Accept-Encoding");
+      AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, folderupicon);
+      response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
       request->send(response);
     });
 
     server.on("/save.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", saveicon);
-      response->addHeader("Vary", "Accept-Encoding");
+      AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, saveicon);
+      response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
       request->send(response);
     });
 
       server.on("/thrashcan.svg", HTTP_GET, [] (AsyncWebServerRequest * request) { // is the effing same icon as delete.svg!!
-        AsyncWebServerResponse *response = request->beginResponse_P(200, "image/svg+xml", thrashcanicon);
-        response->addHeader("Vary","Accept-Encoding");
+        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, thrashcanicon);
+        response->addHeader(VARY_HEADER_STR,ACCEPTENCODING_HEADER_STR);
         request->send(response);
       });
   */
@@ -453,7 +459,7 @@ void setup() {
 
   /* check if a ffat partition is defined and halt the system if it is not defined*/
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
-    ESP_LOGE(TAG, "FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a FFat partition.");
+    ESP_LOGE(TAG, "FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a partition table with a FFat partition.");
     while (true) delay(1000); /* system is halted */
   }
 
@@ -463,8 +469,7 @@ void setup() {
 
   /* partition is present, but does not mount so now we just format it */
   else {
-    const char * formatStr = "Formatting...";
-    ESP_LOGI(TAG, "%s", formatStr);
+    ESP_LOGI(TAG, "Formatting...");
     if (!FFat.format(true, (char*)"ffat") || !FFat.begin(0, "", 2)) {
       ESP_LOGE(TAG, "FFat error while formatting. Halting.");
       while (true) delay(1000); /* system is halted */;
@@ -552,18 +557,20 @@ void loop() {
     File root = FFat.open("/");
     if (!root) {
       ESP_LOGE(TAG, "ERROR- failed to open root");
+      const char * NO_FFAT_FOUND{"message\nNo FFat found"};
       if (favorites.requested)
-        ws.text(favorites.clientId, "message\nNo FFat found");
+        ws.text(favorites.clientId, NO_FFAT_FOUND);
       else
-        ws.textAll("message\nNo FFat found");
+        ws.textAll(NO_FFAT_FOUND);
       return;
     }
     if (!root.isDirectory()) {
       ESP_LOGE(TAG, "ERROR- root is not a directory");
+      const char * NO_ROOT_FOUND{"message\nNo root found"};
       if (favorites.requested)
-        ws.text(favorites.clientId, "message\nNo root found");
+        ws.text(favorites.clientId, NO_ROOT_FOUND);
       else
-        ws.textAll("message\nNo root found");
+        ws.textAll(NO_ROOT_FOUND);
       return;
     }
 
@@ -645,7 +652,6 @@ void loop() {
   }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
-    delay(5);
     if (currentItem < playList.size() - 1) {
       currentItem++;
       ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
