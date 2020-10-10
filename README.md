@@ -1,10 +1,14 @@
 # eStreamPlayer32
-An web-based esp32 playlist app to play webstreams and music from a lamp server. Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket. Plays MP3, icy and AAC streams. WIP.
+
+An web-based esp32 playlist app to play webstreams and music from a lamp server.
+
+Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.<br>Plays MP3, icy and AAC streams.
 
 ![interface](img/interface.png)
 ![screenshot](img/screenshot.png)
 
 ## Setup:
+
 1. Adjust your credentials in `wifi_setup.h`.
 2. Copy the php script to your music folder on the server.
 3. Change the following line in `index.htm` so it points to the script you just copied to your server:
@@ -14,9 +18,10 @@ An web-based esp32 playlist app to play webstreams and music from a lamp server.
 5. Change the first line in `index_htm.h` to: `const uint8_t index_htm[] = {`
 <br>and change the last line to: `const unsigned int index_htm_len = xxxxxx;`
 where you leave the number xxxxxx unchanged.
-6. Set `Tools->Partition Scheme` to `No OTA(2MB APP/2MB FATFS)` otherwise the app won't fit in flash memory.
-7. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
-8. Browse to the ip address shown in the serial port.
+6. Select `ESP32 Dev Module` as board. This board has additional partition schemes which we need in the next step.
+7. Set `Tools->Partition Scheme` to `No OTA(2MB APP/2MB FATFS)` otherwise the app won't fit in flash memory.
+8. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
+9. Browse to the ip address shown in the serial port.
 
 ## Hardware needed:
 
