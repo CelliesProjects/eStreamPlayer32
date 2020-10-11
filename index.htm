@@ -268,19 +268,20 @@ $(document).ready(function(){
         var icon ="";
         for(var i=1;i<command.length-1;i=i+2){
           switch (command[i+1]){
-            case "HTTP_FILE" :
+            case "FILE" :
               icon = '<img src="/libraryicon.svg" class="icon">';
               break;
-            case "HTTP_PRESET" :
-              icon = '<img src="/radioicon.svg" class="icon">';
+
+            case "STREAM" :
+              icon = '<img src="/streamicon.svg" class="icon">';
               break;
 
-            case "HTTP_FAVORITE" :
+            case "FAVO" :
               icon = '<img src="/favoriteicon.svg" class="icon">';
               break;
 
-            case "HTTP_STREAM" :
-              icon = '<img src="/streamicon.svg" class="icon">';
+            case "PRESET" :
+              icon = '<img src="/radioicon.svg" class="icon">';
               break;
 
             default :
