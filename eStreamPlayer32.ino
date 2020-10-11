@@ -29,7 +29,7 @@ enum {
   PLAYLISTEND,
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
-int currentItem{-1};
+int currentItem{ -1};
 
 struct {
   bool waiting{false};
@@ -37,7 +37,12 @@ struct {
   uint32_t clientId;
 } newUrl;
 
-bool currentToFavorites{false};
+struct {
+  bool requested{false};
+  String filename;
+} currentToFavorites;
+
+
 struct {
   bool requested{false};
   bool updated{false};
@@ -99,7 +104,10 @@ void playListHasEnded() {
 static char showstation[200]; /////////////////////////////////////////////////// These are kept to update new clients only on connection
 void audio_showstation(const char *info) {
   ESP_LOGD(TAG, "showstation: %s", info);
-  snprintf(showstation, sizeof(showstation), "showstation\n%s", info);
+  //get the type of the current item and add it as a new line to the WS message
+  playListItem item;
+  playList.get(currentItem, item);
+  snprintf(showstation, sizeof(showstation), "showstation\n%s\n%s", info, typeStr[item.type]);
   ws.textAll(showstation);
 }
 /*
@@ -185,9 +193,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("playitem", pch)) {
           pch = strtok(NULL, "\n");
-          currentItem = atoi(pch);
-          audio.stopSong();
-          playerStatus = PLAYING;
+          if (pch) {
+            currentItem = atoi(pch);
+            audio.stopSong();
+            playerStatus = PLAYING;
+          }
         }
 
         else if (!strcmp("deleteitem", pch)) {
@@ -249,15 +259,21 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("newurl", pch)) {
           pch = strtok(NULL, "\n");
-          ESP_LOGD(TAG, "received new url: %s", pch);
-          newUrl.url = pch;
-          newUrl.clientId = client->id();
-          newUrl.waiting = true;
+          if (pch) {
+            ESP_LOGD(TAG, "received new url: %s", pch);
+            newUrl.url = pch;
+            newUrl.clientId = client->id();
+            newUrl.waiting = true;
+          }
           return;
         }
 
         else if (!strcmp("currenttofavorites", pch)) {
-          currentToFavorites = true;
+          pch = strtok(NULL, "\n");
+          if (pch) {
+            currentToFavorites.filename = pch;
+            currentToFavorites.requested = true;
+          }
         }
 
         else if (!strcmp("favorites", pch)) {
@@ -574,37 +590,51 @@ void loop() {
     if (favorites.updated) favorites.updated = false;
   }
 
-  if (currentToFavorites) {
+  if (currentToFavorites.requested) {
+
     playListItem item;
     playList.get(currentItem, item);
 
     if (item.type == HTTP_FILE) {
-      ESP_LOGI(TAG, "file (wont save) %s %s", &showstation[12], item.url.c_str());
+      ESP_LOGI(TAG, "file (wont save)%s", item.url.c_str());
     }
 
     else if (item.type == HTTP_PRESET) {
-      ESP_LOGI(TAG, "preset (wont save) %s %s", &showstation[12], preset[item.index].url.c_str());
+      ESP_LOGI(TAG, "preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
     }
 
     else if (item.type == HTTP_STREAM || item.type == HTTP_FAVORITE) {
-      ESP_LOGI(TAG, "saving stream: %s -> %s", &showstation[12], item.url.c_str());
-      File file = FFat.open("/" + String(&showstation[12]), FILE_WRITE);
+
+      if (currentToFavorites.filename.equals("")) {
+        ESP_LOGE(TAG, "Could not save current item. No filename given!");
+        ws.textAll("message\nNo filename given!");
+        currentToFavorites.requested = false;
+        return;
+      }
+
+      ESP_LOGI(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
+
+      File file = FFat.open("/" + currentToFavorites.filename, FILE_WRITE);
       if (!file) {
         ESP_LOGE(TAG, "failed to open file for writing");
-        currentToFavorites = false;
+        currentToFavorites.filename = "";
+        currentToFavorites.requested = false;
         return;
       }
       audio.loop();
       if (file.print(item.url.c_str())) {
-        ESP_LOGD(TAG, "FFat file %s written", &showstation[12]);
+        ESP_LOGD(TAG, "FFat file %s written", currentToFavorites.filename.c_str());
+        ws.printfAll("message\nSaved %s to favorites!", currentToFavorites.filename.c_str());
         favorites.updated = true;
       } else {
-        ESP_LOGE(TAG, "FFat writing to %s failed", &showstation[12]);
+        ESP_LOGE(TAG, "FFat writing to %s failed", currentToFavorites.filename.c_str());
+        ws.printfAll("message\nSaving %s failed!", currentToFavorites.filename.c_str());
       }
       audio.loop();
       file.close();
     }
-    currentToFavorites = false;
+    currentToFavorites.filename = "";
+    currentToFavorites.requested = false;
   }
 
   if (favoriteToPlaylist.requested) {
@@ -643,18 +673,20 @@ void loop() {
 
       if (HTTP_FILE == item.type || HTTP_STREAM == item.type) {
         ESP_LOGI(TAG, "STARTING file or stream: %s", item.url.c_str());
+        audio_showstreamtitle("");
+        //item.url.trim();
         audio.connecttohost(urlEncode(item.url));
         audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
       }
       else if (HTTP_PRESET == item.type) {
         ESP_LOGI(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
-        audio_showstreamtitle("&nbsp;");
+        audio_showstreamtitle("");
         audio.connecttohost(urlEncode(preset[item.index].url));
       }
 
       else if (HTTP_FAVORITE == item.type) {
         ESP_LOGI(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
-        audio_showstreamtitle("&nbsp;");
+        audio_showstreamtitle("");
         audio.connecttohost(urlEncode(item.url));
       }
 

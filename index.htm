@@ -271,19 +271,15 @@ $(document).ready(function(){
             case "FILE" :
               icon = '<img src="/libraryicon.svg" class="icon">';
               break;
-
             case "STREAM" :
               icon = '<img src="/streamicon.svg" class="icon">';
               break;
-
             case "FAVO" :
               icon = '<img src="/favoriteicon.svg" class="icon">';
               break;
-
             case "PRESET" :
               icon = '<img src="/radioicon.svg" class="icon">';
               break;
-
             default :
               icon = "";
               break;
@@ -452,7 +448,10 @@ $(document).ready(function(){
   });
 
   $('body').on('click','#addfavorite',function(){
-    ws.send("currenttofavorites\n");
+    var filename=prompt("Enter a filename",$('#showstation').text());
+    if(!filename)return;
+    //TODO: trim the filename from non compliant chars
+    ws.send("currenttofavorites\n"+filename);
   });
 
   $('body').on('click','.favoritelink',function(){

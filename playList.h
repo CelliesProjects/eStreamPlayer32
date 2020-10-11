@@ -8,13 +8,13 @@
 #define PLAYLIST_MAX_ITEMS 200
 
 enum streamType                  {HTTP_FILE,   HTTP_STREAM,   HTTP_FAVORITE,   HTTP_PRESET,   SDCARD_FILE};
-static const char * typeStr[] = {"FILE",       "STREAM",      "FAVO",          "PRESET",      "SDCARD" };
+static const char * typeStr[] = {"FILE",      "STREAM",      "FAVO",          "PRESET",      "SDCARD" };
 
 struct playListItem {
   streamType type;
-  String name;      // used when (type == HTTP_FAVORITE) to store the name of the stream
+  String name;
   String url;
-  uint32_t index;   // used when (type == HTTP_PRESET) to indicate which preset to play
+  uint32_t index;
 };
 
 class playList {
