@@ -642,24 +642,24 @@ void loop() {
       playList.get(currentItem, item);
 
       if (HTTP_FILE == item.type || HTTP_STREAM == item.type) {
-        ESP_LOGI(TAG, "file or stream: %s", item.url.c_str());
+        ESP_LOGI(TAG, "STARTING file or stream: %s", item.url.c_str());
         audio.connecttohost(urlEncode(item.url));
         audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
       }
       else if (HTTP_PRESET == item.type) {
-        ESP_LOGI(TAG, "preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+        ESP_LOGI(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
         audio_showstreamtitle("&nbsp;");
         audio.connecttohost(urlEncode(preset[item.index].url));
       }
 
       else if (HTTP_FAVORITE == item.type) {
-        ESP_LOGI(TAG, "favorite: %s -> %s", item.name.c_str(), item.url.c_str());
+        ESP_LOGI(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
         audio_showstreamtitle("&nbsp;");
         audio.connecttohost(urlEncode(item.url));
       }
 
       else if (SDCARD_FILE == item.type) {
-        ESP_LOGI(TAG, "sd file: %s", item.url.c_str());
+        ESP_LOGI(TAG, "STARTING sd file: %s", item.url.c_str());
         audio.connecttoSD(item.url);
       }
     } else {
