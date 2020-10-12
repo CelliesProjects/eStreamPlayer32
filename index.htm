@@ -257,9 +257,6 @@ $(document).ready(function(){
           $('#playerstatus, #showstation').html("Nothing playing");
         }else{
           $('.plitem').eq(command[1]).css("background-color","#1db136");
-          $('#playerstatus, #showstation').html($('.plitem').eq(command[1]).text());
-          // TODO: only add the save icon on a stream of favorite
-          if($('#showstation').html()!="")$('#showstation').prepend(addicon);
         }
       break;
       case "playlist":
@@ -296,6 +293,8 @@ $(document).ready(function(){
         if(command[1]){
           $('#playerstatus, #showstation').html(command[1]);
           $('#showstation').prepend(addicon);
+          console.log("second command:"+command[2]);
+          //if(command[2]=="STREAM"||command[2]=="FAVO")$('#showstation').prepend(addicon);
         }
       break;
 

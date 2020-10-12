@@ -203,6 +203,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         else if (!strcmp("deleteitem", pch)) {
           if (!playList.size()) return;
           pch = strtok(NULL, "\n");
+          if (!pch) return;
           int num = atoi(pch);
           if (num == currentItem) {
             audio.stopSong();
@@ -537,6 +538,7 @@ void loop() {
 
   if (newUrl.waiting) {
     ESP_LOGI(TAG, "trying new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+    audio_showstreamtitle("");
     if (audio.connecttohost(urlEncode(newUrl.url))) {
       playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
       currentItem = playList.size() - 1;
@@ -673,9 +675,8 @@ void loop() {
 
       if (HTTP_FILE == item.type || HTTP_STREAM == item.type) {
         ESP_LOGI(TAG, "STARTING file or stream: %s", item.url.c_str());
-        audio_showstreamtitle("");
-        //item.url.trim();
         audio.connecttohost(urlEncode(item.url));
+        audio_showstation(item.url.substring(item.url.lastIndexOf("/")+1 ).c_str());
         audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
       }
       else if (HTTP_PRESET == item.type) {
