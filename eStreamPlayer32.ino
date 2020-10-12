@@ -168,6 +168,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<char*>(data));
 
         char *pch = strtok((char*)data, "\n");
+        if (!pch) return;
         if (!strcmp("toplaylist", pch)) {
           int previousSize = playList.size();
           pch = strtok(NULL, "\n");
@@ -370,7 +371,7 @@ void startWebServer(void * pvParameters) {
   ws.onEvent(onEvent);
   server.addHandler(&ws);
 
-  // TODO: set a 304 to save on bandwidth
+  // TODO: set a 304 on all static content to save on bandwidth
 
   static const char* HTML_HEADER = "text/html";
 
@@ -483,6 +484,8 @@ void setup() {
   }
   ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
 
+  ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(station));
+
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
 
   xTaskCreatePinnedToCore(
@@ -493,8 +496,6 @@ void setup() {
     5,
     NULL,
     HTTP_RUN_CORE);
-
-  ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(station));
 }
 
 inline __attribute__((always_inline))
@@ -643,7 +644,8 @@ void loop() {
     File file = FFat.open("/" + favoriteToPlaylist.name);
     String url;
     if (file) {
-      while (file.available()) url += (char)file.read();
+      while (file.available() && (file.peek() != 13)) /* only read the first line */
+        url += (char)file.read();
       file.close();
     }
     playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
@@ -676,7 +678,7 @@ void loop() {
       if (HTTP_FILE == item.type || HTTP_STREAM == item.type) {
         ESP_LOGI(TAG, "STARTING file or stream: %s", item.url.c_str());
         audio.connecttohost(urlEncode(item.url));
-        audio_showstation(item.url.substring(item.url.lastIndexOf("/")+1 ).c_str());
+        audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
         audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
       }
       else if (HTTP_PRESET == item.type) {
