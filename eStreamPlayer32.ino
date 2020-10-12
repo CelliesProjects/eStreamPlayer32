@@ -103,11 +103,11 @@ void playListHasEnded() {
 
 static char showstation[200]; /////////////////////////////////////////////////// These are kept to update new clients only on connection
 void audio_showstation(const char *info) {
-  ESP_LOGD(TAG, "showstation: %s", info);
-  //get the type of the current item and add it as a new line to the WS message
+  if (!strcmp(info,"")) return;
   playListItem item;
   playList.get(currentItem, item);
   snprintf(showstation, sizeof(showstation), "showstation\n%s\n%s", info, typeStr[item.type]);
+  ESP_LOGD(TAG, "showstation: %s", showstation);
   ws.textAll(showstation);
 }
 /*
