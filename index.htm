@@ -455,8 +455,9 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.favoritelink .deletebutton',function(e){
-    ws.send("deletefavorite\n"+($(this).parent().text()));
     e.stopPropagation();
+    if(!confirm("Are you sure to delete this favorite?"))return;
+    ws.send("deletefavorite\n"+($(this).parent().text()));
   });
 
   //setup and handlers done
