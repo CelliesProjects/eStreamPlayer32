@@ -280,7 +280,7 @@ $(document).ready(function(){
             default :
               icon = "";
               break;
-          }          
+          }
           $('#PLAYLIST').append('<p class="plitem">'+removebutton+icon+command[i]+'</p>');
         }
       break;
@@ -290,11 +290,9 @@ $(document).ready(function(){
       break;
 
       case "showstation":
-        if(command[1]){
+        if(command[1]!="&nbsp;"){
           $('#playerstatus, #showstation').html(command[1]);
-          $('#showstation').prepend(addicon);
-          console.log("second command:"+command[2]);
-          //if(command[2]=="STREAM"||command[2]=="FAVO")$('#showstation').prepend(addicon);
+          if(command[2]=="STREAM"||command[2]=="FAVO")$('#showstation').prepend(addicon);
         }
       break;
 
@@ -336,7 +334,6 @@ $(document).ready(function(){
   $('.tablinks').on('click',function(){
     $('.tablinks').css("background-color","");
     $(this).css("background-color","#1db136")
-    console.log($(this).text()+' was clicked');
     switch($(this).text()){
       case 'HOME':
         $('#LIBRARY, #WEBRADIO, #FAVORITES, #PLAYLIST').hide();
