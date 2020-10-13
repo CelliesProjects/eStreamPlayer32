@@ -40,6 +40,7 @@ struct {
 struct {
   bool requested{false};
   String filename;
+  uint32_t clientId;
 } currentToFavorites;
 
 
@@ -274,6 +275,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           if (pch) {
             currentToFavorites.filename = pch;
+            currentToFavorites.clientId = client->id();
             currentToFavorites.requested = true;
           }
         }
@@ -599,43 +601,46 @@ void loop() {
     playListItem item;
     playList.get(currentItem, item);
 
-    if (item.type == HTTP_FILE) {
-      ESP_LOGI(TAG, "file (wont save)%s", item.url.c_str());
-    }
-
-    else if (item.type == HTTP_PRESET) {
-      ESP_LOGI(TAG, "preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
-    }
-
-    else if (item.type == HTTP_STREAM || item.type == HTTP_FAVORITE) {
-
-      if (currentToFavorites.filename.equals("")) {
-        ESP_LOGE(TAG, "Could not save current item. No filename given!");
-        ws.textAll("message\nNo filename given!");
-        currentToFavorites.requested = false;
-        return;
-      }
-
-      ESP_LOGI(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
-
-      File file = FFat.open("/" + currentToFavorites.filename, FILE_WRITE);
-      if (!file) {
-        ESP_LOGE(TAG, "failed to open file for writing");
-        currentToFavorites.filename = "";
-        currentToFavorites.requested = false;
-        return;
-      }
-      audio.loop();
-      if (file.print(item.url.c_str())) {
-        ESP_LOGD(TAG, "FFat file %s written", currentToFavorites.filename.c_str());
-        ws.printfAll("message\nSaved %s to favorites!", currentToFavorites.filename.c_str());
-        favorites.updated = true;
-      } else {
-        ESP_LOGE(TAG, "FFat writing to %s failed", currentToFavorites.filename.c_str());
-        ws.printfAll("message\nSaving %s failed!", currentToFavorites.filename.c_str());
-      }
-      audio.loop();
-      file.close();
+    switch (item.type) {
+      case HTTP_FILE :
+        ESP_LOGI(TAG, "file (wont save)%s", item.url.c_str());
+        break;
+      case HTTP_PRESET :
+        ESP_LOGI(TAG, "preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+        break;
+      case HTTP_STREAM :
+      case HTTP_FAVORITE :
+        {
+          if (currentToFavorites.filename.equals("")) {
+            ESP_LOGE(TAG, "Could not save current item. No filename given!");
+            ws.text(currentToFavorites.clientId, "message\nNo filename given!");
+            currentToFavorites.requested = false;
+            return;
+          }
+          ESP_LOGI(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
+          const char* SAVE_FAILED_MSG{"message\nSaving failed!"};
+          File file = FFat.open("/" + currentToFavorites.filename, FILE_WRITE);
+          if (!file) {
+            ESP_LOGE(TAG, "failed to open file for writing");
+            ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
+            currentToFavorites.filename = "";
+            currentToFavorites.requested = false;
+            return;
+          }
+          audio.loop();
+          if (file.print(item.url.c_str())) {
+            ESP_LOGD(TAG, "FFat file %s written", currentToFavorites.filename.c_str());
+            ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename);
+            favorites.updated = true;
+          } else {
+            ESP_LOGE(TAG, "FFat writing to %s failed", currentToFavorites.filename.c_str());
+            ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
+          }
+          audio.loop();
+          file.close();
+        }
+        break;
+      default : ESP_LOGI(TAG, "Unhandled item.type.");
     }
     currentToFavorites.filename = "";
     currentToFavorites.requested = false;
