@@ -103,7 +103,7 @@ void playListHasEnded() {
 
 static char showstation[200]; /////////////////////////////////////////////////// These are kept to update new clients only on connection
 void audio_showstation(const char *info) {
-  if (!strcmp(info,"")) return;
+  if (!strcmp(info, "")) return;
   playListItem item;
   playList.get(currentItem, item);
   snprintf(showstation, sizeof(showstation), "showstation\n%s\n%s", info, typeStr[item.type]);
@@ -539,12 +539,13 @@ void loop() {
 
   if (newUrl.waiting) {
     ESP_LOGI(TAG, "trying new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
-    audio_showstreamtitle("");
     if (audio.connecttohost(urlEncode(newUrl.url))) {
       playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
       currentItem = playList.size() - 1;
       playerStatus = PLAYING;
       playList.isUpdated = true;
+      audio_showstation(newUrl.url.c_str());
+      audio_showstreamtitle("");
     }
     else {
       playListHasEnded();
@@ -671,31 +672,39 @@ void loop() {
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
       currentItem++;
-      ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
+      ESP_LOGD(TAG, "Starting next playlist item: %i", currentItem);
       playListItem item;
       playList.get(currentItem, item);
-
-      if (HTTP_FILE == item.type || HTTP_STREAM == item.type) {
-        ESP_LOGI(TAG, "STARTING file or stream: %s", item.url.c_str());
-        audio.connecttohost(urlEncode(item.url));
-        audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
-        audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
-      }
-      else if (HTTP_PRESET == item.type) {
-        ESP_LOGI(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
-        audio_showstreamtitle("");
-        audio.connecttohost(urlEncode(preset[item.index].url));
-      }
-
-      else if (HTTP_FAVORITE == item.type) {
-        ESP_LOGI(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
-        audio_showstreamtitle("");
-        audio.connecttohost(urlEncode(item.url));
-      }
-
-      else if (SDCARD_FILE == item.type) {
-        ESP_LOGI(TAG, "STARTING sd file: %s", item.url.c_str());
-        audio.connecttoSD(item.url);
+      switch (item.type) {
+        case HTTP_FILE :
+          ESP_LOGI(TAG, "STARTING file: %s", item.url.c_str());
+          audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
+          audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
+          audio.connecttohost(urlEncode(item.url));
+          break;
+        case HTTP_STREAM :
+          ESP_LOGI(TAG, "STARTING stream: %s", item.url.c_str());
+          audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
+          audio_showstreamtitle("");
+          audio.connecttohost(urlEncode(item.url));
+          break;
+        case HTTP_PRESET :
+          ESP_LOGI(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+          audio_showstreamtitle("");
+          audio_showstation(preset[item.index].name.c_str());
+          audio.connecttohost(urlEncode(preset[item.index].url));
+          break;
+        case HTTP_FAVORITE :
+          ESP_LOGI(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
+          audio_showstation(item.name.c_str());
+          audio_showstreamtitle("");
+          audio.connecttohost(urlEncode(item.url));
+          break;
+        case SDCARD_FILE :
+          ESP_LOGI(TAG, "STARTING sd file: %s", item.url.c_str());
+          audio.connecttoSD(item.url);
+          break;
+        default : ESP_LOGI(TAG, "Unhandled item.type.");
       }
     } else {
       ESP_LOGI(TAG, "End of playlist.");
