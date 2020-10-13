@@ -102,7 +102,7 @@ void playListHasEnded() {
   }
 */
 
-static char showstation[200]; /////////////////////////////////////////////////// These are kept to update new clients only on connection
+static char showstation[200]; // These are kept global to update new clients in loop()
 void audio_showstation(const char *info) {
   if (!strcmp(info, "")) return;
   playListItem item;
@@ -118,11 +118,11 @@ void audio_showstation(const char *info) {
   }
 */
 
-static char streamtitle[200]; /////////////////////////////////////////////////// These are kept to update new clients only on connection
+static char streamtitle[200]; // These are kept global to update new clients in loop()
 void audio_showstreamtitle(const char *info) {
-  ESP_LOGD(TAG, "streamtitle: %s", info);
   snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
-  ws.printfAll("streamtitle\n%s", info);
+  ESP_LOGD(TAG, "streamtitle: %s", streamtitle);
+  ws.printfAll(streamtitle);
 }
 
 /*
