@@ -630,7 +630,7 @@ void loop() {
           audio.loop();
           if (file.print(item.url.c_str())) {
             ESP_LOGD(TAG, "FFat file %s written", currentToFavorites.filename.c_str());
-            ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename);
+            ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
             favorites.updated = true;
           } else {
             ESP_LOGE(TAG, "FFat writing to %s failed", currentToFavorites.filename.c_str());
