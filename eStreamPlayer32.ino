@@ -15,21 +15,20 @@
 #define I2S_WS      26
 #define I2S_DOUT    22
 
-Audio audio;
-playList playList;
-
-struct {
-  uint32_t id;
-  bool connected{false};
-} newClient;
-
 enum {
   PAUSED,
   PLAYING,
   PLAYLISTEND,
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
-int currentItem{ -1};
+#define NOTHING_PLAYING -1
+
+int currentItem {NOTHING_PLAYING};
+
+struct {
+  uint32_t id;
+  bool connected{false};
+} newClient;
 
 struct {
   bool waiting{false};
@@ -61,6 +60,8 @@ struct {
   uint32_t clientId;
 } deletefavorite;
 
+Audio audio;
+playList playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
@@ -79,18 +80,13 @@ const String urlEncode(const String& s) {
         break;
       default : encodedstr += s.charAt(i);
     }
-    /*
-      //else if (c == '@') encodedstr += "%40";
-      //else if (c == '[') encodedstr += "%5B";
-      //else if (c == ']') encodedstr += "%5D";
-    */
   }
   ESP_LOGD(TAG, "encoded url: %s", encodedstr.c_str());
   return encodedstr;
 }
 
 void playListHasEnded() {
-  currentItem = -1;
+  currentItem = NOTHING_PLAYING;
   playerStatus = PLAYLISTEND;
   audio_showstation("Nothing playing");
   audio_showstreamtitle("&nbsp;");
