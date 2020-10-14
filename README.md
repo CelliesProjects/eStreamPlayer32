@@ -12,10 +12,16 @@ Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.<br>Plays 
 - Save new urls to favorites.
 
 ### The HOME tab:
-![interface](img/interface.png)
+![home](img/home.png)
 
 ### The LIBRARY tab:
-![screenshot](img/screenshot.png)
+![library](img/library.png)
+
+### The WEBRADIO tab:
+![webradio](img/webradio.png)
+
+### The FAVORITES tab:
+![favorites](img/favorites.png)
 
 ## Setup:
 
