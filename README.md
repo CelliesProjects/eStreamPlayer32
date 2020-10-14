@@ -4,23 +4,25 @@ An web-based esp32 playlist app to play webstreams and music files from a lamp o
 
 You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a script on the server to navigate the music folders. 
 
-Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.<br>Plays MP3, icy and AAC streams.
+Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.
 
 - Play MP3 and AAC files from a server.
 - Play preset radio stations.
 - Add new urls.
 - Save new urls to favorites.
 
-### The HOME tab:
+Below some screenshots from the different tabs. Browser area is on the left. Playlist is on the right.
+
+##### The HOME tab:
 ![home](img/home.png)
 
-### The LIBRARY tab:
+##### The LIBRARY tab:
 ![library](img/library.png)
 
-### The WEBRADIO tab:
+##### The WEBRADIO tab:
 ![webradio](img/webradio.png)
 
-### The FAVORITES tab:
+##### The FAVORITES tab:
 ![favorites](img/favorites.png)
 
 ## Setup:
