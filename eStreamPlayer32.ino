@@ -15,6 +15,12 @@
 #define I2S_WS      26
 #define I2S_DOUT    22
 
+const char* TIMEZONE {
+  "CET-1CEST,M3.5.0/2,M10.5.0/3"
+};
+
+const char* NTP_POOL {"nl.pool.ntp.org"};
+
 enum {
   PAUSED,
   PLAYING,
@@ -23,7 +29,7 @@ enum {
 
 #define NOTHING_PLAYING -1
 
-int currentItem {NOTHING_PLAYING};
+int currentItem{NOTHING_PLAYING};
 
 struct {
   uint32_t id;
@@ -365,16 +371,30 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
   }
 }
 
+static const char* HEADER_MODIFIED_SINCE{"If-Modified-Since"};
+
+static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebServerRequest * request, const char * date) {
+  return request->hasHeader(HEADER_MODIFIED_SINCE) && request->header(HEADER_MODIFIED_SINCE).equals(date);
+}
+
 void startWebServer(void * pvParameters) {
   ws.onEvent(onEvent);
   server.addHandler(&ws);
 
-  // TODO: set a 304 on all static content to save on bandwidth
+  static timeval systemStart;
+  static char modifiedDate[30];
 
-  static const char* HTML_HEADER = "text/html";
+  gettimeofday(&systemStart, NULL);
+
+  strftime(modifiedDate, sizeof(modifiedDate), "%a, %d %b %Y %X GMT", gmtime(&systemStart.tv_sec));
+
+  static const char* HTML_HEADER{"text/html"};
+  static const char* HEADER_LASTMODIFIED{"Last-Modified"};
 
   server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_HEADER, index_htm, index_htm_len);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
@@ -485,6 +505,15 @@ void setup() {
   ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(station));
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
+
+  configTzTime(TIMEZONE, NTP_POOL);
+
+  struct tm timeinfo;
+
+  while (!getLocalTime(&timeinfo, 0))
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+
+  ESP_LOGI(TAG, "Synced NTP at %s with %s.", asctime(&timeinfo), NTP_POOL);
 
   xTaskCreatePinnedToCore(
     startWebServer,
