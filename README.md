@@ -1,16 +1,26 @@
 # eStreamPlayer32
 
-An web-based esp32 playlist app to play webstreams and music from a lamp server.
+An web-based esp32 playlist app to play webstreams and music files from a lamp or llmp server.
+
+You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a script on the server to navigate the music folders. 
 
 Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.<br>Plays MP3, icy and AAC streams.
 
+- Play MP3 and AAC files from a server.
+- Play preset radio stations.
+- Add new urls.
+- Save new urls to favorites.
+
+### The HOME tab:
 ![interface](img/interface.png)
+
+### The LIBRARY tab:
 ![screenshot](img/screenshot.png)
 
 ## Setup:
 
-1. Adjust your credentials in `wifi_setup.h`.
-2. Copy the php script to your music folder on the server.
+1. Copy the php script to your music folder on the server.
+2. Adjust your credentials in `wifi_setup.h`.
 3. Change the following line in `index.htm` so it points to the script you just copied to your server:
 <br>`var libraryURL="http://192.168.0.50/muziek/ESP32.php";`
 4. Use (in a terminal) xxd to convert `index.htm` to a C style header file:
@@ -25,7 +35,7 @@ where you leave the number xxxxxx unchanged.
 
 ## Hardware needed:
 
-- A compatible dac like a `UDA1334A` or `wm8978`. Check the [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) repo for wiring info.
+- A compatible dac. Check the [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) repo for hardware and wiring info. Default setup is for a UDA1334A dac on pins 21, 22 and 26. 
 
 ## Software needed:
 
