@@ -6,10 +6,11 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* uncomment one of the following lines to select a board or dac */
+/* uncomment one of the following lines to compile for a board or dac */
 
-//#define   A1S_AUDIO_KIT
-#define   UDA1334A_DAC
+#define   A1S_AUDIO_KIT
+//#define   M5STACK_NODE
+//#define   UDA1334A_DAC
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -20,10 +21,30 @@
 #define I2S_WS      26
 #define I2S_DOUT    25
 
-#define IIC_CLK     32
-#define IIC_DATA    33
+#define I2C_SCL     32
+#define I2C_SDA     33
 
-static AC101 dac;
+AC101 dac;
+
+#endif
+
+#ifdef M5STACK_NODE
+#include <WM8978.h>                                     /* https://github.com/CelliesProjects/wm8978-esp32 */
+
+/* M5Stack Node I2S pins */
+#define I2S_BCK      5
+#define I2S_WS      13
+#define I2S_DOUT     2
+
+/* M5Stack Node WM8978 I2C pins */
+#define I2C_SDA     21
+#define I2C_SCL     22
+
+/* M5Stack WM8978 MCLK gpio number and frequency */
+#define I2S_MCLKPIN  0
+#define I2S_MFREQ  (24 * 1000 * 1000)
+
+WM8978 dac;
 
 #endif
 
@@ -34,6 +55,7 @@ static AC101 dac;
 #define I2S_DOUT    22
 
 #endif
+
 
 #include "wifi_setup.h"
 #include "playList.h"
@@ -514,13 +536,30 @@ void setup() {
 
 #ifdef A1S_AUDIO_KIT
   ESP_LOGI(TAG, "Starting AC101 dac");
-  if (!dac.begin(IIC_DATA, IIC_CLK))
+  if (!dac.begin(I2C_SDA, I2C_SCL))
   {
-    ESP_LOGI(TAG, "AC101 dac failed to init! Halting.");
+    ESP_LOGE(TAG, "AC101 dac failed to init! Halting.");
     while (true) delay(1000); /* system is halted */;
   }
-  dac.SetVolumeSpeaker(90);
-  dac.SetVolumeHeadphone(90);
+  dac.SetVolumeSpeaker(95);
+  dac.SetVolumeHeadphone(50);
+#endif
+
+#ifdef M5STACK_NODE
+  ESP_LOGI(TAG, "Starting WM8978 dac");
+  if (!dac.begin(I2C_SDA, I2C_SCL))
+  {
+    ESP_LOGE(TAG, "WM8978 dac failed to init! Halting.");
+    while (true) delay(1000); /* system is halted */;
+  }
+  /* Setup wm8978 MCLK on gpio - for example M5Stack Node needs this clock on gpio 0 */
+  double retval = dac.setPinMCLK(I2S_MCLKPIN, I2S_MFREQ);
+  if (!retval)
+    ESP_LOGE(TAG, "Could not set %.2fMHz clock signal on GPIO %i", I2S_MFREQ / (1000.0 * 1000.0), I2S_MCLKPIN);
+  else
+    ESP_LOGI(TAG, "Set %.2fMHz clock signal on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
+  dac.setSPKvol(54);
+  dac.setHPvol(32, 32);
 #endif
 
 #ifdef UDA1334A_DAC
@@ -528,6 +567,7 @@ void setup() {
 #endif
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
+  audio.setVolume(20); // 0...21
 
   xTaskCreatePinnedToCore(
     startWebServer,
