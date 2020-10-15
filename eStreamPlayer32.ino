@@ -145,13 +145,13 @@ void audio_id3data(const char *info) {
 
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
-    ESP_LOGI(TAG, "ws[%s][%u] connect", server->url(), client->id());
+    ESP_LOGD(TAG, "ws[%s][%u] connect", server->url(), client->id());
     newClient.connected = true;
     newClient.id = client->id();
     favorites.requested = true;
     favorites.clientId = client->id();
   } else if (type == WS_EVT_DISCONNECT) {
-    ESP_LOGI(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
+    ESP_LOGD(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
     ESP_LOGE(TAG, "ws[%s][%u] error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
   } else if (type == WS_EVT_DATA) {
@@ -521,7 +521,7 @@ void loop() {
     }
   */
   if (playList.isUpdated) {
-    ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+    ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
     sendCurrentItem();
     playList.isUpdated = false;
@@ -536,7 +536,7 @@ void loop() {
   }
 
   if (newUrl.waiting) {
-    ESP_LOGI(TAG, "trying new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
     if (audio.connecttohost(urlEncode(newUrl.url))) {
       playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
       currentItem = playList.size() - 1;
@@ -554,7 +554,6 @@ void loop() {
   }
 
   if (favorites.requested || favorites.updated) {
-    ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
     File root = FFat.open("/");
     if (!root) {
       ESP_LOGE(TAG, "ERROR- failed to open root");
@@ -577,17 +576,22 @@ void loop() {
 
     String response{"favorites\n"};
     File file = root.openNextFile();
+    auto counter{0};
     while (file) {
       if (!file.isDirectory()) {
         response += file.name() + String("\n");
+        counter++;
       }
       file = root.openNextFile();
     }
-    if (favorites.requested)
+    if (favorites.requested) {
+      ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
       ws.text(favorites.clientId, response);
-    else
+    }
+    else {
+      ESP_LOGI(TAG, "Favorites updated. %i items.", counter);
       ws.textAll(response);
-
+    }
     if (favorites.requested) favorites.requested = false;
     if (favorites.updated) favorites.updated = false;
   }
@@ -613,7 +617,7 @@ void loop() {
             currentToFavorites.requested = false;
             return;
           }
-          ESP_LOGI(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
+          ESP_LOGD(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
           const char* SAVE_FAILED_MSG{"message\nSaving failed!"};
           File file = FFat.open("/" + currentToFavorites.filename, FILE_WRITE);
           if (!file) {
