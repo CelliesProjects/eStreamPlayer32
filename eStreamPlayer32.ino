@@ -1,7 +1,39 @@
+
 #include <FFat.h>
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <Audio.h>                                      /* https://github.com/schreibfaul1/ESP32-audioI2S */
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/* uncomment one of the following lines to select a board or dac */
+
+//#define   A1S_AUDIO_KIT
+#define   UDA1334A_DAC
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef A1S_AUDIO_KIT
+#include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
+
+#define I2S_BCK     27
+#define I2S_WS      26
+#define I2S_DOUT    25
+
+#define IIC_CLK     32
+#define IIC_DATA    33
+
+static AC101 dac;
+
+#endif
+
+#ifdef UDA1334A_DAC
+
+#define I2S_BCK     21
+#define I2S_WS      26
+#define I2S_DOUT    22
+
+#endif
 
 #include "wifi_setup.h"
 #include "playList.h"
@@ -10,10 +42,6 @@
 
 /* webserver core */
 #define HTTP_RUN_CORE 1
-
-#define I2S_BCK     21
-#define I2S_WS      26
-#define I2S_DOUT    22
 
 enum {
   PAUSED,
@@ -483,6 +511,21 @@ void setup() {
   ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
 
   ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(station));
+
+#ifdef A1S_AUDIO_KIT
+  ESP_LOGI(TAG, "Starting AC101 dac");
+  if (!dac.begin(IIC_DATA, IIC_CLK))
+  {
+    ESP_LOGI(TAG, "AC101 dac failed to init! Halting.");
+    while (true) delay(1000); /* system is halted */;
+  }
+  dac.SetVolumeSpeaker(90);
+  dac.SetVolumeHeadphone(90);
+#endif
+
+#ifdef UDA1334A_DAC
+  ESP_LOGI(TAG, "Starting UDA1334A dac");
+#endif
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
 
