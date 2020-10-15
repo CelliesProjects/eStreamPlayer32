@@ -1,4 +1,3 @@
-
 #include <FFat.h>
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
@@ -17,10 +16,12 @@
 #ifdef A1S_AUDIO_KIT
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
 
+/* A1S Audiokit I2S pins */
 #define I2S_BCK     27
 #define I2S_WS      26
 #define I2S_DOUT    25
 
+/* A1S Audiokit I2C pins */
 #define I2C_SCL     32
 #define I2C_SDA     33
 
@@ -50,12 +51,12 @@ WM8978 dac;
 
 #ifdef UDA1334A_DAC
 
+/* I2S pins on Cellie's dev board */
 #define I2S_BCK     21
 #define I2S_WS      26
 #define I2S_DOUT    22
 
 #endif
-
 
 #include "wifi_setup.h"
 #include "playList.h"
