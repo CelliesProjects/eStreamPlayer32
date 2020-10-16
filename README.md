@@ -2,7 +2,7 @@
 
 An web-based esp32 playlist app to play webstreams and music files from a lamp or llmp server.
 
-You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a script on the server to navigate the music folders. 
+You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a script on the server to navigate the music folders.
 
 Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.
 
@@ -43,7 +43,13 @@ where you leave the number xxxxxx unchanged.
 
 ## Hardware needed:
 
-- A compatible dac. Check the [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) repo for hardware and wiring info. Default setup is for a UDA1334A dac on pins 21, 22 and 26. 
+A supported board or dac.
+
+Select a board or dac by uncommenting the relevant line in `eStreamPlayer32.ino`.
+
+- <b>UDA1334A</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `I2S_BCK` `I2S_WS` and `I2S_DOUT`.
+- <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with MCLK on GPIO0.
+- <b>A1S Audio Kit</b> - Select `A1S_AUDIO_KIT` to compile for ESP32-A1S Audio Kit.
 
 ## Software needed:
 

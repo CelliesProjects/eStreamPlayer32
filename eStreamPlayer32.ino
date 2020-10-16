@@ -9,7 +9,7 @@
 
 #define   A1S_AUDIO_KIT
 //#define   M5STACK_NODE
-//#define   UDA1334A_DAC
+//#define   GENERIC_I2S_DAC
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -49,7 +49,7 @@ WM8978 dac;
 
 #endif
 
-#ifdef UDA1334A_DAC
+#ifdef GENERIC_I2S_DAC
 
 /* I2S pins on Cellie's dev board */
 #define I2S_BCK     21
@@ -563,8 +563,8 @@ void setup() {
   dac.setHPvol(32, 32);
 #endif
 
-#ifdef UDA1334A_DAC
-  ESP_LOGI(TAG, "Starting UDA1334A dac");
+#ifdef GENERIC_I2S_DAC
+  ESP_LOGI(TAG, "Starting I2S dac");
 #endif
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
