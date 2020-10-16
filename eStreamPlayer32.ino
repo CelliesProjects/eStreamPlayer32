@@ -3,6 +3,61 @@
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <Audio.h>                                      /* https://github.com/schreibfaul1/ESP32-audioI2S */
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/* uncomment one of the following lines to compile for a board or dac */
+
+#define   A1S_AUDIO_KIT
+//#define   M5STACK_NODE
+//#define   GENERIC_I2S_DAC
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef A1S_AUDIO_KIT
+#include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
+
+/* A1S Audiokit I2S pins */
+#define I2S_BCK     27
+#define I2S_WS      26
+#define I2S_DOUT    25
+
+/* A1S Audiokit I2C pins */
+#define I2C_SCL     32
+#define I2C_SDA     33
+
+AC101 dac;
+
+#endif
+
+#ifdef M5STACK_NODE
+#include <WM8978.h>                                     /* https://github.com/CelliesProjects/wm8978-esp32 */
+
+/* M5Stack Node I2S pins */
+#define I2S_BCK      5
+#define I2S_WS      13
+#define I2S_DOUT     2
+
+/* M5Stack Node WM8978 I2C pins */
+#define I2C_SDA     21
+#define I2C_SCL     22
+
+/* M5Stack WM8978 MCLK gpio number and frequency */
+#define I2S_MCLKPIN  0
+#define I2S_MFREQ  (24 * 1000 * 1000)
+
+WM8978 dac;
+
+#endif
+
+#ifdef GENERIC_I2S_DAC
+
+/* I2S pins on Cellie's dev board */
+#define I2S_BCK     21
+#define I2S_WS      26
+#define I2S_DOUT    22
+
+#endif
+
 #include "wifi_setup.h"
 #include "playList.h"
 #include "index_htm.h"
@@ -10,10 +65,6 @@
 
 /* webserver core */
 #define HTTP_RUN_CORE 1
-
-#define I2S_BCK     21
-#define I2S_WS      26
-#define I2S_DOUT    22
 
 enum {
   PAUSED,
@@ -484,7 +535,40 @@ void setup() {
 
   ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(station));
 
+#ifdef A1S_AUDIO_KIT
+  ESP_LOGI(TAG, "Starting AC101 dac");
+  if (!dac.begin(I2C_SDA, I2C_SCL))
+  {
+    ESP_LOGE(TAG, "AC101 dac failed to init! Halting.");
+    while (true) delay(1000); /* system is halted */;
+  }
+  dac.SetVolumeSpeaker(95);
+  dac.SetVolumeHeadphone(50);
+#endif
+
+#ifdef M5STACK_NODE
+  ESP_LOGI(TAG, "Starting WM8978 dac");
+  if (!dac.begin(I2C_SDA, I2C_SCL))
+  {
+    ESP_LOGE(TAG, "WM8978 dac failed to init! Halting.");
+    while (true) delay(1000); /* system is halted */;
+  }
+  /* Setup wm8978 MCLK on gpio - for example M5Stack Node needs this clock on gpio 0 */
+  double retval = dac.setPinMCLK(I2S_MCLKPIN, I2S_MFREQ);
+  if (!retval)
+    ESP_LOGE(TAG, "Could not set %.2fMHz clock signal on GPIO %i", I2S_MFREQ / (1000.0 * 1000.0), I2S_MCLKPIN);
+  else
+    ESP_LOGI(TAG, "Set %.2fMHz clock signal on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
+  dac.setSPKvol(54);
+  dac.setHPvol(32, 32);
+#endif
+
+#ifdef GENERIC_I2S_DAC
+  ESP_LOGI(TAG, "Starting I2S dac");
+#endif
+
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
+  audio.setVolume(20); // 0...21
 
   xTaskCreatePinnedToCore(
     startWebServer,
