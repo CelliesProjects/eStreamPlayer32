@@ -45,7 +45,7 @@ where you leave the number xxxxxx unchanged.
 
 A supported board or dac.
 
-Select a board or dac by uncommenting the relevant line in `eStreamPlayer32.ino`.
+Select a board or dac by uncommenting the relevant line in `board.h`.
 
 - <b>UDA1334A</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `I2S_BCK` `I2S_WS` and `I2S_DOUT`.
 - <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with MCLK on GPIO0.
