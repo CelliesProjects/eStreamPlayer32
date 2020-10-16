@@ -3,15 +3,7 @@
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <Audio.h>                                      /* https://github.com/schreibfaul1/ESP32-audioI2S */
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/* uncomment one of the following lines to compile for a board or dac */
-
-#define   A1S_AUDIO_KIT
-//#define   M5STACK_NODE
-//#define   GENERIC_I2S_DAC
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include "board.h"
 
 #ifdef A1S_AUDIO_KIT
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
@@ -20,6 +12,7 @@
 #define I2S_BCK     27
 #define I2S_WS      26
 #define I2S_DOUT    25
+
 
 /* A1S Audiokit I2C pins */
 #define I2C_SCL     32
