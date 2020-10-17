@@ -430,6 +430,20 @@ void startWebServer(void * pvParameters) {
     request->send(response);
   });
 
+  server.on("/volume", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    return request->send(200, HTML_HEADER, String(audio.getVolume()));
+  });
+
+  server.on("/volume", HTTP_POST, [] (AsyncWebServerRequest * request) {
+    const char* VOLUME {"volume"};
+    if (request->hasArg(VOLUME)) {
+      uint32_t newvolume = atoi(request->arg(VOLUME).c_str());
+      audio.setVolume(newvolume > 21 ? 21 : newvolume);
+      return request->send(200, HTML_HEADER, String(audio.getVolume()));
+    }
+    else request->send(400);
+  });
+
   //  serve icons as files - use the browser cache to only serve each icon once
 
   static const char* SVG_HEADER = "image/svg+xml";
@@ -535,7 +549,7 @@ void setup() {
     ESP_LOGE(TAG, "AC101 dac failed to init! Halting.");
     while (true) delay(1000); /* system is halted */;
   }
-  dac.SetVolumeSpeaker(95);
+  dac.SetVolumeSpeaker(100);
   dac.SetVolumeHeadphone(50);
 #endif
 
@@ -561,7 +575,7 @@ void setup() {
 #endif
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-  audio.setVolume(20); // 0...21
+  audio.setVolume(20);
 
   xTaskCreatePinnedToCore(
     startWebServer,

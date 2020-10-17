@@ -157,6 +157,9 @@ a{
 .playercontrol{
   display:inline;
 }
+#volumeslider{
+  vertical-align: middle
+}
 </style>
 </head>
 <body class="noselect">
@@ -197,7 +200,9 @@ a{
   <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
   <p class="playercontrol" id="playpause"><svg class="icon" id="pausebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
   <p class="playercontrol"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
-  <!--<input class="playercontrol" type="range" min="0" max="0" value="0" class="" id="slider">-->
+  <!--<p class="playercontrol"><svg class="icon" id="volumebutton" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></p>-->
+  <input class="playercontrol" type="range" min="0" max="21" class="" id="volumeslider" autocomplete="off">
+  <!-- //https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range -->
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
 </div>
 <script>
@@ -210,6 +215,15 @@ else url+=debugip;
 var ws_host="ws://";
 if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
 else ws_host+=debugip+"/ws";
+
+function getVolume(){
+  $.get(url+"/volume")
+  .done(function(data){$('#volumeslider').val(data);})}
+
+function setVolume(newvolume){
+  $.post(url+"/volume",{volume:newvolume})
+  .done(function(data){$('#volumeslider').val(data);})
+}  
 
 function updateLocationBar(){
   $('#locationbar').html("Library path: "+currentpath);
@@ -460,16 +474,28 @@ $(document).ready(function(){
     ws.send("deletefavorite\n"+($(this).parent().text()));
   });
 
+
+
+
+
+  $('body').on('change','#volumeslider',function(e){
+    setVolume(this.value);        
+  });
+
+
+
+
+
+
+
   //setup and handlers done
   $('.tabcontent').css('top',$('.tab').height()+($('#locationbar').height()+$('#infobar').height())+"px");
   $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
 
   updateLibraryFolder(currentpath);
-
   $('.tablinks').first().click();
-
   getPresets();
-
+  getVolume();
 });
 
 </script>
