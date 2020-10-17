@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <script>
-var libraryURL="http://192.168.0.50/muziek/ESP32.php";
+var libraryURL="http://192.168.0.50/muziek/eSP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.178";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.105";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -249,9 +249,8 @@ function getPresets(){
   .done(function(data){
     var stations=data.split('\n');
     $('#WEBRADIO').html('');
-    var icon=url+'/radioicon.svg';
     stations.forEach(function(item){
-      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="'+icon+'" class="icon">'+item+'</p>');
+      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon">'+item+'</p>');
     })
   })
   .fail(function(){
@@ -276,26 +275,26 @@ $(document).ready(function(){
       case "playlist":
         $('#PLAYLIST').html('');
         console.log("Items in playlist:"+(command.length-2)/2);
-        var icon ="";
+        var typeicon ="";
         for(var i=1;i<command.length-1;i=i+2){
           switch (command[i+1]){
             case "FILE" :
-              icon = '<img src="/libraryicon.svg" class="icon">';
+              typeicon = '<img src="/libraryicon.svg" class="icon">';
               break;
             case "STREAM" :
-              icon = '<img src="/streamicon.svg" class="icon">';
+              typeicon = '<img src="/streamicon.svg" class="icon">';
               break;
             case "FAVO" :
-              icon = '<img src="/favoriteicon.svg" class="icon">';
+              typeicon = '<img src="/favoriteicon.svg" class="icon">';
               break;
             case "PRESET" :
-              icon = '<img src="/radioicon.svg" class="icon">';
+              typeicon = '<img src="/radioicon.svg" class="icon">';
               break;
             default :
-              icon = "";
+              typeicon = "";
               break;
           }
-          $('#PLAYLIST').append('<p class="plitem">'+removebutton+icon+command[i]+'</p>');
+          $('#PLAYLIST').append('<p class="plitem">'+removebutton+typeicon+command[i]+'</p>');
         }
       break;
       case "message":
@@ -332,7 +331,7 @@ $(document).ready(function(){
       case "favorites":
         $('#FAVORITES').html("");
         for(i=1;i<command.length-1;i++){
-          $('#FAVORITES').append('<p class="favoritelink">'+removebutton+command[i].substring(1)+'</p>');
+          $('#FAVORITES').append('<p class="favoritelink">'+removebutton+'<img src="/starticon.svg" class="icon">'+command[i].substring(1)+'</p>');
         }
       break
       default:break;

@@ -431,7 +431,7 @@ void startWebServer(void * pvParameters) {
   });
 
   server.on("/volume", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    return request->send(200, HTML_HEADER, String(audio.getVolume()));
+    request->send(200, HTML_HEADER, String(audio.getVolume()));
   });
 
   server.on("/volume", HTTP_POST, [] (AsyncWebServerRequest * request) {
@@ -494,6 +494,12 @@ void startWebServer(void * pvParameters) {
 
   server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, emptyicon);
+    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    request->send(response);
+  });
+
+  server.on("/starticon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, starticon);
     response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
     request->send(response);
   });
