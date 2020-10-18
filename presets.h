@@ -1,9 +1,9 @@
-struct station {
+struct source {
   String name;
   String url;
 };
 
-const station preset[] {
+const source preset[] {
   {"NPO Radio1", "http://icecast.omroep.nl/radio1-bb-mp3"},
   {"NPO Radio2", "http://icecast.omroep.nl/radio2-bb-mp3"},
   {"NPO Radio2 Soul&Jazz", "http://icecast.omroep.nl/radio6-bb-mp3"},

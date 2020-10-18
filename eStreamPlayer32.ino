@@ -352,7 +352,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                  !strcmp("_presetstation", pch)) {
           const bool startnow = (pch[0] == '_');
           const uint32_t index = atoi(strtok(NULL, "\n"));
-          if (index < sizeof(preset) / sizeof(station)) { // only add really existing presets to the playlist
+          if (index < sizeof(preset) / sizeof(source)) { // only add really existing presets to the playlist
             playList.add({HTTP_PRESET, "", "", index});
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
             client->printf("message\nAdded '%s' to playlist", preset[index].name.c_str());
@@ -453,7 +453,7 @@ void startWebServer(void * pvParameters) {
 
   server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
     AsyncResponseStream *response = request->beginResponseStream(HTML_HEADER);
-    for (int i = 0; i < sizeof(preset) / sizeof(station); i++) {
+    for (int i = 0; i < sizeof(preset) / sizeof(source); i++) {
       response->printf("%s\n", preset[i].name.c_str());
     }
     request->send(response);
@@ -575,7 +575,7 @@ void setup() {
   }
   ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
 
-  ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(station));
+  ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(source));
 
 #ifdef A1S_AUDIO_KIT
   ESP_LOGI(TAG, "Starting AC101 dac");
