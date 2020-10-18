@@ -96,6 +96,7 @@ struct {
 struct {
   bool requested{false};
   String name;
+  bool startNow;
 } favoriteToPlaylist;
 
 struct {
@@ -210,8 +211,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         char *pch = strtok((char*)data, "\n");
         if (!pch) return;
-        if (!strcmp("toplaylist", pch)) {
-          int previousSize = playList.size();
+
+        if (!strcmp("filetoplaylist", pch)  ||
+            !strcmp("_filetoplaylist", pch)) {
+          const bool startnow = (pch[0] == '_');
+          const uint32_t previousSize = playList.size();
           pch = strtok(NULL, "\n");
           while (pch) {
             ESP_LOGD(TAG, "argument: %s", pch);
@@ -220,6 +224,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
           client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
+          if (startnow) {
+            if (audio.isRunning()) audio.stopSong();
+            currentItem = previousSize - 1;
+            playerStatus = PLAYING;
+            return;
+          }
           // start playing at the correct position if not already playing
           if (!audio.isRunning() && PAUSED != playerStatus) {
             currentItem = previousSize - 1;
@@ -246,10 +256,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!playList.size()) return;
           pch = strtok(NULL, "\n");
           if (!pch) return;
-          int num = atoi(pch);
-          if (num == currentItem) {
+          const uint32_t item = atoi(pch);
+          if (item == currentItem) {
             audio.stopSong();
-            playList.remove(num);
+            playList.remove(item);
             if (!playList.size()) {
               playListHasEnded();
               return;
@@ -257,8 +267,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             currentItem--;
             return;
           }
-          if (num > -1 && num < playList.size()) {
-            playList.remove(num);
+          if (item < playList.size()) {
+            playList.remove(item);
             if (!playList.size()) {
               playListHasEnded();
               return;
@@ -266,7 +276,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           } else {
             return;
           }
-          if (num < currentItem) {
+          if (item < currentItem) {
             currentItem--;
           }
         }
@@ -325,9 +335,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           favorites.requested = true;
         }
 
-        else if (!strcmp("favoritetoplaylist", pch)) {
+        else if (!strcmp("favoritetoplaylist", pch) ||
+                 !strcmp("_favoritetoplaylist", pch)) {
+          const bool startnow = (pch[0] == '_');
           favoriteToPlaylist.name = strtok(NULL, "\n");
           favoriteToPlaylist.requested = true;
+          favoriteToPlaylist.startNow = startnow;
         }
 
         else if (!strcmp("deletefavorite", pch)) {
@@ -335,12 +348,21 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           deletefavorite.requested = true;
         }
 
-        else if (!strcmp("presetstation", pch)) {
+        else if (!strcmp("presetstation", pch) ||
+                 !strcmp("_presetstation", pch)) {
+          const bool startnow = (pch[0] == '_');
           const uint32_t index = atoi(strtok(NULL, "\n"));
           if (index < sizeof(preset) / sizeof(station)) { // only add really existing presets to the playlist
             playList.add({HTTP_PRESET, "", "", index});
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
             client->printf("message\nAdded '%s' to playlist", preset[index].name.c_str());
+            if (startnow) {
+              if (audio.isRunning()) audio.stopSong();
+              currentItem = playList.size() - 2;
+              playerStatus = PLAYING;
+              return;
+            }
+
             // start playing at the correct position if not already playing
             if (!audio.isRunning() && PAUSED != playerStatus) {
               currentItem = playList.size() - 2;
@@ -383,10 +405,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           ESP_LOGD(TAG, "complete multi frame request: %s", reinterpret_cast<char*>(buffer));
 
           char* pch = strtok(buffer, "\n");
-          if (!strcmp("toplaylist", pch)) {
+          if (!strcmp("filetoplaylist", pch) ||
+              !strcmp("_filetoplaylist", pch)) {
             ESP_LOGD(TAG, "multi frame playlist");
-
-            int previousSize = playList.size();
+            const bool startnow = (pch[0] == '_');
+            const uint32_t previousSize = playList.size();
             pch = strtok(NULL, "\n");
             while (pch) {
               ESP_LOGD(TAG, "argument: %s", pch);
@@ -397,6 +420,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             buffer = nullptr;
             ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
             client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
+            if (startnow) {
+              if (audio.isRunning()) audio.stopSong();
+              currentItem = previousSize - 1;
+              playerStatus = PLAYING;
+              return;
+            }
             // start playing at the correct position if not already playing
             if (!audio.isRunning() && PAUSED != playerStatus) {
               currentItem = previousSize - 1;
@@ -581,7 +610,7 @@ void setup() {
 #endif
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-  audio.setVolume(20);
+  audio.setVolume(0); /* max 21 */
 
   xTaskCreatePinnedToCore(
     startWebServer,
@@ -754,6 +783,14 @@ void loop() {
     playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
     ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
     ws.printfAll("message\nAdded '%s' to playlist", favoriteToPlaylist.name.c_str());
+    if (favoriteToPlaylist.startNow) {
+      if (audio.isRunning()) audio.stopSong();
+      currentItem = playList.size() - 2;
+      playerStatus = PLAYING;
+      favoriteToPlaylist.startNow = false;
+      favoriteToPlaylist.requested = false;
+      return;
+    }
     if (!audio.isRunning() && PAUSED != playerStatus) {
       currentItem = playList.size() - 2;
       playerStatus = PLAYING;

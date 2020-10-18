@@ -4,7 +4,7 @@
 <script>
 var libraryURL="http://192.168.0.50/muziek/eSP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.105";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.107";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -223,7 +223,7 @@ function getVolume(){
 function setVolume(newvolume){
   $.post(url+"/volume",{volume:newvolume})
   .done(function(data){$('#volumeslider').val(data);})
-}  
+}
 
 function updateLocationBar(){
   $('#locationbar').html("Library path: "+currentpath);
@@ -250,7 +250,7 @@ function getPresets(){
     var stations=data.split('\n');
     $('#WEBRADIO').html('');
     stations.forEach(function(item){
-      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon">'+item+'</p>');
+      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">'+item+'</p>');
     })
   })
   .fail(function(){
@@ -331,7 +331,7 @@ $(document).ready(function(){
       case "favorites":
         $('#FAVORITES').html("");
         for(i=1;i<command.length-1;i++){
-          $('#FAVORITES').append('<p class="favoritelink">'+removebutton+'<img src="/starticon.svg" class="icon">'+command[i].substring(1)+'</p>');
+          $('#FAVORITES').append('<p class="favoritelink">'+removebutton+'<img src="/starticon.svg" class="icon starticon">'+command[i].substring(1)+'</p>');
         }
       break
       default:break;
@@ -385,16 +385,43 @@ $(document).ready(function(){
     updateLibraryFolder(currentpath,oldpath);
   });
 
-  $('body').on('click','.filelink',function(){
-    ws.send("toplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+  $('body').on('click','.filelink',function(e){
+    ws.send("filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+    e.stopPropagation();
   });
 
-  $('body').on('click','.addfolder',function(e){
+  $('body').on('click','.filelink .starticon',function(e){
+    ws.send("_filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).parent().text());
+    e.stopPropagation();
+  });
+
+  $('body').on('click','.streamlink .starticon',function(e){
+    ws.send("_presetstation\n"+$(this).parent().index());
+    e.stopPropagation();
+  });
+
+  $('body').on('click','.favoritelink',function(e){
+    ws.send("favoritetoplaylist\n"+$(this).text());
+    e.stopPropagation();
+  });
+
+  $('body').on('click','.favoritelink .starticon',function(e){
+    ws.send("_favoritetoplaylist\n"+$(this).parent().text());
+    e.stopPropagation();
+  });
+
+  $('body').on('click','.favoritelink .deletebutton',function(e){
+    e.stopPropagation();
+    if(!confirm("Are you sure to delete this favorite?"))return;
+    ws.send("deletefavorite\n"+($(this).parent().text()));
+  });
+
+  $('body').on('click','.addfolder, .folderlink .starticon',function(e){
     //TODO: something goes wrong here!
     // we have to check in the .done callback if there are multiple '/' chars at the start of the path
     var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
     var requestpath=currentpath+"/"+$(this).parent().text();
-    let content="toplaylist\n";
+    var content=($(this).hasClass('starticon'))?"_filetoplaylist\n":"filetoplaylist\n";
     $.get(libraryURL+"?folder="+encodeURIComponent(currentpath)+"/"+encodeURIComponent($(this).parent().text()))
     .done(function(data){
       //make an invisible navList
@@ -463,29 +490,9 @@ $(document).ready(function(){
     ws.send("currenttofavorites\n"+filename);
   });
 
-  $('body').on('click','.favoritelink',function(){
-    ws.send("favoritetoplaylist\n"+$(this).text());
-  });
-
-  $('body').on('click','.favoritelink .deletebutton',function(e){
-    e.stopPropagation();
-    if(!confirm("Are you sure to delete this favorite?"))return;
-    ws.send("deletefavorite\n"+($(this).parent().text()));
-  });
-
-
-
-
-
   $('body').on('change','#volumeslider',function(e){
-    setVolume(this.value);        
+    setVolume(this.value);
   });
-
-
-
-
-
-
 
   //setup and handlers done
   $('.tabcontent').css('top',$('.tab').height()+($('#locationbar').height()+$('#infobar').height())+"px");
