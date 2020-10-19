@@ -27,6 +27,7 @@ Below some screenshots from the different tabs. Browser area is on the left. Pla
 
 ## Setup:
 
+0. Install the drivers for your dac. See [hardware needed](#hardware-needed)
 1. Copy the php script to your music folder on the server.
 2. Adjust your credentials in `wifi_setup.h`.
 3. Change the following line in `index.htm` so it points to the script you just copied to your server:
@@ -48,8 +49,8 @@ A supported board or dac.
 Select a board or dac by uncommenting the relevant line in `board.h`.
 
 - <b>UDA1334A</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `I2S_BCK` `I2S_WS` and `I2S_DOUT`.
-- <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with MCLK on GPIO0.
-- <b>A1S Audio Kit</b> - Select `A1S_AUDIO_KIT` to compile for ESP32-A1S Audio Kit.
+- <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with MCLK on GPIO0.<br>You need the [wm8978-esp32](https://github.com/CelliesProjects/wm8978-esp32) library for this dac.
+- <b>A1S Audio Kit</b> - Select `A1S_AUDIO_KIT` to compile for ESP32-A1S Audio Kit.<br>You need the [AC101](https://github.com/Yveaux/AC101) library for this dac.
 
 ## Software needed:
 
