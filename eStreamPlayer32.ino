@@ -34,9 +34,8 @@ AC101 dac;
 #define I2C_SDA     21
 #define I2C_SCL     22
 
-/* M5Stack WM8978 MCLK gpio number and frequency */
+/* M5Stack WM8978 MCLK gpio number */
 #define I2S_MCLKPIN  0
-#define I2S_MFREQ  (24 * 1000 * 1000)
 
 WM8978 dac;
 
@@ -595,12 +594,8 @@ void setup() {
     ESP_LOGE(TAG, "WM8978 dac failed to init! Halting.");
     while (true) delay(1000); /* system is halted */;
   }
-  /* Setup wm8978 MCLK on gpio - for example M5Stack Node needs this clock on gpio 0 */
-  double retval = dac.setPinMCLK(I2S_MCLKPIN, I2S_MFREQ);
-  if (!retval)
-    ESP_LOGE(TAG, "Could not set %.2fMHz clock signal on GPIO %i", I2S_MFREQ / (1000.0 * 1000.0), I2S_MCLKPIN);
-  else
-    ESP_LOGI(TAG, "Set %.2fMHz clock signal on GPIO %i", retval / (1000.0 * 1000.0), I2S_MCLKPIN);
+  /* Setup i2s MCLK on gpio - for example M5Stack Node needs this clock on gpio 0 */
+  audio.i2s_mclk_pin_select(I2S_MCLKPIN);
   dac.setSPKvol(54);
   dac.setHPvol(32, 32);
 #endif
