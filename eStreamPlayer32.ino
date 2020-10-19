@@ -12,7 +12,7 @@
 #define I2S_BCK     27
 #define I2S_WS      26
 #define I2S_DOUT    25
-
+#define I2S_MCLK     0
 
 /* A1S Audiokit I2C pins */
 #define I2C_SCL     32
@@ -29,13 +29,11 @@ AC101 dac;
 #define I2S_BCK      5
 #define I2S_WS      13
 #define I2S_DOUT     2
+#define I2S_MCLK     0
 
 /* M5Stack Node WM8978 I2C pins */
 #define I2C_SDA     21
 #define I2C_SCL     22
-
-/* M5Stack WM8978 MCLK gpio number */
-#define I2S_MCLKPIN  0
 
 WM8978 dac;
 
@@ -84,7 +82,6 @@ struct {
   String filename;
   uint32_t clientId;
 } currentToFavorites;
-
 
 struct {
   bool requested{false};
@@ -136,12 +133,6 @@ void playListHasEnded() {
   audio_showstreamtitle("&nbsp;");
 }
 
-/*
-  void audio_info(const char *info) {
-  ESP_LOGI(TAG, "Info: %s", info);
-  }
-*/
-
 static char showstation[200]; // These are kept global to update new clients in loop()
 void audio_showstation(const char *info) {
   if (!strcmp(info, "")) return;
@@ -151,12 +142,6 @@ void audio_showstation(const char *info) {
   ESP_LOGD(TAG, "showstation: %s", showstation);
   ws.textAll(showstation);
 }
-/*
-  void audio_bitrate(const char *info) {
-  ESP_LOGI(TAG, "bitrate: %s", info);
-  ws.printfAll("bitrate\n%s", info);
-  }
-*/
 
 static char streamtitle[200]; // These are kept global to update new clients in loop()
 void audio_showstreamtitle(const char *info) {
@@ -165,27 +150,10 @@ void audio_showstreamtitle(const char *info) {
   ws.printfAll(streamtitle);
 }
 
-/*
-  void audio_showstreaminfo(const char *info) {
-  ESP_LOGI(TAG, "streaminfo: %s", info);
-  ws.printfAll("streaminfo\n%s",info);
-  }
-*/
 void audio_id3data(const char *info) {
   ESP_LOGI(TAG, "id3data: %s", info);
   ws.printfAll("id3data\n%s", info);
 }
-/*
-  void audio_eof_mp3(const char *info) {
-  ESP_LOGI(TAG, "EOF");
-  audio.stopSong();
-  }
-*/
-/*
-  void audio_lasthost(const char *info) {
-  ESP_LOGI(TAG, "audio EOF: %s", info);
-  }
-*/
 
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
@@ -583,6 +551,7 @@ void setup() {
     ESP_LOGE(TAG, "AC101 dac failed to init! Halting.");
     while (true) delay(1000); /* system is halted */;
   }
+  audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.SetVolumeSpeaker(100);
   dac.SetVolumeHeadphone(50);
 #endif
@@ -594,8 +563,7 @@ void setup() {
     ESP_LOGE(TAG, "WM8978 dac failed to init! Halting.");
     while (true) delay(1000); /* system is halted */;
   }
-  /* Setup i2s MCLK on gpio - for example M5Stack Node needs this clock on gpio 0 */
-  audio.i2s_mclk_pin_select(I2S_MCLKPIN);
+  audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.setSPKvol(54);
   dac.setHPvol(32, 32);
 #endif
@@ -706,11 +674,11 @@ void loop() {
       file = root.openNextFile();
     }
     if (favorites.requested) {
-      ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
+      ESP_LOGD(TAG, "Favorites requested by client %i", favorites.clientId);
       ws.text(favorites.clientId, response);
     }
     else {
-      ESP_LOGI(TAG, "Favorites updated. %i items.", counter);
+      ESP_LOGD(TAG, "Favorites updated. %i items.", counter);
       ws.textAll(response);
     }
     if (favorites.requested) favorites.requested = false;
