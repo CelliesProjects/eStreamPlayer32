@@ -1,15 +1,17 @@
 # eStreamPlayer32
 
-An web-based esp32 playlist app to play webstreams and music files from a lamp or llmp server.
+An web-based esp32 playlist app to play webradio and mp3/aac files from a lamp or llmp server.
 
-You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a script on the server to navigate the music folders.
+- Control eStreamPlayer32 with your phone or tablet.
+- Play your local files.
+- Play preset radio stations.
+- Add new urls and save them to favorites.
+
+Sound output comes from an external i2s dac. Currently generic i2s dacs (using `MCLK`, `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
+
+You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a php script on a http server to navigate the music folders.
 
 Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.
-
-- Play MP3 and AAC files from a server.
-- Play preset radio stations.
-- Add new urls.
-- Save new urls to favorites.
 
 Below some screenshots from the different tabs. Browser area is on the left. Playlist is on the right.
 
