@@ -67,6 +67,15 @@ Select a board or dac by uncommenting the relevant line in `board.h`.
 - [Google Roboto font](https://fonts.google.com/specimen/Roboto) which is [available under Apache2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
 - [jQuery 3.4.1](https://code.jquery.com/jquery-3.4.1.js) which is [available under MIT license](https://jquery.org/license/).
 
+#### TODO:
+
+- Volume control runs over http socket. Refactor this to web socket.
+- Style the interface properly.
+- Does not run properly on M5Stack Node. Fix this.
+- Reconnect code should be better. Maybe do a timed check for connection?
+- Improve the behaviour of the interface. Hard drives (the library) need time to wake up from sleep etc.
+
+
 ````
 MIT License
 
