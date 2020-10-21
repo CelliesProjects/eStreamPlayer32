@@ -73,7 +73,7 @@ Select a board or dac by uncommenting the relevant line in `board.h`.
 
 #### TODO:
 
-- Volume control runs over http socket. Refactor this to web socket.
+- <strike>Volume control runs over http socket. Refactor this to web socket.</strike>
 - Style the interface properly.
 - Does not run properly on M5Stack Node. Fix this.
 - Reconnect code should be better. Maybe do a timed check for connection?

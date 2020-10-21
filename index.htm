@@ -225,15 +225,6 @@ var ws_host="ws://";
 if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
 else ws_host+=debugip+"/ws";
 
-function getVolume(){
-  $.get(url+"/volume")
-  .done(function(data){$('#volumeslider').val(data);})}
-
-function setVolume(newvolume){
-  $.post(url+"/volume",{volume:newvolume})
-  .done(function(data){$('#volumeslider').val(data);})
-}
-
 function updateLocationBar(){
   $('#locationbar').html("Library path: "+currentpath);
 }
@@ -309,6 +300,10 @@ $(document).ready(function(){
       case "message":
         $('#infobar').css("opacity","1");
         $('#infobar').html(command[1]).animate({"opacity":"0"},{queue:false,duration:2000});
+      break;
+
+      case "volume":
+        if(command[1])$('#volumeslider').val(command[1]);
       break;
 
       case "showstation":
@@ -500,7 +495,7 @@ $(document).ready(function(){
   });
 
   $('body').on('change','#volumeslider',function(e){
-    setVolume(this.value);
+    ws.send("volume\n" + this.value);
   });
 
   //setup and handlers done
@@ -510,7 +505,6 @@ $(document).ready(function(){
   updateLibraryFolder(currentpath);
   $('.tablinks').first().click();
   getPresets();
-  getVolume();
 });
 
 </script>

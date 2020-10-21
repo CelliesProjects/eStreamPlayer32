@@ -56,6 +56,8 @@ WM8978 dac;
 /* webserver core */
 #define HTTP_RUN_CORE 1
 
+#define I2S_MAX_VOLUME 21
+
 enum {
   PAUSED,
   PLAYING,
@@ -65,6 +67,8 @@ enum {
 #define NOTHING_PLAYING -1
 
 int currentItem {NOTHING_PLAYING};
+
+bool volumeUpdate{false};
 
 struct {
   uint32_t id;
@@ -180,8 +184,18 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         char *pch = strtok((char*)data, "\n");
         if (!pch) return;
 
-        if (!strcmp("filetoplaylist", pch)  ||
-            !strcmp("_filetoplaylist", pch)) {
+        if (!strcmp("volume", pch)) {
+          pch = strtok(NULL, "\n");
+          if (pch) {
+            const uint8_t volume = atoi(pch);
+            audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
+            volumeUpdate = true;
+          }
+          return;
+        }
+
+        else if (!strcmp("filetoplaylist", pch)  ||
+                 !strcmp("_filetoplaylist", pch)) {
           const bool startnow = (pch[0] == '_');
           const uint32_t previousSize = playList.size();
           pch = strtok(NULL, "\n");
@@ -427,20 +441,6 @@ void startWebServer(void * pvParameters) {
     request->send(response);
   });
 
-  server.on("/volume", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    request->send(200, HTML_HEADER, String(audio.getVolume()));
-  });
-
-  server.on("/volume", HTTP_POST, [] (AsyncWebServerRequest * request) {
-    const char* VOLUME {"volume"};
-    if (request->hasArg(VOLUME)) {
-      uint32_t newvolume = atoi(request->arg(VOLUME).c_str());
-      audio.setVolume(newvolume > 21 ? 21 : newvolume);
-      return request->send(200, HTML_HEADER, String(audio.getVolume()));
-    }
-    else request->send(400);
-  });
-
   //  serve icons as files - use the browser cache to only serve each icon once
 
   static const char* SVG_HEADER = "image/svg+xml";
@@ -586,9 +586,12 @@ void setup() {
     HTTP_RUN_CORE);
 }
 
+const char* VOLUME_HEADER{"volume\n"};
+const char* CURRENT_HEADER{"currentPLitem\n"};
+
 inline __attribute__((always_inline))
 void sendCurrentItem() {
-  ws.textAll("currentPLitem\n" + String(currentItem));
+  ws.textAll(CURRENT_HEADER + String(currentItem));
 }
 
 void loop() {
@@ -610,6 +613,11 @@ void loop() {
       previousPos = audio.getFilePos();
     }
   */
+  if (volumeUpdate) {
+    ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
+    volumeUpdate = false;
+  }
+
   if (playList.isUpdated) {
     ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
@@ -619,9 +627,10 @@ void loop() {
 
   if (newClient.connected) {
     ws.text(newClient.id, playList.toClientString());
-    ws.text(newClient.id, "currentPLitem\n" + String(currentItem));
+    ws.text(newClient.id, CURRENT_HEADER + String(currentItem));
     ws.text(newClient.id, showstation);
     ws.text(newClient.id, streamtitle);
+    ws.text(newClient.id, VOLUME_HEADER + String(audio.getVolume()));
     newClient.connected = false;
   }
 
