@@ -9,7 +9,7 @@ An web-based esp32 playlist app to play webradio and mp3/aac files from a lamp o
 - Play preset radio stations.
 - Add new urls and save them to favorites.
 
-Sound output comes from an external i2s dac. Currently generic i2s dacs (using `MCLK`, `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
+Sound output comes from an external i2s dac. Currently <b>generic i2s dacs</b> (using `MCLK`, `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
 
 You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a php script on a http server to navigate the music folders.
 
