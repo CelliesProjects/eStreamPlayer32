@@ -184,7 +184,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         char *pch = strtok((char*)data, "\n");
         if (!pch) return;
 
-
         if (!strcmp("volume", pch)) {
           pch = strtok(NULL, "\n");
           if (pch) {
