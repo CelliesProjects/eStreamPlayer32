@@ -614,9 +614,6 @@ void loop() {
       previousPos = audio.getFilePos();
     }
   */
-
-
-
   if (volumeUpdate) {
     ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
     volumeUpdate = false;
