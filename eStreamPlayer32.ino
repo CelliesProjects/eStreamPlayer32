@@ -131,6 +131,7 @@ void playListHasEnded() {
   playerStatus = PLAYLISTEND;
   audio_showstation("Nothing playing");
   audio_showstreamtitle("&nbsp;");
+  ESP_LOGD(TAG, "End of playlist.");
 }
 
 static char showstation[200]; // These are kept global to update new clients in loop()
@@ -573,7 +574,7 @@ void setup() {
 #endif
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
-  audio.setVolume(0); /* max 21 */
+  audio.setVolume(5); /* max 21 */
 
   xTaskCreatePinnedToCore(
     startWebServer,
@@ -692,10 +693,10 @@ void loop() {
 
     switch (item.type) {
       case HTTP_FILE :
-        ESP_LOGI(TAG, "file (wont save)%s", item.url.c_str());
+        ESP_LOGD(TAG, "file (wont save)%s", item.url.c_str());
         break;
       case HTTP_PRESET :
-        ESP_LOGI(TAG, "preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+        ESP_LOGD(TAG, "preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
         break;
       case HTTP_STREAM :
       case HTTP_FAVORITE :
@@ -779,37 +780,36 @@ void loop() {
       playList.get(currentItem, item);
       switch (item.type) {
         case HTTP_FILE :
-          ESP_LOGI(TAG, "STARTING file: %s", item.url.c_str());
+          ESP_LOGD(TAG, "STARTING file: %s", item.url.c_str());
           audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
           audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
           audio.connecttohost(urlEncode(item.url));
           break;
         case HTTP_STREAM :
-          ESP_LOGI(TAG, "STARTING stream: %s", item.url.c_str());
+          ESP_LOGD(TAG, "STARTING stream: %s", item.url.c_str());
           audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
           audio_showstreamtitle("");
           audio.connecttohost(urlEncode(item.url));
           break;
         case HTTP_PRESET :
-          ESP_LOGI(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+          ESP_LOGD(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
           audio_showstreamtitle("");
           audio_showstation(preset[item.index].name.c_str());
           audio.connecttohost(urlEncode(preset[item.index].url));
           break;
         case HTTP_FAVORITE :
-          ESP_LOGI(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
+          ESP_LOGD(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
           audio_showstation(item.name.c_str());
           audio_showstreamtitle("");
           audio.connecttohost(urlEncode(item.url));
           break;
         case SDCARD_FILE :
-          ESP_LOGI(TAG, "STARTING sd file: %s", item.url.c_str());
+          ESP_LOGD(TAG, "STARTING sd file: %s", item.url.c_str());
           audio.connecttoSD(item.url);
           break;
-        default : ESP_LOGI(TAG, "Unhandled item.type.");
+        default : ESP_LOGE(TAG, "Unhandled item.type.");
       }
     } else {
-      ESP_LOGI(TAG, "End of playlist.");
       playListHasEnded();
     }
     sendCurrentItem();
