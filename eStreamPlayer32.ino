@@ -64,6 +64,7 @@ enum {
 
 #define NOTHING_PLAYING -1
 
+bool volumeUpdate{false};
 int currentItem {NOTHING_PLAYING};
 
 struct {
@@ -180,8 +181,19 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         char *pch = strtok((char*)data, "\n");
         if (!pch) return;
 
-        if (!strcmp("filetoplaylist", pch)  ||
-            !strcmp("_filetoplaylist", pch)) {
+
+        if (!strcmp("volume", pch)) {
+          pch = strtok(NULL, "\n");
+          if (pch) {
+            uint8_t volume = atoi(pch);
+            audio.setVolume(volume >= 21 ? 21 : volume);
+            volumeUpdate = true;
+          }
+          return;
+        }
+
+        else if (!strcmp("filetoplaylist", pch)  ||
+                 !strcmp("_filetoplaylist", pch)) {
           const bool startnow = (pch[0] == '_');
           const uint32_t previousSize = playList.size();
           pch = strtok(NULL, "\n");
@@ -426,7 +438,7 @@ void startWebServer(void * pvParameters) {
     }
     request->send(response);
   });
-
+/*
   server.on("/volume", HTTP_GET, [] (AsyncWebServerRequest * request) {
     request->send(200, HTML_HEADER, String(audio.getVolume()));
   });
@@ -440,7 +452,7 @@ void startWebServer(void * pvParameters) {
     }
     else request->send(400);
   });
-
+*/
   //  serve icons as files - use the browser cache to only serve each icon once
 
   static const char* SVG_HEADER = "image/svg+xml";
@@ -610,6 +622,12 @@ void loop() {
       previousPos = audio.getFilePos();
     }
   */
+
+  if (volumeUpdate) {
+    ws.textAll("volume\n" + String(audio.getVolume()));
+    volumeUpdate = false;
+  }
+
   if (playList.isUpdated) {
     ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
@@ -622,6 +640,7 @@ void loop() {
     ws.text(newClient.id, "currentPLitem\n" + String(currentItem));
     ws.text(newClient.id, showstation);
     ws.text(newClient.id, streamtitle);
+    ws.text(newClient.id, "volume\n" + String(audio.getVolume()));
     newClient.connected = false;
   }
 
