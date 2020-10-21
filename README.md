@@ -9,9 +9,9 @@ An web-based esp32 playlist app to play webradio and mp3/aac files from a lamp o
 - Play preset radio stations.
 - Add new urls and save them to favorites.
 
-Sound output comes from an external i2s dac. Currently <b>generic i2s dacs</b> (using `MCLK`, `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
+Sound output comes from an external i2s dac.<br>Currently <b>generic i2s dacs</b> (using `MCLK`, `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
 
-You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a php script on a http server to navigate the music folders.
+You need write access to the music folder because the esp32 does not speak 'real' filesystems and uses a php script on the (web) server to navigate the music folders.
 
 Based on ESP32-audioI2S, ESPAsyncWebServer and Reconnecting WebSocket.
 
@@ -52,7 +52,7 @@ A supported board or dac.
 
 Select a board or dac by uncommenting the relevant line in `board.h`.
 
-- <b>UDA1334A</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `I2S_BCK` `I2S_WS` and `I2S_DOUT`.
+- <b>UDA1334A</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `MCLK`, `BCK`, `WS` and `DOUT`.
 - <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with MCLK on GPIO0.<br>You need the [wm8978-esp32](https://github.com/CelliesProjects/wm8978-esp32) library for this dac.
 - <b>A1S Audio Kit</b> - Select `A1S_AUDIO_KIT` to compile for ESP32-A1S Audio Kit.<br>You need the [AC101](https://github.com/Yveaux/AC101) library for this dac.
 
