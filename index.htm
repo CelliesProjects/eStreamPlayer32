@@ -4,7 +4,7 @@
 <script>
 var libraryURL="http://192.168.0.50/muziek/eSP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.105";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.107";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -194,19 +194,15 @@ a{
   <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
 </div>
 <div id="PLAYLIST" class="tabcontent">
-  <h3>PLAYLIST</h3>
-  <p>Show and edit playlist.</p>
+  <p class="errormessage">Waiting for playlist...</p>
 </div>
 <div id="LIBRARY" class="tabcontent">
-  <div id="librarylist">Setup your library in SETUP</div>
+  <p class="errormessage">Waiting for library...</p>
 </div>
 <div id="WEBRADIO" class="tabcontent">
-  <h3>WEBRADIO</h3>
-  <p>Show and select a web radio station.</p>
 </div>
 <div id="FAVORITES" class="tabcontent">
-  <h3>FAVORITES</h3>
-  <p>Show and select a saved file or station.</p>
+  <p class="errormessage">Waiting for favorites...</p>
 </div>
 <div id="controlpanel">
   <p id="playerstatus">eStreamPlayer32</p>
@@ -251,7 +247,7 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
     updateLocationBar();
   })
   .fail(function(){
-    alert("could not open: "+libraryURL+"?folder="+encodeURIComponent(folder));
+    $('#LIBRARY').html('<p class="errormessage">ERROR: Could not open "'+libraryURL+"?folder="+encodeURIComponent(folder)+'"</p>');
     currentpath=oldfolder;
     $('#LIBRARY').css({"opacity":1});
   });
@@ -267,13 +263,13 @@ function getPresets(){
     })
   })
   .fail(function(){
-    $('#WEBRADIO').html('<p>Could not open station list</p>');
+    $('#WEBRADIO').html('<p class="errormessage">ERROR: Could not open station list</p>');
   });
 }
 const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
 $(document).ready(function(){
   const addicon='<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
-  var ws=new ReconnectingWebSocket(ws_host);
+  var ws=new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3000});
   ws.onmessage=function(e){
     var command=e.data.split("\n");
     switch(command[0]){
@@ -355,7 +351,7 @@ $(document).ready(function(){
     console.log('[WebSocket] Connected');
   }
   ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>')};
-  ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message)};
+  ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message);};
 
   $('.tablinks').on('click',function(){
     $('.tablinks').css("background-color","");
