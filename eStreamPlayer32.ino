@@ -56,6 +56,8 @@ WM8978 dac;
 /* webserver core */
 #define HTTP_RUN_CORE 1
 
+#define I2S_MAX_VOLUME 21
+
 enum {
   PAUSED,
   PLAYING,
@@ -64,8 +66,9 @@ enum {
 
 #define NOTHING_PLAYING -1
 
-bool volumeUpdate{false};
 int currentItem {NOTHING_PLAYING};
+
+bool volumeUpdate{false};
 
 struct {
   uint32_t id;
@@ -186,7 +189,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           if (pch) {
             const uint8_t volume = atoi(pch);
-            audio.setVolume(volume >= 21 ? 21 : volume);
+            audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
             volumeUpdate = true;
           }
           return;
@@ -584,9 +587,12 @@ void setup() {
     HTTP_RUN_CORE);
 }
 
+const char* VOLUME_HEADER{"volume\n"};
+const char* CURRENT_HEADER{"currentPLitem\n"};
+
 inline __attribute__((always_inline))
 void sendCurrentItem() {
-  ws.textAll("currentPLitem\n" + String(currentItem));
+  ws.textAll(CURRENT_HEADER + String(currentItem));
 }
 
 void loop() {
@@ -609,8 +615,10 @@ void loop() {
     }
   */
 
+
+
   if (volumeUpdate) {
-    ws.textAll("volume\n" + String(audio.getVolume()));
+    ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
     volumeUpdate = false;
   }
 
@@ -623,10 +631,10 @@ void loop() {
 
   if (newClient.connected) {
     ws.text(newClient.id, playList.toClientString());
-    ws.text(newClient.id, "currentPLitem\n" + String(currentItem));
+    ws.text(newClient.id, CURRENT_HEADER + String(currentItem));
     ws.text(newClient.id, showstation);
     ws.text(newClient.id, streamtitle);
-    ws.text(newClient.id, "volume\n" + String(audio.getVolume()));
+    ws.text(newClient.id, VOLUME_HEADER + String(audio.getVolume()));
     newClient.connected = false;
   }
 
