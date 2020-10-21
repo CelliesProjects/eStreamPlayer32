@@ -185,7 +185,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         if (!strcmp("volume", pch)) {
           pch = strtok(NULL, "\n");
           if (pch) {
-            uint8_t volume = atoi(pch);
+            const uint8_t volume = atoi(pch);
             audio.setVolume(volume >= 21 ? 21 : volume);
             volumeUpdate = true;
           }
@@ -438,21 +438,7 @@ void startWebServer(void * pvParameters) {
     }
     request->send(response);
   });
-/*
-  server.on("/volume", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    request->send(200, HTML_HEADER, String(audio.getVolume()));
-  });
 
-  server.on("/volume", HTTP_POST, [] (AsyncWebServerRequest * request) {
-    const char* VOLUME {"volume"};
-    if (request->hasArg(VOLUME)) {
-      uint32_t newvolume = atoi(request->arg(VOLUME).c_str());
-      audio.setVolume(newvolume > 21 ? 21 : newvolume);
-      return request->send(200, HTML_HEADER, String(audio.getVolume()));
-    }
-    else request->send(400);
-  });
-*/
   //  serve icons as files - use the browser cache to only serve each icon once
 
   static const char* SVG_HEADER = "image/svg+xml";
