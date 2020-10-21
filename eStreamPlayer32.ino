@@ -739,7 +739,7 @@ void loop() {
     File file = FFat.open("/" + favoriteToPlaylist.name);
     String url;
     if (file) {
-      while (file.available() && (file.peek() != 13)) /* only read the first line */
+      while (file.available() && (file.peek() != '\n') && url.length() < 512) /* only read the first line and limit the size of the resulting string - files might contain garbage*/
         url += (char)file.read();
       file.close();
     }
