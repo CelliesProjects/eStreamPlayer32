@@ -2,8 +2,8 @@
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <Audio.h>                                      /* https://github.com/schreibfaul1/ESP32-audioI2S */
-
 #include "board.h"
+#include "htmlEntities.h"
 
 #ifdef A1S_AUDIO_KIT
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
@@ -152,7 +152,7 @@ static char streamtitle[200]; // These are kept global to update new clients in 
 void audio_showstreamtitle(const char *info) {
   snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
   ESP_LOGD(TAG, "streamtitle: %s", streamtitle);
-  ws.printfAll(streamtitle);
+  ws.printfAll(htmlEntities(streamtitle).c_str());
 }
 
 void audio_id3data(const char *info) {
