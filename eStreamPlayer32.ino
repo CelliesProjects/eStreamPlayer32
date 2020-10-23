@@ -150,9 +150,9 @@ void audio_showstation(const char *info) {
 
 static char streamtitle[200]; // These are kept global to update new clients in loop()
 void audio_showstreamtitle(const char *info) {
-  snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
+  snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", htmlEntities(info).c_str());
   ESP_LOGD(TAG, "streamtitle: %s", streamtitle);
-  ws.printfAll(htmlEntities(streamtitle).c_str());
+  ws.printfAll(streamtitle);
 }
 
 void audio_id3data(const char *info) {
