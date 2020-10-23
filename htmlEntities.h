@@ -4,10 +4,10 @@ String htmlEntities(const char* plaintext) {
   String result{};
   uint32_t cnt{0};
   while (plaintext[cnt] != 0) {
-    if (plaintext[cnt] > 0xA0 ) {
+    if (plaintext[cnt] >= 0xA0) {
       switch (plaintext[cnt]) {
 
-        case 0xC2 :                                 //UTF-8 encoding - just copy
+        case 0xC2 :                                 //UTF-8 16bit encoding - just copy
         case 0xC3 :
           result.concat(plaintext[cnt]);
           cnt++;
