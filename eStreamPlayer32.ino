@@ -105,7 +105,7 @@ struct {
   uint32_t clientId;
 } deletefavorite;
 
-Audio audio;
+Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
 playList playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -573,7 +573,6 @@ void setup() {
   ESP_LOGI(TAG, "Starting I2S dac");
 #endif
 
-  audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
   audio.setVolume(5); /* max 21 */
 
   xTaskCreatePinnedToCore(
