@@ -75,7 +75,7 @@ Select a board or dac by uncommenting the relevant line in `board.h`.
 
 - <strike>Volume control runs over http socket. Refactor this to web socket.</strike>
 - Style the interface properly.
-- Does not run properly on M5Stack Node. Fix this.
+- <strike>Does not run properly on M5Stack Node.</strike>
 - Reconnect code should be better. Maybe do a timed check for connection?
 - Improve the behaviour of the interface. Hard drives (the library) need time to wake up from sleep etc.
 
