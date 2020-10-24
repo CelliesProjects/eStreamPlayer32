@@ -5,55 +5,70 @@
 #include "board.h"
 #include "htmlEntities.h"
 
+#include "wifi_setup.h"
+#include "playList.h"
+#include "index_htm.h"
+#include "icons.h"
+
 #ifdef A1S_AUDIO_KIT
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
-
 /* A1S Audiokit I2S pins */
 #define I2S_BCK     27
 #define I2S_WS      26
 #define I2S_DOUT    25
 #define I2S_MCLK     0
-
 /* A1S Audiokit I2C pins */
 #define I2C_SCL     32
 #define I2C_SDA     33
-
 AC101 dac;
-
-#endif
+#endif  //A1S_AUDIO_KIT
 
 #ifdef M5STACK_NODE
 #include <M5Stack.h>
 #include <WM8978.h>                                     /* https://github.com/CelliesProjects/wm8978-esp32 */
 #include "Free_Fonts.h"
-
 /* M5Stack Node I2S pins */
 #define I2S_BCK      5
 #define I2S_WS      13
 #define I2S_DOUT     2
 #define I2S_MCLK     0
-
 /* M5Stack Node WM8978 I2C pins */
 #define I2C_SDA     21
 #define I2C_SCL     22
 
 WM8978 dac;
 
-#endif
+void M5updateCurrentItem(const playListItem& item) {
+  const uint16_t LOC_X{160}, LOC_Y{16};
+  M5.Lcd.setTextColor(WHITE, BLACK);
+  M5.Lcd.setFreeFont(FS12);
+  M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), BLACK); //clear area
+  M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
+  switch (item.type) {
+    case HTTP_FAVORITE :
+      M5.Lcd.drawString(item.name, LOC_X, LOC_Y);
+      break;
+    case HTTP_FILE :
+      M5.Lcd.drawString(item.url.substring(item.url.lastIndexOf("/") + 1), LOC_X, LOC_Y);
+      break;
+    case HTTP_PRESET :
+      M5.Lcd.drawString(preset[item.index].name, LOC_X, LOC_Y);
+      break;
+    case HTTP_STREAM :
+      M5.Lcd.drawString(item.url, LOC_X, LOC_Y);
+      break;
+    default : ESP_LOGE(TAG, "Unhandled item.type");
+  }
+  M5.Lcd.display();
+}
+#endif  //M5STACK_NODE
 
 #ifdef GENERIC_I2S_DAC
-
 /* I2S pins on Cellie's dev board */
 #define I2S_BCK     21
 #define I2S_WS      26
 #define I2S_DOUT    22
-
-#endif
-
-#include "wifi_setup.h"
-#include "playList.h"
-#include "index_htm.h"
-#include "icons.h"
+#endif  //GENERIC_I2S_DAC
 
 /* webserver core */
 #define HTTP_RUN_CORE 1
@@ -138,6 +153,11 @@ void playListHasEnded() {
   audio_showstation("Nothing playing");
   audio_showstreamtitle("&nbsp;");
   ESP_LOGD(TAG, "End of playlist.");
+
+#ifdef M5STACK_NODE
+  const playListItem item{HTTP_FAVORITE,"", "", 0};
+  M5updateCurrentItem(item);
+#endif  //M5STACK_NODE
 }
 
 static char showstation[200]; // These are kept global to update new clients in loop()
@@ -557,7 +577,7 @@ void setup() {
   audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.SetVolumeSpeaker(100);
   dac.SetVolumeHeadphone(50);
-#endif
+#endif  //A1S_AUDIO_KIT
 
 #ifdef M5STACK_NODE
   M5.begin(true, false);
@@ -571,11 +591,11 @@ void setup() {
   audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.setSPKvol(54);
   dac.setHPvol(32, 32);
-#endif
+#endif  //M5STACK_NODE
 
 #ifdef GENERIC_I2S_DAC
   ESP_LOGI(TAG, "Starting I2S dac");
-#endif
+#endif  //GENERIC_I2S_DAC
 
   audio.setVolume(5); /* max 21 */
 
@@ -601,7 +621,7 @@ void loop() {
 
 #ifdef M5STACK_NODE
   M5.update();
-#endif
+#endif  //M5STACK_NODE
 
   audio.loop();
 
@@ -797,29 +817,8 @@ void loop() {
       playList.get(currentItem, item);
 
 #ifdef M5STACK_NODE
-      //refresh title on lcd
-      M5.Lcd.setTextColor(WHITE, BLACK);
-      M5.Lcd.clear();
-      M5.Lcd.setFreeFont(FS12);
-      M5.Lcd.setTextDatum(CC_DATUM); // CC = Center Center
-      const uint16_t MIDX{160}, MIDY{120};
-      switch (item.type) {
-        case HTTP_FAVORITE :
-          M5.Lcd.drawString(item.name, 160, 120);
-          break;
-        case HTTP_FILE :
-          M5.Lcd.drawString(item.url.substring(item.url.lastIndexOf("/") + 1), MIDX, MIDY);
-          break;
-        case HTTP_PRESET :
-          M5.Lcd.drawString(preset[item.index].name, MIDX, MIDY);
-          break;
-        case HTTP_STREAM :
-          M5.Lcd.drawString(item.url, MIDX, MIDY);
-          break;
-        default : ESP_LOGI(TAG, "Unhandled item.type");
-      }
-      M5.Lcd.display();
-#endif
+      M5updateCurrentItem(item);
+#endif  //M5STACK_NODE
 
       switch (item.type) {
         case HTTP_FILE :
