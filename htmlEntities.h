@@ -4,7 +4,7 @@ String htmlEntities(const char* plaintext) {
   String result{};
   uint32_t cnt{0};
   while (plaintext[cnt] != 0) {
-    if (plaintext[cnt] > 128) {
+    if (plaintext[cnt] > 0x7F) {
       switch (plaintext[cnt]) {
 
         case 0xC2 :                                 //UTF-8 16bit encoding - just copy 2 bytes to result
