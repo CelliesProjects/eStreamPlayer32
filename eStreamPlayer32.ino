@@ -23,7 +23,9 @@ AC101 dac;
 #endif
 
 #ifdef M5STACK_NODE
+#include <M5Stack.h>
 #include <WM8978.h>                                     /* https://github.com/CelliesProjects/wm8978-esp32 */
+#include "Free_Fonts.h"
 
 /* M5Stack Node I2S pins */
 #define I2S_BCK      5
@@ -558,6 +560,8 @@ void setup() {
 #endif
 
 #ifdef M5STACK_NODE
+  M5.begin(true, false);
+  M5.lcd.setBrightness(3);
   ESP_LOGI(TAG, "Starting WM8978 dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
@@ -594,6 +598,11 @@ void sendCurrentItem() {
 }
 
 void loop() {
+
+#ifdef M5STACK_NODE
+  M5.update();
+#endif
+
   audio.loop();
 
   ws.cleanupClients();
@@ -786,6 +795,32 @@ void loop() {
       ESP_LOGD(TAG, "Starting next playlist item: %i", currentItem);
       playListItem item;
       playList.get(currentItem, item);
+
+#ifdef M5STACK_NODE
+      //refresh title on lcd
+      M5.Lcd.setTextColor(WHITE, BLACK);
+      M5.Lcd.clear();
+      M5.Lcd.setFreeFont(FS12);
+      M5.Lcd.setTextDatum(CC_DATUM); // CC = Center Center
+      const uint16_t MIDX{160}, MIDY{120};
+      switch (item.type) {
+        case HTTP_FAVORITE :
+          M5.Lcd.drawString(item.name, 160, 120);
+          break;
+        case HTTP_FILE :
+          M5.Lcd.drawString(item.url.substring(item.url.lastIndexOf("/") + 1), MIDX, MIDY);
+          break;
+        case HTTP_PRESET :
+          M5.Lcd.drawString(preset[item.index].name, MIDX, MIDY);
+          break;
+        case HTTP_STREAM :
+          M5.Lcd.drawString(item.url, MIDX, MIDY);
+          break;
+        default : ESP_LOGI(TAG, "Unhandled item.type");
+      }
+      M5.Lcd.display();
+#endif
+
       switch (item.type) {
         case HTTP_FILE :
           ESP_LOGD(TAG, "STARTING file: %s", item.url.c_str());
