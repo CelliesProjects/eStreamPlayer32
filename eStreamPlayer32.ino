@@ -68,7 +68,7 @@ enum {
 
 int currentItem {NOTHING_PLAYING};
 
-bool volumeUpdate{false};
+bool volumeIsUpdated{false};
 
 struct {
   uint32_t id;
@@ -189,7 +189,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (pch) {
             const uint8_t volume = atoi(pch);
             audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
-            volumeUpdate = true;
+            volumeIsUpdated = true;
           }
           return;
         }
@@ -321,8 +321,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                  !strcmp("_favoritetoplaylist", pch)) {
           const bool startnow = (pch[0] == '_');
           favoriteToPlaylist.name = strtok(NULL, "\n");
-          favoriteToPlaylist.requested = true;
           favoriteToPlaylist.startNow = startnow;
+          favoriteToPlaylist.requested = true;
         }
 
         else if (!strcmp("deletefavorite", pch)) {
@@ -612,9 +612,9 @@ void loop() {
       previousPos = audio.getFilePos();
     }
   */
-  if (volumeUpdate) {
+  if (volumeIsUpdated) {
     ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
-    volumeUpdate = false;
+    volumeIsUpdated = false;
   }
 
   if (playList.isUpdated) {
