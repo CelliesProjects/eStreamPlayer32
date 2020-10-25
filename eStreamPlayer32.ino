@@ -156,7 +156,6 @@ void playListHasEnded() {
   ESP_LOGD(TAG, "End of playlist.");
 
 #ifdef M5STACK_NODE
-  //M5updateCurrentItem({HTTP_FAVORITE, NOTHING_PLAYING_STR});
   M5updateCurrentItem({HTTP_FAVORITE, ""});
 #endif  //M5STACK_NODE
 }
@@ -591,7 +590,7 @@ void setup() {
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setFreeFont(FF6);
   M5.Lcd.drawString(WiFi.localIP().toString(), M5.Lcd.width() / 2, ypos);
-  //M5updateCurrentItem({HTTP_FAVORITE, NOTHING_PLAYING_STR});
+  M5.Lcd.display();
   ESP_LOGI(TAG, "Starting WM8978 dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
