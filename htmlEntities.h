@@ -26,6 +26,10 @@ String htmlEntities(const char* plaintext) {
           result.concat("&auml;"); // ä
           break;
 
+        case 0xE7 :
+          result.concat("&ccedil;"); // ç
+          break;
+
         case 0xE8 :
           result.concat("&egrave;"); // è
           break;
