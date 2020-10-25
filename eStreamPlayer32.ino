@@ -10,6 +10,11 @@
 #include "index_htm.h"
 #include "icons.h"
 
+/* webserver core */
+#define HTTP_RUN_CORE 1
+
+#define I2S_MAX_VOLUME 21
+
 #ifdef A1S_AUDIO_KIT
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
 /* A1S Audiokit I2S pins */
@@ -39,10 +44,10 @@ AC101 dac;
 WM8978 dac;
 
 void M5updateCurrentItem(const playListItem& item) {
-  const uint16_t LOC_X{160}, LOC_Y{16};
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.setFreeFont(FS12);
-  M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), BLACK); //clear area
+  const int LOC_X{M5.Lcd.width() / 2}, LOC_Y{M5.Lcd.height() / 2};
+  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setFreeFont(FSS12);
+  M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), TFT_BLACK); //clear area
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   switch (item.type) {
     case HTTP_FAVORITE :
@@ -70,20 +75,16 @@ void M5updateCurrentItem(const playListItem& item) {
 #define I2S_DOUT    22
 #endif  //GENERIC_I2S_DAC
 
-/* webserver core */
-#define HTTP_RUN_CORE 1
-
-#define I2S_MAX_VOLUME 21
-
 enum {
   PAUSED,
   PLAYING,
   PLAYLISTEND,
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
-#define NOTHING_PLAYING -1
+#define     NOTHING_PLAYING_VAL   -1
+const char* NOTHING_PLAYING_STR   {"Nothing playing"};
 
-int currentItem {NOTHING_PLAYING};
+int currentItem {NOTHING_PLAYING_VAL};
 
 bool volumeIsUpdated{false};
 
@@ -148,15 +149,15 @@ const String urlEncode(const String& s) {
 }
 
 void playListHasEnded() {
-  currentItem = NOTHING_PLAYING;
+  currentItem = NOTHING_PLAYING_VAL;
   playerStatus = PLAYLISTEND;
-  audio_showstation("Nothing playing");
+  audio_showstation(NOTHING_PLAYING_STR);
   audio_showstreamtitle("&nbsp;");
   ESP_LOGD(TAG, "End of playlist.");
 
 #ifdef M5STACK_NODE
-  const playListItem item{HTTP_FAVORITE,"", "", 0};
-  M5updateCurrentItem(item);
+  //M5updateCurrentItem({HTTP_FAVORITE, NOTHING_PLAYING_STR});
+  M5updateCurrentItem({HTTP_FAVORITE, ""});
 #endif  //M5STACK_NODE
 }
 
@@ -581,7 +582,16 @@ void setup() {
 
 #ifdef M5STACK_NODE
   M5.begin(true, false);
-  M5.lcd.setBrightness(3);
+  M5.lcd.setBrightness(2);
+  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
+  M5.Lcd.setFreeFont(FSS18);
+  M5.Lcd.drawString("eStreamPlayer32", M5.Lcd.width() / 2, 0);
+  const uint16_t ypos = M5.Lcd.fontHeight(GFXFF);
+  M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  M5.Lcd.setFreeFont(FF6);
+  M5.Lcd.drawString(WiFi.localIP().toString(), M5.Lcd.width() / 2, ypos);
+  //M5updateCurrentItem({HTTP_FAVORITE, NOTHING_PLAYING_STR});
   ESP_LOGI(TAG, "Starting WM8978 dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
@@ -671,6 +681,11 @@ void loop() {
       playList.isUpdated = true;
       audio_showstation(newUrl.url.c_str());
       audio_showstreamtitle("");
+
+#ifdef M5STACK_NODE
+      M5updateCurrentItem({HTTP_STREAM, newUrl.url});
+#endif //M5STACK_NODE
+
     }
     else {
       playListHasEnded();
@@ -777,7 +792,7 @@ void loop() {
     File file = FFat.open("/" + favoriteToPlaylist.name);
     String url;
     if (file) {
-      while (file.available() && (file.peek() != '\n') && url.length() < 512) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
+      while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
         url += (char)file.read();
       file.close();
     }
