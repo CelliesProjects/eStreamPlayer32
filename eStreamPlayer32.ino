@@ -259,6 +259,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         }
 
         else if (!strcmp("clearlist", pch)) {
+          if (!playList.size()) return;
           audio.stopSong();
           playList.clear();
           playListHasEnded();
