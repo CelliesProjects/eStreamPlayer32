@@ -43,7 +43,7 @@ AC101 dac;
 
 WM8978 dac;
 
-void M5updateCurrentItemName(const playListItem& item) {
+void M5_itemName(const playListItem& item) {
   const int LOC_X{M5.Lcd.width() / 2}, LOC_Y{M5.Lcd.height() / 2};
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setFreeFont(FSS12);
@@ -67,7 +67,7 @@ void M5updateCurrentItemName(const playListItem& item) {
   M5.Lcd.display();
 }
 
-void M5updateCurrentAndTotal(const int current, const int total) {
+void M5_currentAndTotal(const int current, const int total) {
   const int LOC_X{M5.Lcd.width() / 2}, LOC_Y{70};
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setFreeFont(FSS18);
@@ -172,8 +172,8 @@ void playListHasEnded() {
   ESP_LOGD(TAG, "End of playlist.");
 
 #ifdef M5STACK_NODE
-  M5updateCurrentItemName({HTTP_FAVORITE, ""});
-  M5updateCurrentAndTotal(currentItem, playList.size());
+  M5_itemName({HTTP_FAVORITE, ""});
+  M5_currentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 }
 
@@ -607,7 +607,7 @@ void setup() {
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setFreeFont(FF6);
   M5.Lcd.drawString(WiFi.localIP().toString(), M5.Lcd.width() / 2, ypos);
-  M5updateCurrentAndTotal(currentItem, playList.size());
+  M5_currentAndTotal(currentItem, playList.size());
   M5.Lcd.display();
   ESP_LOGI(TAG, "Starting WM8978 dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
@@ -679,7 +679,7 @@ void loop() {
     sendCurrentItem();
 
 #ifdef M5STACK_NODE
-    M5updateCurrentAndTotal(currentItem, playList.size());
+    M5_currentAndTotal(currentItem, playList.size());
 #endif
 
     playList.isUpdated = false;
@@ -705,7 +705,7 @@ void loop() {
       audio_showstreamtitle("");
 
 #ifdef M5STACK_NODE
-      M5updateCurrentItemName({HTTP_STREAM, newUrl.url});
+      M5_itemName({HTTP_STREAM, newUrl.url});
 #endif //M5STACK_NODE
 
     }
@@ -854,8 +854,8 @@ void loop() {
       playList.get(currentItem, item);
 
 #ifdef M5STACK_NODE
-      M5updateCurrentItemName(item);
-      M5updateCurrentAndTotal(currentItem, playList.size());
+      M5_itemName(item);
+      M5_currentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 
       switch (item.type) {
