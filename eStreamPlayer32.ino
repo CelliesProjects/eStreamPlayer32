@@ -66,6 +66,20 @@ void M5updateCurrentItem(const playListItem& item) {
   }
   M5.Lcd.display();
 }
+
+void M5updateCurrentAndTotal(const int current, const int total) {
+  const int LOC_X{M5.Lcd.width() / 2}, LOC_Y{70};
+  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setFreeFont(FSS18);
+  M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), TFT_BLACK); //clear area
+  M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
+  String currentAndTotal;
+  currentAndTotal.concat(current + 1); /* we are talking to humans here */
+  currentAndTotal.concat(" / ");
+  currentAndTotal.concat(total);
+  M5.Lcd.drawString(currentAndTotal, LOC_X, LOC_Y);
+  M5.Lcd.display();
+}
 #endif  //M5STACK_NODE
 
 #ifdef GENERIC_I2S_DAC
@@ -82,7 +96,9 @@ enum {
 } playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
 
 #define     NOTHING_PLAYING_VAL   -1
-const char* NOTHING_PLAYING_STR   {"Nothing playing"};
+const char* NOTHING_PLAYING_STR   {
+  "Nothing playing"
+};
 
 int currentItem {NOTHING_PLAYING_VAL};
 
@@ -157,6 +173,7 @@ void playListHasEnded() {
 
 #ifdef M5STACK_NODE
   M5updateCurrentItem({HTTP_FAVORITE, ""});
+  M5updateCurrentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 }
 
@@ -590,6 +607,7 @@ void setup() {
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setFreeFont(FF6);
   M5.Lcd.drawString(WiFi.localIP().toString(), M5.Lcd.width() / 2, ypos);
+  M5updateCurrentAndTotal(currentItem, playList.size());
   M5.Lcd.display();
   ESP_LOGI(TAG, "Starting WM8978 dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
@@ -659,6 +677,11 @@ void loop() {
     ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     ws.textAll(playList.toClientString());
     sendCurrentItem();
+
+#ifdef M5STACK_NODE
+    M5updateCurrentAndTotal(currentItem, playList.size());
+#endif
+
     playList.isUpdated = false;
   }
 
@@ -832,6 +855,7 @@ void loop() {
 
 #ifdef M5STACK_NODE
       M5updateCurrentItem(item);
+      M5updateCurrentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 
       switch (item.type) {
