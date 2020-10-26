@@ -43,7 +43,7 @@ AC101 dac;
 
 WM8978 dac;
 
-void M5updateCurrentItem(const playListItem& item) {
+void M5updateCurrentItemName(const playListItem& item) {
   const int LOC_X{M5.Lcd.width() / 2}, LOC_Y{M5.Lcd.height() / 2};
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setFreeFont(FSS12);
@@ -172,7 +172,7 @@ void playListHasEnded() {
   ESP_LOGD(TAG, "End of playlist.");
 
 #ifdef M5STACK_NODE
-  M5updateCurrentItem({HTTP_FAVORITE, ""});
+  M5updateCurrentItemName({HTTP_FAVORITE, ""});
   M5updateCurrentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 }
@@ -705,7 +705,7 @@ void loop() {
       audio_showstreamtitle("");
 
 #ifdef M5STACK_NODE
-      M5updateCurrentItem({HTTP_STREAM, newUrl.url});
+      M5updateCurrentItemName({HTTP_STREAM, newUrl.url});
 #endif //M5STACK_NODE
 
     }
@@ -854,7 +854,7 @@ void loop() {
       playList.get(currentItem, item);
 
 #ifdef M5STACK_NODE
-      M5updateCurrentItem(item);
+      M5updateCurrentItemName(item);
       M5updateCurrentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 
