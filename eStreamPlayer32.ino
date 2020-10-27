@@ -551,16 +551,33 @@ void startWebServer(void * pvParameters) {
 
   server.begin();
   ESP_LOGI(TAG, "HTTP server started on core %i.", HTTP_RUN_CORE);
+  ESP_LOGI(TAG, "Ready to rock!");
   vTaskDelete(NULL);
 }
 
 void setup() {
   btStop();
+
+#ifdef M5STACK_NODE
+  M5.begin(true, false);
+  M5.lcd.setBrightness(3);
+  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
+  M5.Lcd.setFreeFont(FSS18);
+  M5.Lcd.drawString("eStreamPlayer32", M5.Lcd.width() / 2, 0);
+  const uint16_t ypos = M5.Lcd.fontHeight(GFXFF);
+#endif  //M5STACK_NODE
+
   if (psramInit()) ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
 
   /* check if a ffat partition is defined and halt the system if it is not defined*/
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
     ESP_LOGE(TAG, "FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a partition table with a FFat partition.");
+
+#ifdef M5STACK_NODE
+    M5_itemName({HTTP_FAVORITE, "ERROR no FFat partition!"});
+#endif  //M5STACK_NODE
+
     while (true) delay(1000); /* system is halted */
   }
 
@@ -571,8 +588,18 @@ void setup() {
   /* partition is present, but does not mount so now we just format it */
   else {
     ESP_LOGI(TAG, "Formatting...");
+
+#ifdef M5STACK_NODE
+    M5_itemName({HTTP_FAVORITE, "Formatting.Please wait..."});
+#endif  //M5STACK_NODE
+
     if (!FFat.format(true, (char*)"ffat") || !FFat.begin(0, "", 2)) {
       ESP_LOGE(TAG, "FFat error while formatting. Halting.");
+
+#ifdef M5STACK_NODE
+      M5_itemName({HTTP_FAVORITE, "ERROR formatting!"});
+#endif  //M5STACK_NODE
+
       while (true) delay(1000); /* system is halted */;
     }
   }
@@ -580,7 +607,7 @@ void setup() {
   ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(source));
 
 #ifdef A1S_AUDIO_KIT
-  ESP_LOGI(TAG, "Starting AC101 dac");
+  ESP_LOGI(TAG, "Starting 'A1S_AUDIO_KIT' dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
     ESP_LOGE(TAG, "AC101 dac failed to init! Halting.");
@@ -592,23 +619,12 @@ void setup() {
 #endif  //A1S_AUDIO_KIT
 
 #ifdef M5STACK_NODE
-  M5.begin(true, false);
-  M5.lcd.setBrightness(3);
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-  M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
-  M5.Lcd.setFreeFont(FSS18);
-  M5.Lcd.drawString("eStreamPlayer32", M5.Lcd.width() / 2, 0);
-  const uint16_t ypos = M5.Lcd.fontHeight(GFXFF);
   M5_itemName({HTTP_FAVORITE, "Connecting..."});
 #endif  //M5STACK_NODE
 
-  const time_t t = time(NULL) + 10;
   WiFi.begin(SSID, PSK);
   WiFi.setSleep(false);
-  while (!WiFi.isConnected() && time(NULL) < t) {
-    delay(10);
-  }
-  ESP_LOGI(TAG, "WiFi: %s", !WiFi.isConnected() ? "No WiFi connection!" : WiFi.localIP().toString().c_str());
+  WiFi.waitForConnectResult();
 
 #ifdef M5STACK_NODE
   if (!WiFi.isConnected()) {
@@ -619,13 +635,14 @@ void setup() {
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setFreeFont(FF6);
   M5.Lcd.drawString(WiFi.localIP().toString() , M5.Lcd.width() / 2, ypos);
-  M5_currentAndTotal(currentItem, playList.size());
+  ESP_LOGI(TAG, "Starting 'M5STACK_NODE' dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
     ESP_LOGE(TAG, "WM8978 dac failed to init! Halting.");
     M5_itemName({HTTP_FAVORITE, "HALTED: No WM8978 DAC!"});
     while (true) delay(1000); /* system is halted */;
   }
+  M5_currentAndTotal(currentItem, playList.size());
   M5.Lcd.display();
   audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.setSPKvol(54);
@@ -633,20 +650,22 @@ void setup() {
 #endif  //M5STACK_NODE
 
 #ifdef GENERIC_I2S_DAC
-  ESP_LOGI(TAG, "Started board GENERIC_I2S_DAC: BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
+  ESP_LOGI(TAG, "Assuming 'GENERIC_I2S_DAC' - BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
 #endif  //GENERIC_I2S_DAC
 
   if (!WiFi.isConnected()) {
-    ESP_LOGE(TAG, "No Wifi! System halted! Check 'wifi_setup.h' and recompile!");
+    ESP_LOGE(TAG, "Could not connect to Wifi! System halted! Check 'wifi_setup.h'!");
     while (true) delay(1000); /* system is halted */;
   }
+
+  ESP_LOGI(TAG, "WiFi: %s", WiFi.localIP().toString().c_str());
 
   audio.setVolume(5); /* max 21 */
 
   xTaskCreatePinnedToCore(
     startWebServer,
     "http_ws",
-    8000,
+    3000,
     NULL,
     5,
     NULL,
