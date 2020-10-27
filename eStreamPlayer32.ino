@@ -48,6 +48,7 @@ void M5_itemName(const playListItem& item) {
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setFreeFont(FSS12);
   M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), TFT_BLACK); //clear area
+  if (!item.name && item.type == HTTP_FAVORITE) return; /* shortcut to just delete itemName on the lcd */
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   switch (item.type) {
     case HTTP_FAVORITE :
@@ -172,7 +173,7 @@ void playListHasEnded() {
   ESP_LOGD(TAG, "End of playlist.");
 
 #ifdef M5STACK_NODE
-  M5_itemName({HTTP_FAVORITE, ""});
+  M5_itemName({HTTP_FAVORITE});
   M5_currentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 }
@@ -576,13 +577,6 @@ void setup() {
     }
   }
 
-  WiFi.begin(SSID, PSK);
-  WiFi.setSleep(false);
-  while (!WiFi.isConnected()) {
-    delay(10);
-  }
-  ESP_LOGI(TAG, "Connected as IP: %s", WiFi.localIP().toString().c_str());
-
   ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(source));
 
 #ifdef A1S_AUDIO_KIT
@@ -599,31 +593,53 @@ void setup() {
 
 #ifdef M5STACK_NODE
   M5.begin(true, false);
-  M5.lcd.setBrightness(2);
+  M5.lcd.setBrightness(3);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   M5.Lcd.setFreeFont(FSS18);
   M5.Lcd.drawString("eStreamPlayer32", M5.Lcd.width() / 2, 0);
   const uint16_t ypos = M5.Lcd.fontHeight(GFXFF);
+  M5_itemName({HTTP_FAVORITE, "Connecting..."});
+#endif  //M5STACK_NODE
+
+  const time_t t = time(NULL) + 10;
+  WiFi.begin(SSID, PSK);
+  WiFi.setSleep(false);
+  while (!WiFi.isConnected() && time(NULL) < t) {
+    delay(10);
+  }
+  ESP_LOGI(TAG, "WiFi: %s", !WiFi.isConnected() ? "No WiFi connection!" : WiFi.localIP().toString().c_str());
+
+#ifdef M5STACK_NODE
+  if (!WiFi.isConnected()) {
+    M5_itemName({HTTP_FAVORITE, "HALTED: No network!"});
+    while (true) delay(1000); /* system is halted */;
+  }
+  M5_itemName({HTTP_FAVORITE});
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setFreeFont(FF6);
-  M5.Lcd.drawString(WiFi.localIP().toString(), M5.Lcd.width() / 2, ypos);
+  M5.Lcd.drawString(WiFi.localIP().toString() , M5.Lcd.width() / 2, ypos);
   M5_currentAndTotal(currentItem, playList.size());
-  M5.Lcd.display();
-  ESP_LOGI(TAG, "Starting WM8978 dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
     ESP_LOGE(TAG, "WM8978 dac failed to init! Halting.");
+    M5_itemName({HTTP_FAVORITE, "HALTED: No WM8978 DAC!"});
     while (true) delay(1000); /* system is halted */;
   }
+  M5.Lcd.display();
   audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.setSPKvol(54);
   dac.setHPvol(32, 32);
 #endif  //M5STACK_NODE
 
 #ifdef GENERIC_I2S_DAC
-  ESP_LOGI(TAG, "Starting I2S dac");
+  ESP_LOGI(TAG, "Started board GENERIC_I2S_DAC: BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
 #endif  //GENERIC_I2S_DAC
+
+  if (!WiFi.isConnected()) {
+    ESP_LOGE(TAG, "No Wifi! System halted! Check 'wifi_setup.h' and recompile!");
+    while (true) delay(1000); /* system is halted */;
+  }
 
   audio.setVolume(5); /* max 21 */
 
