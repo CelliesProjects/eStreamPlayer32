@@ -561,11 +561,11 @@ void setup() {
 #ifdef M5STACK_NODE
   M5.begin(true, false);
   M5.lcd.setBrightness(3);
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   M5.Lcd.setFreeFont(FSS18);
-  M5.Lcd.drawString("eStreamPlayer32", M5.Lcd.width() / 2, 0);
   const uint16_t ypos = M5.Lcd.fontHeight(GFXFF);
+  M5.Lcd.drawString("-eStreamPlayer32-", M5.Lcd.width() / 2, 0);
 #endif  //M5STACK_NODE
 
   if (psramInit()) ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
