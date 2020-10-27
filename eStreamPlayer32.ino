@@ -48,7 +48,7 @@ void M5_itemName(const playListItem& item) {
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setFreeFont(FSS12);
   M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), TFT_BLACK); //clear area
-  if (!item.name && item.type == HTTP_FAVORITE) return; /* shortcut to just delete itemName on the lcd */
+  if (!item.name && item.type == HTTP_FAVORITE) return; /* shortcut to just delete itemName on the lcd is to call 'M5_itemName({HTTP_FAVORITE})' */
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   switch (item.type) {
     case HTTP_FAVORITE :
@@ -722,7 +722,7 @@ void loop() {
       audio_showstreamtitle("");
 
 #ifdef M5STACK_NODE
-      M5_itemName({HTTP_STREAM, newUrl.url});
+      M5_itemName({HTTP_STREAM, "", newUrl.url});
 #endif //M5STACK_NODE
 
     }
