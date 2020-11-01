@@ -88,7 +88,7 @@ a{
   left:0;
   right:0;
   border:none;
-  background:radial-gradient(green,#ccac0e);
+  background:darkgrey;
 }
 #HOME{
   width:100%;
@@ -99,7 +99,8 @@ a{
   left:50%;
 }
 #uplink,.folderlink,.sdfolderlink,.filelink,.streamlink,.plitem,.favoritelink,.errormessage{
-  background:#afaf09;
+  background:grey;
+  color:black;
   margin:2px 0;
   font-size:20px;
   padding:2px 10px;
@@ -107,6 +108,9 @@ a{
   overflow:hidden;
   white-space:nowrap;
   display:list-item;
+}
+.folderlink{
+  vertical-align:middle;
 }
 .folderlink,#uplink{
   //background:#51af51;
@@ -119,7 +123,7 @@ a{
 }
 .foldericon:hover,.icon:hover,.plitem:hover,#uplink:hover,.folderlink:hover,.filelink:hover,.streamlink:hover,.favoritelink:hover{
   cursor:pointer;
-  background:#c3c065;
+  background:lightgrey;
 }
 #showstation,#streamtitle,#streaminfo{
   text-align:center;
@@ -269,7 +273,7 @@ $(document).ready(function(){
         if(-1==command[1]){
           $('#playerstatus, #showstation').html("Nothing playing");
         }else{
-          $('.plitem').eq(command[1]).css("background-color","#1db136");
+          $('.plitem').eq(command[1]).css("background-color","lightgrey");
         }
       break;
       case "playlist":
@@ -350,7 +354,7 @@ $(document).ready(function(){
 
   $('.tablinks').on('click',function(){
     $('.tablinks').css("background-color","");
-    $(this).css("background-color","#afaf09")
+    $(this).css("background-color","darkgrey")
     switch($(this).text()){
       case 'HOME':
         $('#LIBRARY, #WEBRADIO, #FAVORITES, #PLAYLIST').hide();
