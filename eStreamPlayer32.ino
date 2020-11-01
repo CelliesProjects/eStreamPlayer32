@@ -560,7 +560,7 @@ void setup() {
 
 #ifdef M5STACK_NODE
   M5.begin(true, false);
-  M5.lcd.setBrightness(3);
+  M5.Lcd.setBrightness(3);
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   M5.Lcd.setFreeFont(FSS18);
@@ -645,8 +645,8 @@ void setup() {
   M5_currentAndTotal(currentItem, playList.size());
   M5.Lcd.display();
   audio.i2s_mclk_pin_select(I2S_MCLK);
-  dac.setSPKvol(54);
-  dac.setHPvol(32, 32);
+  dac.setSPKvol(0);
+  dac.setHPvol(63, 63);
 #endif  //M5STACK_NODE
 
 #ifdef GENERIC_I2S_DAC
@@ -684,6 +684,13 @@ void loop() {
 
 #ifdef M5STACK_NODE
   M5.update();
+
+  if (M5.BtnA.wasReleasefor(10)) {
+    static bool speakerstate{false};
+    speakerstate = !speakerstate;
+    dac.setSPKvol(speakerstate ? 40 : 0);
+    ESP_LOGD(TAG, "Speaker %s", speakerstate ? "on" : "off");
+  }
 #endif  //M5STACK_NODE
 
   audio.loop();
