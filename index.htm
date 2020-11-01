@@ -4,7 +4,7 @@
 <script>
 var libraryURL="http://192.168.0.50/muziek/eSP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.107";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -109,12 +109,6 @@ a{
   white-space:nowrap;
   display:list-item;
 }
-.folderlink{
-  vertical-align:middle;
-}
-.folderlink,#uplink{
-  //background:#51af51;
-}
 .foldericon,.icon{
   width:30px;
   height:30px;
@@ -130,6 +124,10 @@ a{
   margin:15px;
   overflow:hidden;
   font-size:25px;
+}
+.text{
+  margin:10px;
+  vertical-align:middle;
 }
 #newurlbar{
   position:absolute;
@@ -254,7 +252,7 @@ function getPresets(){
     var stations=data.split('\n');
     $('#WEBRADIO').html('');
     stations.forEach(function(item){
-      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">'+item+'</p>');
+      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+item+'</span></p>');
     })
   })
   .fail(function(){
@@ -273,7 +271,7 @@ $(document).ready(function(){
         if(-1==command[1]){
           $('#playerstatus, #showstation').html("Nothing playing");
         }else{
-          $('.plitem').eq(command[1]).css("background-color","lightgrey");
+          $('.plitem').eq(command[1]).css("background-color","cadetblue");
         }
       break;
       case "playlist":
@@ -298,7 +296,7 @@ $(document).ready(function(){
               typeicon = "";
               break;
           }
-          $('#PLAYLIST').append('<p class="plitem">'+removebutton+typeicon+command[i]+'</p>');
+          $('#PLAYLIST').append('<p class="plitem">'+removebutton+typeicon+'<span class="text">'+command[i]+'</span></p>');
         }
       break;
       case "message":
@@ -339,7 +337,7 @@ $(document).ready(function(){
       case "favorites":
         $('#FAVORITES').html("");
         for(i=1;i<command.length-1;i++){
-          $('#FAVORITES').append('<p class="favoritelink">'+removebutton+'<img src="/starticon.svg" class="icon starticon">'+command[i].substring(1)+'</p>');
+          $('#FAVORITES').append('<p class="favoritelink">'+removebutton+'<img src="/starticon.svg" class="icon starticon"><span class="text">'+command[i].substring(1)+'</span></p>');
         }
       break
       default:break;
