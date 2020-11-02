@@ -41,8 +41,8 @@ Below some screenshots from the different tabs. Browser area is on the left. Pla
 5. Change the first line in `index_htm.h` to: `const uint8_t index_htm[] = {`
 <br>and change the last line to: `const unsigned int index_htm_len = xxxxxx;`
 where you leave the number xxxxxx unchanged.
-6. Select `ESP32 Dev Module` as board. This board has additional partition schemes which we need in the next step.
-7. Set `Tools->Partition Scheme` to `No OTA(2MB APP/2MB FATFS)` otherwise the app won't fit in flash memory.
+6. Select `ESP32 Dev Module` as board.
+7. The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
 8. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
 9. Browse to the ip address shown in the serial port.
 
