@@ -1,5 +1,7 @@
 // https://www.w3schools.com/tags/ref_urlencode.asp
 
+// https://www.fon.hum.uva.nl/praat/manual/Special_symbols.html
+
 String htmlEntities(const char* plaintext) {
   String result{};
   uint32_t cnt{0};
@@ -7,11 +9,34 @@ String htmlEntities(const char* plaintext) {
     if (plaintext[cnt] > 0x7F || plaintext[cnt] < 0x20) {
       switch (plaintext[cnt]) {
 
-        case 0xC2 :                                 //UTF-8 16bit encoding - just copy 2 bytes to result
-        case 0xC3 :
-          result.concat(plaintext[cnt]);
-          cnt++;
-          result.concat(plaintext[cnt]);
+        case 0xC2 : {
+            const uint8_t firstByte = plaintext[cnt];
+            cnt++;
+            const uint8_t secondByte = plaintext[cnt];
+            switch (secondByte) {
+              case 0xA0 ... 0xBF : {
+                  result.concat((char)firstByte);
+                  result.concat((char)secondByte);
+                }
+                break;
+              default: ESP_LOGE(TAG, "Invalid 16-bit utf8 sequence. Dropped 2 bytes.");
+            }
+          }
+          break;
+
+        case 0xC3 : {
+            const uint8_t firstByte = plaintext[cnt];
+            cnt++;
+            const uint8_t secondByte = plaintext[cnt];
+            switch (secondByte) {
+              case 0x80 ... 0xBF : {
+                  result.concat((char)firstByte);
+                  result.concat((char)secondByte);
+                }
+                break;
+              default: ESP_LOGE(TAG, "Invalid 16-bit utf8 sequence. Dropped 2 bytes.");
+            }
+          }
           break;
 
         case 0xC9 :
