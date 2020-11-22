@@ -19,7 +19,10 @@ String htmlEntities(const char* plaintext) {
                   result.concat((char)secondByte);
                 }
                 break;
-              default: ESP_LOGE(TAG, "Invalid 16-bit utf8 sequence. Dropped 2 bytes.");
+              default: {
+                result.concat("?");
+                ESP_LOGE(TAG, "Invalid 16-bit utf8 sequence. Dropped 2 bytes.");
+              }
             }
           }
           break;
@@ -34,7 +37,10 @@ String htmlEntities(const char* plaintext) {
                   result.concat((char)secondByte);
                 }
                 break;
-              default: ESP_LOGE(TAG, "Invalid 16-bit utf8 sequence. Dropped 2 bytes.");
+              default: {
+                result.concat("?");
+                ESP_LOGE(TAG, "Invalid 16-bit utf8 sequence. Dropped 2 bytes.");
+              }
             }
           }
           break;
