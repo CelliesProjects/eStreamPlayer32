@@ -15,7 +15,7 @@
 
 #define I2S_MAX_VOLUME 21
 
-#if defined ( A1S_AUDIO_KIT )
+#if defined (A1S_AUDIO_KIT)
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
 /* A1S Audiokit I2S pins */
 #define I2S_BCK     27
@@ -28,7 +28,7 @@
 AC101 dac;
 #endif  //A1S_AUDIO_KIT
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
 #include <M5Stack.h>
 #include <WM8978.h>                                     /* https://github.com/CelliesProjects/wm8978-esp32 */
 #include "Free_Fonts.h"
@@ -83,12 +83,18 @@ void M5_currentAndTotal(const int current, const int total) {
 }
 #endif  //M5STACK_NODE
 
-#if defined ( GENERIC_I2S_DAC )
+#if defined (GENERIC_I2S_DAC)
 /* I2S pins on Cellie's dev board */
 #define I2S_BCK     21
 #define I2S_WS      26
 #define I2S_DOUT    22
 #endif  //GENERIC_I2S_DAC
+
+#if defined (TTGO_TM_ESP32)
+#define I2S_BCK     26
+#define I2S_WS      25
+#define I2S_DOUT    19
+#endif  //TTGO_TM_ESP32
 
 enum {
   PAUSED,
@@ -172,7 +178,7 @@ void playListHasEnded() {
   audio_showstreamtitle("&nbsp;");
   ESP_LOGD(TAG, "End of playlist.");
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   M5_itemName({HTTP_FAVORITE});
   M5_currentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
@@ -558,7 +564,7 @@ void startWebServer(void * pvParameters) {
 void setup() {
   btStop();
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   M5.begin(true, false);
   M5.Lcd.setBrightness(3);
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
@@ -574,7 +580,7 @@ void setup() {
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
     ESP_LOGE(TAG, "FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a partition table with a FFat partition.");
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
     M5_itemName({HTTP_FAVORITE, "ERROR no FFat partition!"});
 #endif  //M5STACK_NODE
 
@@ -589,14 +595,14 @@ void setup() {
   else {
     ESP_LOGI(TAG, "Formatting...");
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
     M5_itemName({HTTP_FAVORITE, "Formatting.Please wait..."});
 #endif  //M5STACK_NODE
 
     if (!FFat.format(true, (char*)"ffat") || !FFat.begin(0, "", 2)) {
       ESP_LOGE(TAG, "FFat error while formatting. Halting.");
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
       M5_itemName({HTTP_FAVORITE, "ERROR formatting!"});
 #endif  //M5STACK_NODE
 
@@ -606,7 +612,7 @@ void setup() {
 
   ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(source));
 
-#if defined ( A1S_AUDIO_KIT )
+#if defined (A1S_AUDIO_KIT)
   ESP_LOGI(TAG, "Starting 'A1S_AUDIO_KIT' dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
@@ -618,7 +624,7 @@ void setup() {
   dac.SetVolumeHeadphone(50);
 #endif  //A1S_AUDIO_KIT
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   M5_itemName({HTTP_FAVORITE, "Connecting..."});
 #endif  //M5STACK_NODE
 
@@ -626,7 +632,7 @@ void setup() {
   WiFi.setSleep(false);
   WiFi.waitForConnectResult();
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   if (!WiFi.isConnected()) {
     M5_itemName({HTTP_FAVORITE, "HALTED: No network!"});
     while (true) delay(1000); /* system is halted */;
@@ -649,9 +655,13 @@ void setup() {
   dac.setHPvol(63, 63);
 #endif  //M5STACK_NODE
 
-#if defined ( GENERIC_I2S_DAC )
+#if defined (GENERIC_I2S_DAC)
   ESP_LOGI(TAG, "Assuming 'GENERIC_I2S_DAC' - BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
 #endif  //GENERIC_I2S_DAC
+
+#if defined (TTGO_TM_ESP32)
+  ESP_LOGI(TAG, "Started TTGO-TM-ESP32 dac");
+#endif  //TTGO_TM_ESP32
 
   if (!WiFi.isConnected()) {
     ESP_LOGE(TAG, "Could not connect to Wifi! System halted! Check 'wifi_setup.h'!");
@@ -682,7 +692,7 @@ void sendCurrentItem() {
 
 void loop() {
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   M5.update();
 
   if (M5.BtnA.wasReleasefor(10)) {
@@ -721,7 +731,7 @@ void loop() {
     ws.textAll(playList.toClientString());
     sendCurrentItem();
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
     M5_currentAndTotal(currentItem, playList.size());
 #endif
 
@@ -747,7 +757,7 @@ void loop() {
       audio_showstation(newUrl.url.c_str());
       audio_showstreamtitle("");
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
       M5_itemName({HTTP_STREAM, "", newUrl.url});
 #endif //M5STACK_NODE
 
@@ -896,7 +906,7 @@ void loop() {
       playListItem item;
       playList.get(currentItem, item);
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
       M5_itemName(item);
       M5_currentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
