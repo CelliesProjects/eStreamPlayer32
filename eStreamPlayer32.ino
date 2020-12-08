@@ -7,8 +7,12 @@
 #include "htmlEntities.h"
 #include "wifi_setup.h"
 #include "playList.h"
-#include "index_htm.h"
+#include "index_htm_gz.h"
 #include "icons.h"
+
+/* settings for ntp time sync */
+const char* NTP_POOL = "nl.pool.ntp.org";
+const char* TIMEZONE = "CET-1CEST,M3.5.0/2,M10.5.0/3"; /* Central European Time - see http://www.remotemonitoringsystems.ca/time-zone-abbreviations.php */
 
 /* webserver core */
 #define HTTP_RUN_CORE 1
@@ -139,6 +143,8 @@ struct {
   String name;
   uint32_t clientId;
 } deletefavorite;
+
+time_t bootTime;
 
 Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
 playList playList;
@@ -461,84 +467,116 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
   }
 }
 
+const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
+
+static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebServerRequest* request, const char* date) {
+  return request->hasHeader(HEADER_MODIFIED_SINCE) && request->header(HEADER_MODIFIED_SINCE).equals(date);
+}
+
 void startWebServer(void * pvParameters) {
+
+  static char modifiedDate[30];
+  strftime(modifiedDate, sizeof(modifiedDate), "%a, %d %b %Y %X GMT", gmtime(&bootTime));
+
+  static const char* HTML_MIMETYPE{"text/html"};
+  static const char* HEADER_LASTMODIFIED{"Last-Modified"};
+  static const char* CONTENT_ENCODING_HEADER{"Content-Encoding"};
+  static const char* CONTENT_ENCODING_VALUE{"gzip"};
+
   ws.onEvent(onEvent);
   server.addHandler(&ws);
 
-  // TODO: set a 304 on all static content to save on bandwidth
-
-  static const char* HTML_HEADER = "text/html";
-
   server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_HEADER, index_htm, index_htm_len);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_MIMETYPE, index_htm_gz, index_htm_gz_len);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    response->addHeader(CONTENT_ENCODING_HEADER, CONTENT_ENCODING_VALUE);
     request->send(response);
   });
 
   server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncResponseStream *response = request->beginResponseStream(HTML_HEADER);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
     for (int i = 0; i < sizeof(preset) / sizeof(source); i++) {
       response->printf("%s\n", preset[i].name.c_str());
     }
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
-  //  serve icons as files - use the browser cache to only serve each icon once
-
-  static const char* SVG_HEADER = "image/svg+xml";
-  static const char* VARY_HEADER_STR = "Vary";
-  static const char* ACCEPTENCODING_HEADER_STR = "Accept-Encoding";
+  static const char* SVG_MIMETYPE{"image/svg+xml"};
+  static const char* ACCEPT_ENCODING_HEADER{"Accept-Encoding"};
+  static const char* ACCEPT_ENCODING_VALUE{"Vary"};
 
   server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, radioicon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, radioicon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/playicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, playicon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, playicon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/libraryicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, libraryicon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, libraryicon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/favoriteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, favoriteicon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, favoriteicon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/streamicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, pasteicon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, pasteicon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/deleteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, deleteicon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, deleteicon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/addfoldericon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, addfoldericon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, addfoldericon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, emptyicon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, emptyicon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
   server.on("/starticon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_HEADER, starticon);
-    response->addHeader(VARY_HEADER_STR, ACCEPTENCODING_HEADER_STR);
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, starticon);
+    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
@@ -659,6 +697,18 @@ void setup() {
   }
 
   ESP_LOGI(TAG, "WiFi: %s", WiFi.localIP().toString().c_str());
+
+  /* sync with ntp */
+  configTzTime(TIMEZONE, NTP_POOL);
+
+  struct tm timeinfo {
+    0
+  };
+
+  while (!getLocalTime(&timeinfo, 0))
+    delay(10);
+
+  time(&bootTime);
 
   audio.setVolume(5); /* max 21 */
 
