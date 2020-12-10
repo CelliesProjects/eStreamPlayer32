@@ -31,20 +31,21 @@ Below some screenshots from the different tabs. Browser area is on the left. Pla
 
 ## Setup:
 
-0. Install the drivers for your dac. See [hardware needed](#hardware-needed)
-1. Copy the php script to your music folder on the server.
-2. Adjust your credentials in `wifi_setup.h`.
-3. Change the following line in `index.htm` so it points to the script you just copied to your server:
+1. Install the drivers for your dac. See [hardware needed](#hardware-needed)
+2. Copy the php script to your music folder on the server.
+3. Adjust your credentials in `wifi_setup.h`.
+4. Change the following line in `index.htm` so it points to the script you just copied to your server:
 <br>`var libraryURL="http://192.168.0.50/muziek/ESP32.php";`
-4. Use (in a terminal) xxd to convert `index.htm` to a C style header file:
-<br>`xxd -i index.htm > index_htm.h`
-5. Change the first line in `index_htm.h` to: `const uint8_t index_htm[] = {`
-<br>and change the last line to: `const unsigned int index_htm_len = xxxxxx;`
+5. Compress `index.htm` with gzip which produces `index.htm.gz`.
+6. Use (in a terminal) xxd to convert `index.htm.gz` to a C style header file:
+<br>`xxd -i index.htm.gz > index_htm_gz.h`
+7. Change the first line in `index_htm_gz.h` to: `const uint8_t index_htm_gz[] = {`
+<br>and change the last line to: `const unsigned int index_htm_gz_len = xxxxxx;`
 where you leave the number xxxxxx unchanged.
-6. Select `ESP32 Dev Module` as board.
-7. The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
-8. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
-9. Browse to the ip address shown in the serial port.
+8. Select `ESP32 Dev Module` as board.
+9. The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
+10. Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
+11. Browse to the ip address shown in the serial port.
 
 ## Hardware needed:
 
