@@ -660,7 +660,7 @@ void setup() {
 #endif  //GENERIC_I2S_DAC
 
 #if defined (TTGO_TM_ESP32)
-  ESP_LOGI(TAG, "Started TTGO-TM-ESP32 dac");
+  ESP_LOGI(TAG, "Started 'TTGO-TM-ESP32 DAC' - BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
 #endif  //TTGO_TM_ESP32
 
   if (!WiFi.isConnected()) {
