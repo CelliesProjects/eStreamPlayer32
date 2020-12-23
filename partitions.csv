@@ -1,16 +1,18 @@
-# Name,   Type, SubType, Offset,  Size, Flags
-nvs,      data, nvs,     0x9000,  0x5000,
-otadata,  data, ota,     0xe000,  0x2000,
-app0,     app,  ota_0,   0x10000, 0x200000,
-ffat,     data, fat,     0x210000,0x1F0000,
 # to create/use ffat, see https://github.com/marcmerlin/esp32_fatfsimage
 #
 # This file is the partition table that comes with eStreamPlayer32
 # It is a partition table for a 4MB esp32
+#
+# This file is a copy of ~/Arduino/hardware/espressif/esp32/tools/partitions/noota3gffat.csv
+# It sets a 2MB app with no ota.
 #
 # It will override any partition you select in the Arduino IDE
 # Rename this file to restore the option to select a partition
 # Or copy a suitable file from ~/Arduino/hardware/espressif/esp32/tools/partitions
 # And rename that to 'partitions.csv'
 #
-# See https://github.com/espressif/arduino-esp32/issues/2258
+# Name,   Type, SubType, Offset,  Size, Flags
+nvs,      data, nvs,     0x9000,  0x5000,
+otadata,  data, ota,     0xe000,  0x2000,
+app0,     app,  ota_0,   0x10000, 0x200000,
+ffat,     data, fat,     0x210000,0x1F0000,
