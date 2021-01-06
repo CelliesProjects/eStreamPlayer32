@@ -20,7 +20,9 @@ struct playListItem {
 class playList {
 
   public:
-    playList() {}
+    playList() {
+      list.reserve(PLAYLIST_MAX_ITEMS);
+    }
     ~playList() {
       list.clear();
     }
