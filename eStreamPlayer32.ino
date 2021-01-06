@@ -771,7 +771,8 @@ void loop() {
 
   if (playList.isUpdated) {
     ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
-    ws.textAll(playList.toClientString());
+    String s;
+    ws.textAll(playList.toClientString(s));
     sendCurrentItem();
 
 #if defined ( M5STACK_NODE )
@@ -782,7 +783,8 @@ void loop() {
   }
 
   if (newClient.connected) {
-    ws.text(newClient.id, playList.toClientString());
+    String s;
+    ws.text(newClient.id, playList.toClientString(s));
     ws.text(newClient.id, CURRENT_HEADER + String(currentItem));
     ws.text(newClient.id, showstation);
     ws.text(newClient.id, streamtitle);

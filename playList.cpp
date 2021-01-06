@@ -1,22 +1,22 @@
 #include "playList.h"
 
-String playList::toClientString() {
-  String s{"playlist\n"};
+String& playList::toClientString(String& s) {
+  s = {"playlist\n"};
   if (list.size()) {
     for (auto& item : list) {
       switch (item.type) {
 
         case HTTP_FILE :
-          s += String(item.url.substring(item.url.lastIndexOf("/") + 1) + "\n" + typeStr[item.type] + "\n");
+          s.concat(item.url.substring(item.url.lastIndexOf("/") + 1) + "\n" + typeStr[item.type] + "\n");
           break;
 
         case HTTP_PRESET :
-          s += String(preset[item.index].name + "\n" + typeStr[item.type] + "\n");
+          s.concat(preset[item.index].name + "\n" + typeStr[item.type] + "\n");
           break;
 
         case HTTP_STREAM :
         case HTTP_FAVORITE :
-          s += String(item.name + "\n" + typeStr[item.type] + "\n");
+          s.concat(item.name + "\n" + typeStr[item.type] + "\n");
           break;
 
         default :

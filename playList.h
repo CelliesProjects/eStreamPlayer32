@@ -53,7 +53,7 @@ class playList {
         isUpdated = true;
       }
     }
-    String toClientString();
+    String& toClientString(String& s);
 
   private:
     std::vector<playListItem> list;
