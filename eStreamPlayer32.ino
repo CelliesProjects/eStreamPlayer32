@@ -733,6 +733,42 @@ void sendCurrentItem() {
   ws.textAll(CURRENT_HEADER + String(currentItem));
 }
 
+bool startPlaylistItem(const playListItem& item) {
+  switch (item.type) {
+    case HTTP_FILE :
+      ESP_LOGD(TAG, "STARTING file: %s", item.url.c_str());
+      audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
+      audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
+      audio.connecttohost(urlEncode(item.url));
+      break;
+    case HTTP_STREAM :
+      ESP_LOGD(TAG, "STARTING stream: %s", item.url.c_str());
+      audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
+      audio_showstreamtitle("");
+      audio.connecttohost(urlEncode(item.url));
+      break;
+    case HTTP_PRESET :
+      ESP_LOGD(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+      if (audio.connecttohost(urlEncode(preset[item.index].url))) {
+        audio_showstreamtitle("");
+        audio_showstation(preset[item.index].name.c_str());
+      }
+      break;
+    case HTTP_FAVORITE :
+      ESP_LOGD(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
+      audio_showstation(item.name.c_str());
+      audio_showstreamtitle("");
+      audio.connecttohost(urlEncode(item.url));
+      break;
+    case SDCARD_FILE :
+      ESP_LOGD(TAG, "STARTING sd file: %s", item.url.c_str());
+      audio.connecttoSD(item.url);
+      break;
+    default : ESP_LOGE(TAG, "Unhandled item.type.");
+  }
+  return audio.isRunning();
+}
+
 void loop() {
 
 #if defined ( M5STACK_NODE )
@@ -947,7 +983,6 @@ void loop() {
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
       currentItem++;
-      ESP_LOGD(TAG, "Starting next playlist item: %i", currentItem);
       playListItem item;
       playList.get(currentItem, item);
 
@@ -956,40 +991,12 @@ void loop() {
       M5_currentAndTotal(currentItem, playList.size());
 #endif  //M5STACK_NODE
 
-      switch (item.type) {
-        case HTTP_FILE :
-          ESP_LOGD(TAG, "STARTING file: %s", item.url.c_str());
-          audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
-          audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
-          audio.connecttohost(urlEncode(item.url));
-          break;
-        case HTTP_STREAM :
-          ESP_LOGD(TAG, "STARTING stream: %s", item.url.c_str());
-          audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
-          audio_showstreamtitle("");
-          audio.connecttohost(urlEncode(item.url));
-          break;
-        case HTTP_PRESET :
-          ESP_LOGD(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
-          audio_showstreamtitle("");
-          audio_showstation(preset[item.index].name.c_str());
-          audio.connecttohost(urlEncode(preset[item.index].url));
-          break;
-        case HTTP_FAVORITE :
-          ESP_LOGD(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
-          audio_showstation(item.name.c_str());
-          audio_showstreamtitle("");
-          audio.connecttohost(urlEncode(item.url));
-          break;
-        case SDCARD_FILE :
-          ESP_LOGD(TAG, "STARTING sd file: %s", item.url.c_str());
-          audio.connecttoSD(item.url);
-          break;
-        default : ESP_LOGE(TAG, "Unhandled item.type.");
-      }
-    } else {
-      playListHasEnded();
+      ESP_LOGD(TAG, "Starting next playlist item: %i", currentItem);
+
+      if (startPlaylistItem(item))
+        sendCurrentItem();
     }
-    sendCurrentItem();
+    else
+      playListHasEnded();
   }
 }
