@@ -36,7 +36,7 @@ class playList {
     }
     void add(const playListItem& item) {
       const size_t previousSize = list.size();
-      if (previousSize >= PLAYLIST_MAX_ITEMS) return;
+      if (previousSize > PLAYLIST_MAX_ITEMS - 1) return;
       list.push_back(item);
       if (previousSize < list.size())
         isUpdated = true;
