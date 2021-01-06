@@ -660,6 +660,9 @@ void setup() {
   M5_itemName({HTTP_FAVORITE, "Connecting..."});
 #endif  //M5STACK_NODE
 
+  if (SET_STATIC_IP && !WiFi.config(STATIC_IP, GATEWAY, SUBNET, PRIMARY_DNS, SECONDARY_DNS))
+    ESP_LOGE(TAG, "Setting static IP failed");
+
   WiFi.begin(SSID, PSK);
   WiFi.setSleep(false);
   WiFi.waitForConnectResult();
