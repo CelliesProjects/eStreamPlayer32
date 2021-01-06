@@ -1,7 +1,7 @@
 #include "playList.h"
 
-String& playList::toClientString(String& s) {
-  s = {"playlist\n"};
+String& playList::toString(String& s) {
+  s = "playlist\n";
   if (list.size()) {
     for (auto& item : list) {
       switch (item.type) {

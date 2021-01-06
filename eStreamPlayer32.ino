@@ -110,11 +110,6 @@ int currentItem {NOTHING_PLAYING_VAL};
 bool volumeIsUpdated{false};
 
 struct {
-  uint32_t id;
-  bool connected{false};
-} newClient;
-
-struct {
   bool waiting{false};
   String url;
   uint32_t clientId;
@@ -150,6 +145,18 @@ Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
 playList playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
+
+/* websocket message headers */
+const char* VOLUME_HEADER {
+  "volume\n"
+};
+const char* CURRENT_HEADER{"currentPLitem\n"};
+
+
+inline __attribute__((always_inline))
+void sendCurrentItem() {
+  ws.textAll(CURRENT_HEADER + String(currentItem));
+}
 
 const String urlEncode(const String& s) {
   //https://en.wikipedia.org/wiki/Percent-encoding
@@ -208,11 +215,14 @@ void audio_id3data(const char *info) {
 
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
+    String s;
+    client->text(playList.toString(s));
+    client->text(CURRENT_HEADER + String(currentItem));
+    client->text(showstation);
+    client->text(streamtitle);
+    client->text(VOLUME_HEADER + String(audio.getVolume()));
+    client->text(favoritesToString(s));
     ESP_LOGD(TAG, "ws[%s][%u] connect", server->url(), client->id());
-    newClient.connected = true;
-    newClient.id = client->id();
-    favorites.requested = true;
-    favorites.clientId = client->id();
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGD(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
@@ -725,12 +735,27 @@ void setup() {
     HTTP_RUN_CORE);
 }
 
-const char* VOLUME_HEADER{"volume\n"};
-const char* CURRENT_HEADER{"currentPLitem\n"};
-
-inline __attribute__((always_inline))
-void sendCurrentItem() {
-  ws.textAll(CURRENT_HEADER + String(currentItem));
+String& favoritesToString(String& s) {
+  File root = FFat.open("/");
+  if (!root) {
+    ESP_LOGE(TAG, "ERROR- failed to open root");
+    return s;
+  }
+  if (!root.isDirectory()) {
+    ESP_LOGE(TAG, "ERROR- root is not a directory");
+    return s;
+  }
+  s = "favorites\n";
+  File file = root.openNextFile();
+  auto counter{0};
+  while (file) {
+    if (!file.isDirectory()) {
+      s += file.name() + String("\n");
+      counter++;
+    }
+    file = root.openNextFile();
+  }
+  return s;
 }
 
 bool startPlaylistItem(const playListItem& item) {
@@ -749,10 +774,9 @@ bool startPlaylistItem(const playListItem& item) {
       break;
     case HTTP_PRESET :
       ESP_LOGD(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
-      if (audio.connecttohost(urlEncode(preset[item.index].url))) {
-        audio_showstreamtitle("");
-        audio_showstation(preset[item.index].name.c_str());
-      }
+      audio.connecttohost(urlEncode(preset[item.index].url));
+      audio_showstreamtitle("");
+      audio_showstation(preset[item.index].name.c_str());
       break;
     case HTTP_FAVORITE :
       ESP_LOGD(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
@@ -808,7 +832,7 @@ void loop() {
   if (playList.isUpdated) {
     ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     String s;
-    ws.textAll(playList.toClientString(s));
+    ws.textAll(playList.toString(s));
     sendCurrentItem();
 
 #if defined ( M5STACK_NODE )
@@ -816,16 +840,6 @@ void loop() {
 #endif
 
     playList.isUpdated = false;
-  }
-
-  if (newClient.connected) {
-    String s;
-    ws.text(newClient.id, playList.toClientString(s));
-    ws.text(newClient.id, CURRENT_HEADER + String(currentItem));
-    ws.text(newClient.id, showstation);
-    ws.text(newClient.id, streamtitle);
-    ws.text(newClient.id, VOLUME_HEADER + String(audio.getVolume()));
-    newClient.connected = false;
   }
 
   if (newUrl.waiting) {
@@ -852,46 +866,17 @@ void loop() {
   }
 
   if (favorites.requested || favorites.updated) {
-    File root = FFat.open("/");
-    if (!root) {
-      ESP_LOGE(TAG, "ERROR- failed to open root");
-      const char * NO_FFAT_FOUND{"message\nNo FFat found"};
-      if (favorites.requested)
-        ws.text(favorites.clientId, NO_FFAT_FOUND);
-      else
-        ws.textAll(NO_FFAT_FOUND);
-      return;
-    }
-    if (!root.isDirectory()) {
-      ESP_LOGE(TAG, "ERROR- root is not a directory");
-      const char * NO_ROOT_FOUND{"message\nNo root found"};
-      if (favorites.requested)
-        ws.text(favorites.clientId, NO_ROOT_FOUND);
-      else
-        ws.textAll(NO_ROOT_FOUND);
-      return;
-    }
-
-    String response{"favorites\n"};
-    File file = root.openNextFile();
-    auto counter{0};
-    while (file) {
-      if (!file.isDirectory()) {
-        response += file.name() + String("\n");
-        counter++;
-      }
-      file = root.openNextFile();
-    }
+    String response = favoritesToString(response);
     if (favorites.requested) {
       ESP_LOGD(TAG, "Favorites requested by client %i", favorites.clientId);
       ws.text(favorites.clientId, response);
+      favorites.requested = false;
     }
-    else {
+    if (favorites.updated) {
       ESP_LOGD(TAG, "Favorites updated. %i items.", counter);
       ws.textAll(response);
+      favorites.updated = false;
     }
-    if (favorites.requested) favorites.requested = false;
-    if (favorites.updated) favorites.updated = false;
   }
 
   if (currentToFavorites.requested) {

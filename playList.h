@@ -21,6 +21,7 @@ class playList {
 
   public:
     playList() {
+      ESP_LOGD(TAG, "allocating %i items", PLAYLIST_MAX_ITEMS);
       list.reserve(PLAYLIST_MAX_ITEMS);
     }
     ~playList() {
@@ -53,7 +54,7 @@ class playList {
         isUpdated = true;
       }
     }
-    String& toClientString(String& s);
+    String& toString(String& s);
 
   private:
     std::vector<playListItem> list;
