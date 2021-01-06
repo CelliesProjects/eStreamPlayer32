@@ -774,9 +774,9 @@ bool startPlaylistItem(const playListItem& item) {
       break;
     case HTTP_PRESET :
       ESP_LOGD(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
-      audio.connecttohost(urlEncode(preset[item.index].url));
       audio_showstreamtitle("");
       audio_showstation(preset[item.index].name.c_str());
+      audio.connecttohost(urlEncode(preset[item.index].url));
       break;
     case HTTP_FAVORITE :
       ESP_LOGD(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
@@ -866,7 +866,8 @@ void loop() {
   }
 
   if (favorites.requested || favorites.updated) {
-    String response = favoritesToString(response);
+    String response;
+    favoritesToString(response);
     if (favorites.requested) {
       ESP_LOGD(TAG, "Favorites requested by client %i", favorites.clientId);
       ws.text(favorites.clientId, response);
