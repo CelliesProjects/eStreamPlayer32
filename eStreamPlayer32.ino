@@ -223,6 +223,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     client->text(VOLUME_HEADER + String(audio.getVolume()));
     client->text(favoritesToString(s));
     ESP_LOGD(TAG, "ws[%s][%u] connect", server->url(), client->id());
+    return;
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGD(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
   } else if (type == WS_EVT_ERROR) {
@@ -273,6 +274,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             currentItem = previousSize - 1;
             playerStatus = PLAYING;
           }
+          return;
         }
 
         else if (!strcmp("clearlist", pch)) {
@@ -280,6 +282,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           audio.stopSong();
           playList.clear();
           playListHasEnded();
+          return;
         }
 
         else if (!strcmp("playitem", pch)) {
@@ -289,6 +292,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             audio.stopSong();
             playerStatus = PLAYING;
           }
+          return;
         }
 
         else if (!strcmp("deleteitem", pch)) {
@@ -318,6 +322,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (item < currentItem) {
             currentItem--;
           }
+          return;
         }
 
         else if (!strcmp("previous", pch)) {
@@ -328,6 +333,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             audio_showstation("&nbsp;");
             currentItem--;
             currentItem--;
+            return;
           }
           else return;
         }
@@ -338,6 +344,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (currentItem < playList.size() - 1) {
             audio.stopSong();
             audio_showstation("&nbsp;");
+            return;
           }
           else return;
         }
@@ -367,11 +374,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             currentToFavorites.clientId = client->id();
             currentToFavorites.requested = true;
           }
+          return;
         }
 
         else if (!strcmp("favorites", pch)) {
           favorites.clientId = client->id();
           favorites.requested = true;
+          return;
         }
 
         else if (!strcmp("favoritetoplaylist", pch) ||
@@ -380,11 +389,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           favoriteToPlaylist.name = strtok(NULL, "\n");
           favoriteToPlaylist.startNow = startnow;
           favoriteToPlaylist.requested = true;
+          return;
         }
 
         else if (!strcmp("deletefavorite", pch)) {
           deletefavorite.name = strtok(NULL, "\n");
           deletefavorite.requested = true;
+          return;
         }
 
         else if (!strcmp("presetstation", pch) ||
@@ -407,6 +418,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               currentItem = playList.size() - 2;
               playerStatus = PLAYING;
             }
+            return;
           }
         }
       }
