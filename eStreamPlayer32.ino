@@ -867,6 +867,33 @@ void handlePastedUrl() {
     sendCurrentPlayingToClients();
   }
 }
+
+void handleFavoriteToPlaylist() {
+  File file = FFat.open("/" + favoriteToPlaylist.name);
+  static String url;
+  url = "";
+  if (file) {
+    while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
+      url += (char)file.read();
+    file.close();
+  }
+  playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
+  ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
+  ws.printfAll("message\nAdded '%s' to playlist", favoriteToPlaylist.name.c_str());
+  if (favoriteToPlaylist.startNow) {
+    if (audio.isRunning()) audio.stopSong();
+    currentItem = playList.size() - 2;
+    playerStatus = PLAYING;
+    favoriteToPlaylist.startNow = false;
+    favoriteToPlaylist.requested = false;
+    return;
+  }
+  if (!audio.isRunning() && PAUSED != playerStatus) {
+    currentItem = playList.size() - 2;
+    playerStatus = PLAYING;
+  }
+}
+
 void loop() {
 
 #if defined ( M5STACK_NODE )
@@ -953,29 +980,7 @@ void loop() {
   }
 
   if (favoriteToPlaylist.requested) {
-    File file = FFat.open("/" + favoriteToPlaylist.name);
-    static String url;
-    url = "";
-    if (file) {
-      while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
-        url += (char)file.read();
-      file.close();
-    }
-    playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
-    ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
-    ws.printfAll("message\nAdded '%s' to playlist", favoriteToPlaylist.name.c_str());
-    if (favoriteToPlaylist.startNow) {
-      if (audio.isRunning()) audio.stopSong();
-      currentItem = playList.size() - 2;
-      playerStatus = PLAYING;
-      favoriteToPlaylist.startNow = false;
-      favoriteToPlaylist.requested = false;
-      return;
-    }
-    if (!audio.isRunning() && PAUSED != playerStatus) {
-      currentItem = playList.size() - 2;
-      playerStatus = PLAYING;
-    }
+    handleFavoriteToPlaylist();
     favoriteToPlaylist.requested = false;
   }
 
