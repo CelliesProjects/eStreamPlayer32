@@ -894,6 +894,33 @@ void handleFavoriteToPlaylist() {
   }
 }
 
+void handlePlaylistUpdate() {
+  static String s;
+  ws.textAll(playList.toString(s));
+  sendCurrentPlayingToClients();
+
+#if defined ( M5STACK_NODE )
+  M5_currentAndTotal(currentItem, playList.size());
+#endif
+
+  ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+}
+
+void handleCurrentToFavorites() {
+  static playListItem item;
+  playList.get(currentItem, item);
+
+  if (saveItemToFavorites(item, currentToFavorites.filename)) {
+    static String s;
+    ws.textAll(favoritesToString(s));
+    ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
+  }
+  else
+    ws.text(currentToFavorites.clientId, "message\nSaving failed!");
+
+  currentToFavorites.filename = "";
+}
+
 void loop() {
 
 #if defined ( M5STACK_NODE )
@@ -931,15 +958,7 @@ void loop() {
   }
 
   if (playList.isUpdated) {
-    static String s;
-    ws.textAll(playList.toString(s));
-    sendCurrentPlayingToClients();
-
-#if defined ( M5STACK_NODE )
-    M5_currentAndTotal(currentItem, playList.size());
-#endif
-
-    ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+    handlePlaylistUpdate();
     playList.isUpdated = false;
   }
 
@@ -964,18 +983,7 @@ void loop() {
   }
 
   if (currentToFavorites.requested) {
-    static playListItem item;
-    playList.get(currentItem, item);
-
-    if (saveItemToFavorites(item, currentToFavorites.filename)) {
-      static String s;
-      ws.textAll(favoritesToString(s));
-      ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
-    }
-    else
-      ws.text(currentToFavorites.clientId, "message\nSaving failed!");
-
-    currentToFavorites.filename = "";
+    handleCurrentToFavorites();
     currentToFavorites.requested = false;
   }
 
