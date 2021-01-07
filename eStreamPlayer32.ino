@@ -105,6 +105,13 @@ const char* NOTHING_PLAYING_STR   {
   "Nothing playing"
 };
 
+/* websocket message headers */
+const char* VOLUME_HEADER {
+  "volume\n"
+};
+
+const char* CURRENT_HEADER{"currentPLitem\n"};
+
 int currentItem {NOTHING_PLAYING_VAL};
 
 bool volumeIsUpdated{false};
@@ -145,13 +152,6 @@ Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
 playList playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
-
-/* websocket message headers */
-const char* VOLUME_HEADER {
-  "volume\n"
-};
-const char* CURRENT_HEADER{"currentPLitem\n"};
-
 
 inline __attribute__((always_inline))
 void sendCurrentItem() {
@@ -226,8 +226,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     return;
   } else if (type == WS_EVT_DISCONNECT) {
     ESP_LOGD(TAG, "ws[%s][%u] disconnect: %u", server->url(), client->id());
+    return;
   } else if (type == WS_EVT_ERROR) {
     ESP_LOGE(TAG, "ws[%s][%u] error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
+    return;
   } else if (type == WS_EVT_DATA) {
     AwsFrameInfo * info = (AwsFrameInfo*)arg;
 
@@ -805,6 +807,51 @@ bool startPlaylistItem(const playListItem& item) {
   return audio.isRunning();
 }
 
+bool saveItemToFavorites(const playListItem& item) {
+  switch (item.type) {
+    case HTTP_FILE :
+      ESP_LOGD(TAG, "file (wont save)%s", item.url.c_str());
+      return false;
+      break;
+    case HTTP_PRESET :
+      ESP_LOGD(TAG, "preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
+      return false;
+      break;
+    case HTTP_STREAM :
+    case HTTP_FAVORITE :
+      {
+        if (currentToFavorites.filename.equals("")) {
+          ESP_LOGE(TAG, "Could not save current item. No filename given!");
+          ws.text(currentToFavorites.clientId, "message\nNo filename given!");
+          return false;
+        }
+        ESP_LOGD(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
+        const char* SAVE_FAILED_MSG{"message\nSaving failed!"};
+        File file = FFat.open("/" + currentToFavorites.filename, FILE_WRITE);
+        if (!file) {
+          ESP_LOGE(TAG, "failed to open file for writing");
+          ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
+          return false;
+        }
+        audio.loop();
+        bool error = !file.print(item.url.c_str());
+        if (!error) {
+          ESP_LOGD(TAG, "FFat file %s written", currentToFavorites.filename.c_str());
+          ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
+        }
+        else {
+          ESP_LOGE(TAG, "FFat writing to %s failed", currentToFavorites.filename.c_str());
+          ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
+        }
+        audio.loop();
+        file.close();
+        return error;
+      }
+      break;
+    default : ESP_LOGI(TAG, "Unhandled item.type.");
+  }
+}
+
 void loop() {
 
 #if defined ( M5STACK_NODE )
@@ -843,7 +890,7 @@ void loop() {
 
   if (playList.isUpdated) {
     ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
-    String s;
+    static String s;
     ws.textAll(playList.toString(s));
     sendCurrentItem();
 
@@ -878,7 +925,7 @@ void loop() {
   }
 
   if (favorites.requested || favorites.updated) {
-    String response;
+    static String response;
     favoritesToString(response);
     if (favorites.requested) {
       ESP_LOGD(TAG, "Favorites requested by client %i", favorites.clientId);
@@ -893,58 +940,17 @@ void loop() {
   }
 
   if (currentToFavorites.requested) {
-
-    playListItem item;
+    static playListItem item;
     playList.get(currentItem, item);
-
-    switch (item.type) {
-      case HTTP_FILE :
-        ESP_LOGD(TAG, "file (wont save)%s", item.url.c_str());
-        break;
-      case HTTP_PRESET :
-        ESP_LOGD(TAG, "preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
-        break;
-      case HTTP_STREAM :
-      case HTTP_FAVORITE :
-        {
-          if (currentToFavorites.filename.equals("")) {
-            ESP_LOGE(TAG, "Could not save current item. No filename given!");
-            ws.text(currentToFavorites.clientId, "message\nNo filename given!");
-            currentToFavorites.requested = false;
-            return;
-          }
-          ESP_LOGD(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
-          const char* SAVE_FAILED_MSG{"message\nSaving failed!"};
-          File file = FFat.open("/" + currentToFavorites.filename, FILE_WRITE);
-          if (!file) {
-            ESP_LOGE(TAG, "failed to open file for writing");
-            ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
-            currentToFavorites.filename = "";
-            currentToFavorites.requested = false;
-            return;
-          }
-          audio.loop();
-          if (file.print(item.url.c_str())) {
-            ESP_LOGD(TAG, "FFat file %s written", currentToFavorites.filename.c_str());
-            ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
-            favorites.updated = true;
-          } else {
-            ESP_LOGE(TAG, "FFat writing to %s failed", currentToFavorites.filename.c_str());
-            ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
-          }
-          audio.loop();
-          file.close();
-        }
-        break;
-      default : ESP_LOGI(TAG, "Unhandled item.type.");
-    }
+    saveItemToFavorites(item);
     currentToFavorites.filename = "";
     currentToFavorites.requested = false;
   }
 
   if (favoriteToPlaylist.requested) {
     File file = FFat.open("/" + favoriteToPlaylist.name);
-    String url;
+    static String url;
+    url = "";
     if (file) {
       while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
         url += (char)file.read();
@@ -981,7 +987,7 @@ void loop() {
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
       currentItem++;
-      playListItem item;
+      static playListItem item;
       playList.get(currentItem, item);
 
 #if defined ( M5STACK_NODE )
