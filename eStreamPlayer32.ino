@@ -109,8 +109,8 @@ const char* NOTHING_PLAYING_STR   {
 const char* VOLUME_HEADER {
   "volume\n"
 };
-
 const char* CURRENT_HEADER{"currentPLitem\n"};
+const char* MESSAGE_HEADER{"message\n"};
 
 int currentItem {NOTHING_PLAYING_VAL};
 
@@ -846,6 +846,27 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
   }
 }
 
+void handlePastedUrl() {
+  ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+  if (audio.connecttohost(urlEncode(newUrl.url))) {
+    playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
+    currentItem = playList.size() - 1;
+    playerStatus = PLAYING;
+    playList.isUpdated = true;
+    audio_showstation(newUrl.url.c_str());
+    audio_showstreamtitle("");
+
+#if defined ( M5STACK_NODE )
+    M5_itemName({HTTP_STREAM, "", newUrl.url});
+#endif //M5STACK_NODE
+
+  }
+  else {
+    playListHasEnded();
+    ws.text(newUrl.clientId, "message\nFailed to play stream");
+    sendCurrentPlayingToClients();
+  }
+}
 void loop() {
 
 #if defined ( M5STACK_NODE )
@@ -883,7 +904,6 @@ void loop() {
   }
 
   if (playList.isUpdated) {
-    ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     static String s;
     ws.textAll(playList.toString(s));
     sendCurrentPlayingToClients();
@@ -892,43 +912,26 @@ void loop() {
     M5_currentAndTotal(currentItem, playList.size());
 #endif
 
+    ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     playList.isUpdated = false;
   }
 
   if (newUrl.waiting) {
-    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
-    if (audio.connecttohost(urlEncode(newUrl.url))) {
-      playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
-      currentItem = playList.size() - 1;
-      playerStatus = PLAYING;
-      playList.isUpdated = true;
-      audio_showstation(newUrl.url.c_str());
-      audio_showstreamtitle("");
-
-#if defined ( M5STACK_NODE )
-      M5_itemName({HTTP_STREAM, "", newUrl.url});
-#endif //M5STACK_NODE
-
-    }
-    else {
-      playListHasEnded();
-      ws.text(newUrl.clientId, "message\nFailed to play stream");
-      sendCurrentPlayingToClients();
-    }
+    handlePastedUrl();
     newUrl.waiting = false;
   }
 
   if (favorites.requested || favorites.updated) {
-    static String response;
-    favoritesToString(response);
+    static String favStr;
+    favoritesToString(favStr);
     if (favorites.requested) {
-      ESP_LOGD(TAG, "Favorites requested by client %i", favorites.clientId);
-      ws.text(favorites.clientId, response);
+      ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
+      ws.text(favorites.clientId, favStr);
       favorites.requested = false;
     }
     if (favorites.updated) {
-      ESP_LOGD(TAG, "Favorites updated. %i items.", counter);
-      ws.textAll(response);
+      ESP_LOGI(TAG, "Favorites updated. TODO items.");
+      ws.textAll(favStr);
       favorites.updated = false;
     }
   }
@@ -937,8 +940,11 @@ void loop() {
     static playListItem item;
     playList.get(currentItem, item);
 
-    if (saveItemToFavorites(item, currentToFavorites.filename))
+    if (saveItemToFavorites(item, currentToFavorites.filename)) {
+      static String s;
+      ws.textAll(favoritesToString(s));
       ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
+    }
     else
       ws.text(currentToFavorites.clientId, "message\nSaving failed!");
 
