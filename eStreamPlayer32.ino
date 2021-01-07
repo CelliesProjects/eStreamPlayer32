@@ -154,7 +154,7 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 inline __attribute__((always_inline))
-void sendCurrentItem() {
+void sendCurrentPlayingToClients() {
   ws.textAll(CURRENT_HEADER + String(currentItem));
 }
 
@@ -751,12 +751,9 @@ void setup() {
 
 String& favoritesToString(String& s) {
   File root = FFat.open("/");
-  if (!root) {
-    ESP_LOGE(TAG, "ERROR- failed to open root");
-    return s;
-  }
-  if (!root.isDirectory()) {
-    ESP_LOGE(TAG, "ERROR- root is not a directory");
+  s = "";
+  if (!root || !root.isDirectory()) {
+    ESP_LOGE(TAG, "ERROR - root folder problem");
     return s;
   }
   s = "favorites\n";
@@ -764,7 +761,8 @@ String& favoritesToString(String& s) {
   auto counter{0};
   while (file) {
     if (!file.isDirectory()) {
-      s += file.name() + String("\n");
+      s.concat(file.name());
+      s.concat("\n");
       counter++;
     }
     file = root.openNextFile();
@@ -807,7 +805,7 @@ bool startPlaylistItem(const playListItem& item) {
   return audio.isRunning();
 }
 
-bool saveItemToFavorites(const playListItem& item) {
+bool saveItemToFavorites(const playListItem& item, const String& filename) {
   switch (item.type) {
     case HTTP_FILE :
       ESP_LOGD(TAG, "file (wont save)%s", item.url.c_str());
@@ -820,32 +818,28 @@ bool saveItemToFavorites(const playListItem& item) {
     case HTTP_STREAM :
     case HTTP_FAVORITE :
       {
-        if (currentToFavorites.filename.equals("")) {
+        if (filename.equals("")) {
           ESP_LOGE(TAG, "Could not save current item. No filename given!");
-          ws.text(currentToFavorites.clientId, "message\nNo filename given!");
           return false;
         }
-        ESP_LOGD(TAG, "saving stream: %s -> %s", currentToFavorites.filename.c_str(), item.url.c_str());
-        const char* SAVE_FAILED_MSG{"message\nSaving failed!"};
-        File file = FFat.open("/" + currentToFavorites.filename, FILE_WRITE);
+        ESP_LOGD(TAG, "saving stream: %s -> %s", filename.c_str(), item.url.c_str());
+        File file = FFat.open("/" + filename, FILE_WRITE);
         if (!file) {
           ESP_LOGE(TAG, "failed to open file for writing");
-          ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
           return false;
         }
         audio.loop();
         bool error = !file.print(item.url.c_str());
         if (!error) {
-          ESP_LOGD(TAG, "FFat file %s written", currentToFavorites.filename.c_str());
-          ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
+          ESP_LOGI(TAG, "FFat file %s written", filename.c_str());
         }
         else {
-          ESP_LOGE(TAG, "FFat writing to %s failed", currentToFavorites.filename.c_str());
-          ws.text(currentToFavorites.clientId, SAVE_FAILED_MSG);
+          ESP_LOGE(TAG, "FFat writing to %s failed", filename.c_str());
         }
         audio.loop();
         file.close();
-        return error;
+        // TODO: fix the logic here!
+        return !error;
       }
       break;
     default : ESP_LOGI(TAG, "Unhandled item.type.");
@@ -892,7 +886,7 @@ void loop() {
     ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
     static String s;
     ws.textAll(playList.toString(s));
-    sendCurrentItem();
+    sendCurrentPlayingToClients();
 
 #if defined ( M5STACK_NODE )
     M5_currentAndTotal(currentItem, playList.size());
@@ -919,7 +913,7 @@ void loop() {
     else {
       playListHasEnded();
       ws.text(newUrl.clientId, "message\nFailed to play stream");
-      sendCurrentItem();
+      sendCurrentPlayingToClients();
     }
     newUrl.waiting = false;
   }
@@ -942,7 +936,12 @@ void loop() {
   if (currentToFavorites.requested) {
     static playListItem item;
     playList.get(currentItem, item);
-    saveItemToFavorites(item);
+
+    if (saveItemToFavorites(item, currentToFavorites.filename))
+      ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
+    else
+      ws.text(currentToFavorites.clientId, "message\nSaving failed!");
+
     currentToFavorites.filename = "";
     currentToFavorites.requested = false;
   }
@@ -998,7 +997,7 @@ void loop() {
       ESP_LOGD(TAG, "Starting next playlist item: %i", currentItem);
 
       if (startPlaylistItem(item))
-        sendCurrentItem();
+        sendCurrentPlayingToClients();
     }
     else
       playListHasEnded();
