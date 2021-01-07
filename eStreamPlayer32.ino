@@ -998,6 +998,8 @@ void loop() {
 
       if (startPlaylistItem(item))
         sendCurrentPlayingToClients();
+      else
+        ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
     }
     else
       playListHasEnded();
