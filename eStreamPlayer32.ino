@@ -14,6 +14,28 @@
 
 #define I2S_MAX_VOLUME 21
 
+enum {
+  PAUSED,
+  PLAYING,
+  PLAYLISTEND,
+} playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
+
+#define     NOTHING_PLAYING_VAL   -1
+const char* NOTHING_PLAYING_STR   {
+  "Nothing playing"
+};
+
+/* websocket message headers */
+const char* VOLUME_HEADER {
+  "volume\n"
+};
+const char* CURRENT_HEADER{"currentPLitem\n"};
+const char* MESSAGE_HEADER{"message\n"};
+
+int currentItem {NOTHING_PLAYING_VAL};
+
+playList playList;
+
 #if defined ( A1S_AUDIO_KIT )
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
 /* A1S Audiokit I2S pins */
@@ -76,7 +98,7 @@ void M5_displayCurrentAndTotal() {
   String currentAndTotal;
   currentAndTotal.concat(currentItem + 1); /* we are talking to humans here */
   currentAndTotal.concat(" / ");
-  currentAndTotal.concat(list.size());
+  currentAndTotal.concat(playList.size());
   M5.Lcd.drawString(currentAndTotal, LOC_X, LOC_Y);
   M5.Lcd.display();
 }
@@ -88,26 +110,6 @@ void M5_displayCurrentAndTotal() {
 #define I2S_WS      26
 #define I2S_DOUT    22
 #endif  //GENERIC_I2S_DAC
-
-enum {
-  PAUSED,
-  PLAYING,
-  PLAYLISTEND,
-} playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
-
-#define     NOTHING_PLAYING_VAL   -1
-const char* NOTHING_PLAYING_STR   {
-  "Nothing playing"
-};
-
-/* websocket message headers */
-const char* VOLUME_HEADER {
-  "volume\n"
-};
-const char* CURRENT_HEADER{"currentPLitem\n"};
-const char* MESSAGE_HEADER{"message\n"};
-
-int currentItem {NOTHING_PLAYING_VAL};
 
 bool volumeIsUpdated{false};
 
@@ -144,7 +146,6 @@ struct {
 time_t bootTime;
 
 Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
-playList playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
