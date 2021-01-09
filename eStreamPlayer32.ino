@@ -264,7 +264,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             pch = strtok(NULL, "\n");
           }
           ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
-          client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
+          client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
           if (startnow) {
             if (audio.isRunning()) audio.stopSong();
             currentItem = previousSize - 1;
@@ -407,7 +407,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (index < sizeof(preset) / sizeof(source)) { // only add really existing presets to the playlist
             playList.add({HTTP_PRESET, "", "", index});
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
-            client->printf("message\nAdded '%s' to playlist", preset[index].name.c_str());
+            client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
             if (startnow) {
               if (audio.isRunning()) audio.stopSong();
               currentItem = playList.size() - 2;
@@ -436,7 +436,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         // we need at least twice the amount of free memory that is requested (buffer + playlist data)
         if (info->len * 2 > ESP.getFreeHeap()) {
-          client->text("message\nOut of memory.");
+          client->printf("%sOut of memory.", MESSAGE_HEADER);
           return;
         }
         if (!buffer)
@@ -472,7 +472,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             delete []buffer;
             buffer = nullptr;
             ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
-            client->printf("message\nAdded %i items to playlist", playList.size() - previousSize);
+
+            client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
             if (startnow) {
               if (audio.isRunning()) audio.stopSong();
               currentItem = previousSize - 1;
@@ -863,7 +864,7 @@ void handlePastedUrl() {
   }
   else {
     playListHasEnded();
-    ws.text(newUrl.clientId, "message\nFailed to play stream");
+    ws.printf(newUrl.clientId, "%sFailed to play stream", MESSAGE_HEADER);
     sendCurrentPlayingToClients();
   }
 }
@@ -879,7 +880,7 @@ void handleFavoriteToPlaylist() {
   }
   playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
   ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
-  ws.printfAll("message\nAdded '%s' to playlist", favoriteToPlaylist.name.c_str());
+  ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, favoriteToPlaylist.name.c_str());
   if (favoriteToPlaylist.startNow) {
     if (audio.isRunning()) audio.stopSong();
     currentItem = playList.size() - 2;
@@ -913,10 +914,10 @@ void handleCurrentToFavorites() {
   if (saveItemToFavorites(item, currentToFavorites.filename)) {
     static String s;
     ws.textAll(favoritesToString(s));
-    ws.printfAll("message\nAdded '%s' to favorites!", currentToFavorites.filename.c_str());
+    ws.printfAll("%sAdded '%s' to favorites!", MESSAGE_HEADER, currentToFavorites.filename.c_str());
   }
   else
-    ws.text(currentToFavorites.clientId, "message\nSaving failed!");
+    ws.printf(currentToFavorites.clientId, "%sSaving failed!", MESSAGE_HEADER);
 
   currentToFavorites.filename = "";
 }
@@ -993,9 +994,9 @@ void loop() {
 
   if (deletefavorite.requested) {
     if (!FFat.remove("/" + deletefavorite.name)) {
-      ws.text(deletefavorite.clientId, "message\nCould not delete " + deletefavorite.name);
+      ws.printf(deletefavorite.clientId, "%sCould not delete %s", MESSAGE_HEADER, deletefavorite.name.c_str());
     } else {
-      ws.textAll("message\nDeleted favorite " + deletefavorite.name);
+      ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, deletefavorite.name.c_str());
       favorites.updated = true;
     }
     deletefavorite.requested = false;
