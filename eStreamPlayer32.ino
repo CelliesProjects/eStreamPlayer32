@@ -1019,7 +1019,9 @@ void loop() {
       currentItem++;
       startCurrentItem();
     }
-    else
+    else {
       playListHasEnded();
+      sendCurrentPlayingToClients();
+    }
   }
 }
