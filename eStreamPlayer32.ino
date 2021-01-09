@@ -149,7 +149,7 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 inline __attribute__((always_inline))
-void sendCurrentPlayingToClients() {
+void updateHighlightedItemOnClients() {
   ws.textAll(CURRENT_HEADER + String(currentItem));
 }
 
@@ -860,7 +860,7 @@ void handlePastedUrl() {
   else {
     playListHasEnded();
     ws.printf(newUrl.clientId, "%sFailed to play stream", MESSAGE_HEADER);
-    sendCurrentPlayingToClients();
+    updateHighlightedItemOnClients();
   }
 }
 
@@ -893,7 +893,7 @@ void handleFavoriteToPlaylist() {
 void handlePlaylistUpdate() {
   static String s;
   ws.textAll(playList.toString(s));
-  sendCurrentPlayingToClients();
+  updateHighlightedItemOnClients();
 
 #if defined (M5STACK_NODE)
   M5_displayCurrentAndTotal();
@@ -929,7 +929,7 @@ void startCurrentItem() {
   ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
 
   if (startPlaylistItem(item))
-    sendCurrentPlayingToClients();
+    updateHighlightedItemOnClients();
   else
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
 }
@@ -1021,7 +1021,7 @@ void loop() {
     }
     else {
       playListHasEnded();
-      sendCurrentPlayingToClients();
+      updateHighlightedItemOnClients();
     }
   }
 }
