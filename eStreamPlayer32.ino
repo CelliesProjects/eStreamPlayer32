@@ -922,6 +922,23 @@ void handleCurrentToFavorites() {
   currentToFavorites.filename = "";
 }
 
+void startCurrentItem() {
+  static playListItem item;
+  playList.get(currentItem, item);
+
+#if defined ( M5STACK_NODE )
+  M5_itemName(item);
+  M5_currentAndTotal(currentItem, playList.size());
+#endif  //M5STACK_NODE
+
+  ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
+
+  if (startPlaylistItem(item))
+    sendCurrentPlayingToClients();
+  else
+    ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
+}
+
 void loop() {
 
 #if defined ( M5STACK_NODE )
@@ -1005,20 +1022,7 @@ void loop() {
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
       currentItem++;
-      static playListItem item;
-      playList.get(currentItem, item);
-
-#if defined ( M5STACK_NODE )
-      M5_itemName(item);
-      M5_currentAndTotal(currentItem, playList.size());
-#endif  //M5STACK_NODE
-
-      ESP_LOGD(TAG, "Starting next playlist item: %i", currentItem);
-
-      if (startPlaylistItem(item))
-        sendCurrentPlayingToClients();
-      else
-        ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
+      startCurrentItem();
     }
     else
       playListHasEnded();
