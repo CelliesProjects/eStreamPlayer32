@@ -32,15 +32,13 @@ class playList {
     }
     bool isUpdated{false};
     void get(const size_t index, playListItem& item) {
-      if (index < list.size()) item = list[index];
-      else item = {};
+      item = (index < list.size()) ? list[index] : (playListItem) {};
     }
     void add(const playListItem& item) {
       const size_t previousSize = list.size();
       if (previousSize > PLAYLIST_MAX_ITEMS - 1) return;
       list.push_back(item);
-      if (previousSize < list.size())
-        isUpdated = true;
+      isUpdated = (previousSize < list.size()) ? true : false;
     }
     void remove(const size_t index) {
       if (index < list.size()) {
