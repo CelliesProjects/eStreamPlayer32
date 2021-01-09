@@ -967,19 +967,18 @@ void loop() {
     newUrl.waiting = false;
   }
 
-  if (favorites.requested || favorites.updated) {
-    static String favStr;
-    favoritesToString(favStr);
-    if (favorites.requested) {
-      ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
-      ws.text(favorites.clientId, favStr);
-      favorites.requested = false;
-    }
-    if (favorites.updated) {
-      ESP_LOGI(TAG, "Favorites updated. TODO items.");
-      ws.textAll(favStr);
-      favorites.updated = false;
-    }
+  if (favorites.requested) {
+    static String s;
+    ws.text(favorites.clientId, favoritesToString(s));
+    ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
+    favorites.requested = false;
+  }
+
+  if (favorites.updated) {
+    static String s;
+    ws.textAll(favoritesToString(s));
+    ESP_LOGI(TAG, "Favorites and clients are updated.");
+    favorites.updated = false;
   }
 
   if (currentToFavorites.requested) {
