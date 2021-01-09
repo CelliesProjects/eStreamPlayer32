@@ -31,16 +31,16 @@ class playList {
       return list.size();
     }
     bool isUpdated{false};
-    void get(const size_t index, playListItem& item) {
+    void get(const uint32_t index, playListItem& item) {
       item = (index < list.size()) ? list[index] : (playListItem) {};
     }
     void add(const playListItem& item) {
-      const size_t previousSize = list.size();
-      if (previousSize > PLAYLIST_MAX_ITEMS - 1) return;
-      list.push_back(item);
+      const uint32_t previousSize = list.size();
+      if (previousSize < PLAYLIST_MAX_ITEMS)
+        list.push_back(item);
       isUpdated = (previousSize < list.size()) ? true : false;
     }
-    void remove(const size_t index) {
+    void remove(const uint32_t index) {
       if (index < list.size()) {
         list.erase(list.begin() + index);
         isUpdated = true;
