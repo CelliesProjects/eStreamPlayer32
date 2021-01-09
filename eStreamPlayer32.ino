@@ -3,16 +3,11 @@
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <Audio.h>                                      /* https://github.com/schreibfaul1/ESP32-audioI2S */
 
-#include "board.h"
 #include "htmlEntities.h"
-#include "wifi_setup.h"
+#include "system_setup.h"
 #include "playList.h"
 #include "index_htm_gz.h"
 #include "icons.h"
-
-/* settings for ntp time sync */
-const char* NTP_POOL = "nl.pool.ntp.org";
-const char* TIMEZONE = "CET-1CEST,M3.5.0/2,M10.5.0/3"; /* Central European Time - see http://www.remotemonitoringsystems.ca/time-zone-abbreviations.php */
 
 /* webserver core */
 #define HTTP_RUN_CORE 1
@@ -623,7 +618,7 @@ void setup() {
 
 #if defined ( M5STACK_NODE )
   M5.begin(true, false);
-  M5.Lcd.setBrightness(3);
+  M5.Lcd.setBrightness(15);
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   M5.Lcd.setFreeFont(FSS12);
