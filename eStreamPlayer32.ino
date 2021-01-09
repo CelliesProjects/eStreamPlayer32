@@ -27,7 +27,7 @@
 AC101 dac;
 #endif  //A1S_AUDIO_KIT
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
 #include <M5Stack.h>
 #include <WM8978.h>                                     /* https://github.com/CelliesProjects/wm8978-esp32 */
 #include "Free_Fonts.h"
@@ -42,12 +42,12 @@ AC101 dac;
 
 WM8978 dac;
 
-void M5_itemName(const playListItem& item) {
+void M5_displayItemName(const playListItem& item) {
   const int LOC_X{M5.Lcd.width() / 2}, LOC_Y{M5.Lcd.height() / 2};
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setFreeFont(FSS12);
   M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), TFT_BLACK); //clear area
-  if (!item.name && item.type == HTTP_FAVORITE) return; /* shortcut to just delete itemName on the lcd is to call 'M5_itemName({HTTP_FAVORITE})' */
+  if (!item.name && item.type == HTTP_FAVORITE) return; /* shortcut to just delete itemName on the lcd is to call 'M5_displayItemName({HTTP_FAVORITE})' */
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   switch (item.type) {
     case HTTP_FAVORITE :
@@ -67,16 +67,16 @@ void M5_itemName(const playListItem& item) {
   M5.Lcd.display();
 }
 
-void M5_currentAndTotal(const int current, const int total) {
+void M5_displayCurrentAndTotal() {
   const int LOC_X{M5.Lcd.width() / 2}, LOC_Y{70};
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Lcd.setFreeFont(FSS18);
   M5.Lcd.fillRect(0, LOC_Y, 320, M5.Lcd.fontHeight(GFXFF), TFT_BLACK); //clear area
   M5.Lcd.setTextDatum(TC_DATUM); // TC = Top Center
   String currentAndTotal;
-  currentAndTotal.concat(current + 1); /* we are talking to humans here */
+  currentAndTotal.concat(currentItem + 1); /* we are talking to humans here */
   currentAndTotal.concat(" / ");
-  currentAndTotal.concat(total);
+  currentAndTotal.concat(list.size());
   M5.Lcd.drawString(currentAndTotal, LOC_X, LOC_Y);
   M5.Lcd.display();
 }
@@ -180,9 +180,9 @@ void playListHasEnded() {
   audio_showstreamtitle("&nbsp;");
   ESP_LOGD(TAG, "End of playlist.");
 
-#if defined ( M5STACK_NODE )
-  M5_itemName({HTTP_FAVORITE});
-  M5_currentAndTotal(currentItem, playList.size());
+#if defined (M5STACK_NODE)
+  M5_displayItemName({HTTP_FAVORITE});
+  M5_displayCurrentAndTotal();
 #endif  //M5STACK_NODE
 }
 
@@ -616,7 +616,7 @@ void startWebServer(void * pvParameters) {
 void setup() {
   btStop();
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   M5.begin(true, false);
   M5.Lcd.setBrightness(15);
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
@@ -632,8 +632,8 @@ void setup() {
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
     ESP_LOGE(TAG, "FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a partition table with a FFat partition.");
 
-#if defined ( M5STACK_NODE )
-    M5_itemName({HTTP_FAVORITE, "ERROR no FFat partition!"});
+#if defined (M5STACK_NODE)
+    M5_displayItemName({HTTP_FAVORITE, "ERROR no FFat partition!"});
 #endif  //M5STACK_NODE
 
     while (true) delay(1000); /* system is halted */
@@ -647,15 +647,15 @@ void setup() {
   else {
     ESP_LOGI(TAG, "Formatting...");
 
-#if defined ( M5STACK_NODE )
-    M5_itemName({HTTP_FAVORITE, "Formatting.Please wait..."});
+#if defined (M5STACK_NODE)
+    M5_displayItemName({HTTP_FAVORITE, "Formatting.Please wait..."});
 #endif  //M5STACK_NODE
 
     if (!FFat.format(true, (char*)"ffat") || !FFat.begin(0, "", 2)) {
       ESP_LOGE(TAG, "FFat error while formatting. Halting.");
 
-#if defined ( M5STACK_NODE )
-      M5_itemName({HTTP_FAVORITE, "ERROR formatting!"});
+#if defined (M5STACK_NODE)
+      M5_displayItemName({HTTP_FAVORITE, "ERROR formatting!"});
 #endif  //M5STACK_NODE
 
       while (true) delay(1000); /* system is halted */;
@@ -672,12 +672,12 @@ void setup() {
     while (true) delay(1000); /* system is halted */;
   }
   audio.i2s_mclk_pin_select(I2S_MCLK);
-  dac.SetVolumeSpeaker(100);
-  dac.SetVolumeHeadphone(50);
+  dac.SetVolumeSpeaker(50);
+  dac.SetVolumeHeadphone(100);
 #endif  //A1S_AUDIO_KIT
 
-#if defined ( M5STACK_NODE )
-  M5_itemName({HTTP_FAVORITE, "Connecting..."});
+#if defined (M5STACK_NODE)
+  M5_displayItemName({HTTP_FAVORITE, "Connecting..."});
 #endif  //M5STACK_NODE
 
   if (SET_STATIC_IP && !WiFi.config(STATIC_IP, GATEWAY, SUBNET, PRIMARY_DNS, SECONDARY_DNS))
@@ -687,12 +687,12 @@ void setup() {
   WiFi.setSleep(false);
   WiFi.waitForConnectResult();
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   if (!WiFi.isConnected()) {
-    M5_itemName({HTTP_FAVORITE, "HALTED: No network!"});
+    M5_displayItemName({HTTP_FAVORITE, "HALTED: No network!"});
     while (true) delay(1000); /* system is halted */;
   }
-  M5_itemName({HTTP_FAVORITE});
+  M5_displayItemName({HTTP_FAVORITE});
   M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Lcd.setFreeFont(FF6);
   M5.Lcd.drawString(WiFi.localIP().toString() , M5.Lcd.width() / 2, ypos);
@@ -700,10 +700,10 @@ void setup() {
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
     ESP_LOGE(TAG, "WM8978 dac failed to init! Halting.");
-    M5_itemName({HTTP_FAVORITE, "HALTED: No WM8978 DAC!"});
+    M5_displayItemName({HTTP_FAVORITE, "HALTED: No WM8978 DAC!"});
     while (true) delay(1000); /* system is halted */;
   }
-  M5_currentAndTotal(currentItem, playList.size());
+  M5_displayCurrentAndTotal();
   M5.Lcd.display();
   audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.setSPKvol(0);
@@ -852,8 +852,8 @@ void handlePastedUrl() {
     audio_showstation(newUrl.url.c_str());
     audio_showstreamtitle("");
 
-#if defined ( M5STACK_NODE )
-    M5_itemName({HTTP_STREAM, "", newUrl.url});
+#if defined (M5STACK_NODE)
+    M5_displayItemName({HTTP_STREAM, "", newUrl.url});
 #endif //M5STACK_NODE
 
   }
@@ -895,8 +895,8 @@ void handlePlaylistUpdate() {
   ws.textAll(playList.toString(s));
   sendCurrentPlayingToClients();
 
-#if defined ( M5STACK_NODE )
-  M5_currentAndTotal(currentItem, playList.size());
+#if defined (M5STACK_NODE)
+  M5_displayCurrentAndTotal();
 #endif
 
   ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
@@ -921,9 +921,9 @@ void startCurrentItem() {
   static playListItem item;
   playList.get(currentItem, item);
 
-#if defined ( M5STACK_NODE )
-  M5_itemName(item);
-  M5_currentAndTotal(currentItem, playList.size());
+#if defined (M5STACK_NODE)
+  M5_displayItemName(item);
+  M5_displayCurrentAndTotal();
 #endif  //M5STACK_NODE
 
   ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
@@ -936,7 +936,7 @@ void startCurrentItem() {
 
 void loop() {
 
-#if defined ( M5STACK_NODE )
+#if defined (M5STACK_NODE)
   M5.update();
 
   if (M5.BtnA.wasReleasefor(10)) {
