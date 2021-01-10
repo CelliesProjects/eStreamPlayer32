@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <script>
-var libraryURL="http://192.168.0.50/muziek/eSP32.php";
+var libraryURL="http://192.168.0.30/music/eSP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.178";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -175,6 +175,16 @@ a{
   border-radius:5px;
   background:red;
 }
+#overlay{
+  position:absolute;
+  left: 15%;
+  right: 15%;
+  top:20px;
+  background:cadetblue;
+  color:inherit;
+  border:solid 1px black;
+  border-radius:5px;
+}
 </style>
 </head>
 <body class="noselect">
@@ -182,18 +192,10 @@ a{
   <p id="infobar">&nbsp;</p>
 <div class="tab">
   <div id="tabbar">
-  <button class="tablinks">HOME</button>
   <button class="tablinks" id="librarybutton">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
   <button class="tablinks">FAVORITES</button>
   </div>
-</div>
-<div id="HOME" class="tabcontent">
-  <h3 id="showstation"></h3>
-  <p id="bitrate"></p>
-  <p id="streamtitle"></p>
-  <p id="streaminfo"></p>
-  <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
 </div>
 <div id="PLAYLIST" class="tabcontent">
   <p class="errormessage">Waiting for playlist...</p>
@@ -206,6 +208,8 @@ a{
 <div id="FAVORITES" class="tabcontent">
   <p class="errormessage">Waiting for favorites...</p>
 </div>
+<p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
+
 <div id="controlpanel">
   <p id="playerstatus">eStreamPlayer32</p>
   <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
@@ -216,6 +220,15 @@ a{
   <!-- //https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range -->
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
 </div>
+
+<div id="overlay">
+  <h3 id="showstation"></h3>
+  <p id="bitrate"></p>
+  <p id="streamtitle"></p>
+  <p id="streaminfo"></p>
+</div>
+
+
 <script>
 var currentpath='/';
 var scrollPos=[]; //array to keep track of nested folders
@@ -355,10 +368,6 @@ $(document).ready(function(){
     $('.tablinks').css("background-color","");
     $(this).css("background-color","darkgrey")
     switch($(this).text()){
-      case 'HOME':
-        $('#LIBRARY, #WEBRADIO, #FAVORITES, #PLAYLIST').hide();
-        $('#HOME').show();
-      break;
       case 'LIBRARY':
         $('#HOME, #WEBRADIO, #FAVORITES').hide();
         $('#LIBRARY, #PLAYLIST').show();
@@ -501,9 +510,20 @@ $(document).ready(function(){
     ws.send("volume\n" + this.value);
   });
 
-  //setup and handlers done
-  $('.tabcontent').css('top',$('.tab').height()+($('#locationbar').height()+$('#infobar').height())+"px");
-  $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
+  $('#overlay').on('mouseup', function(){
+    $(this).hide();
+  });
+
+  var overlaytimer;
+  $('html').on('mouseover mousedown mouseup mousewheel mousemove input scroll resize contextmenu touchstart touchend touchmove touchcancel', function() {
+    clearTimeout(overlaytimer);
+    overlaytimer = setTimeout(function(){$('#overlay').show();}, 6000);
+  });
+
+  $('#newurlbar').css('bottom',$('#controlpanel').css('height'));
+  $('.tabcontent').css('top',$('.tab').height() + ($('#locationbar').height() + $('#infobar').height()) + "px");
+  $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");
+  $('#overlay').css('top',($('#locationbar').height() + $('#infobar').height() + $('.tab').height() + 20) + "px");
 
   updateLibraryFolder(currentpath);
   $('.tablinks').first().click();
