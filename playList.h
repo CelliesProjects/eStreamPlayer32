@@ -35,13 +35,13 @@ class playList {
       item = (index < list.size()) ? list[index] : (playListItem) {};
     }
     void add(const playListItem& item) {
-      const uint32_t previousSize = list.size();
-      if (previousSize < PLAYLIST_MAX_ITEMS)
+      if (list.size() < PLAYLIST_MAX_ITEMS) {
         list.push_back(item);
-      isUpdated = (previousSize < list.size()) ? true : false;
+        isUpdated = true;
+      }
     }
     void remove(const uint32_t index) {
-      if (index < list.size()) {
+      if (list.size() > index) {
         list.erase(list.begin() + index);
         isUpdated = true;
       }
