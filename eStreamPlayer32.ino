@@ -9,10 +9,10 @@
 #include "index_htm_gz.h"
 #include "icons.h"
 
-/* webserver core */
-#define HTTP_RUN_CORE 1
+#define HTTP_RUN_CORE       1
 
-#define I2S_MAX_VOLUME 21
+#define I2S_MAX_VOLUME      21
+#define I2S_INITIAL_VOLUME  5
 
 enum {
   PAUSED,
@@ -34,7 +34,11 @@ const char* MESSAGE_HEADER{"message\n"};
 
 int currentItem {NOTHING_PLAYING_VAL};
 
+bool volumeIsUpdated{false};
+
 playList playList;
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
 
 #if defined ( A1S_AUDIO_KIT )
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
@@ -111,7 +115,7 @@ void M5_displayCurrentAndTotal() {
 #define I2S_DOUT    22
 #endif  //GENERIC_I2S_DAC
 
-bool volumeIsUpdated{false};
+Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
 
 struct {
   bool waiting{false};
@@ -145,13 +149,17 @@ struct {
 
 time_t bootTime;
 
-Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
-AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
-
 inline __attribute__((always_inline))
 void updateHighlightedItemOnClients() {
   ws.textAll(CURRENT_HEADER + String(currentItem));
+}
+
+uint32_t savedVolume{I2S_INITIAL_VOLUME};
+inline __attribute__((always_inline))
+void saveVolumeAndStopAudio() {
+  savedVolume = audio.getVolume();
+  audio.setVolume(0);
+  audio.stopSong();
 }
 
 const String urlEncode(const String& s) {
@@ -159,13 +167,13 @@ const String urlEncode(const String& s) {
   String encodedstr{""};
   for (int i = 0; i < s.length(); i++) {
     switch (s.charAt(i)) {
-      case ' ' : encodedstr += "%20";
+      case ' ' : encodedstr.concat("%20");
         break;
-      case '!' : encodedstr += "%21";
+      case '!' : encodedstr.concat("%21");
         break;
-      case '&' : encodedstr += "%26";
+      case '&' : encodedstr.concat("%26");
         break;
-      case  39 : encodedstr += "%27"; //39 == single quote '
+      case  39 : encodedstr.concat("%27"); //39 == single quote '
         break;
       default : encodedstr += s.charAt(i);
     }
@@ -262,7 +270,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
           client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
           if (startnow) {
-            if (audio.isRunning()) audio.stopSong();
+            if (audio.isRunning()) saveVolumeAndStopAudio();
             currentItem = previousSize - 1;
             playerStatus = PLAYING;
             return;
@@ -287,7 +295,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           if (pch) {
             currentItem = atoi(pch);
-            audio.stopSong();
+            saveVolumeAndStopAudio();
             playerStatus = PLAYING;
           }
           return;
@@ -299,7 +307,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!pch) return;
           const uint32_t item = atoi(pch);
           if (item == currentItem) {
-            audio.stopSong();
+            saveVolumeAndStopAudio();
             playList.remove(item);
             if (!playList.size()) {
               playListHasEnded();
@@ -327,7 +335,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem > 0) {
-            audio.stopSong();
+            saveVolumeAndStopAudio();
             audio_showstation("&nbsp;");
             currentItem--;
             currentItem--;
@@ -340,7 +348,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem < playList.size() - 1) {
-            audio.stopSong();
+            saveVolumeAndStopAudio();
             audio_showstation("&nbsp;");
             return;
           }
@@ -405,7 +413,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
             client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
             if (startnow) {
-              if (audio.isRunning()) audio.stopSong();
+              if (audio.isRunning()) saveVolumeAndStopAudio();
               currentItem = playList.size() - 2;
               playerStatus = PLAYING;
               return;
@@ -471,7 +479,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
             client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
             if (startnow) {
-              if (audio.isRunning()) audio.stopSong();
+              if (audio.isRunning()) saveVolumeAndStopAudio();
               currentItem = previousSize - 1;
               playerStatus = PLAYING;
               return;
@@ -734,7 +742,7 @@ void setup() {
 
   time(&bootTime);
 
-  audio.setVolume(5); /* max 21 */
+  audio.setVolume(I2S_INITIAL_VOLUME);
 
   xTaskCreatePinnedToCore(
     startWebServer,
@@ -878,11 +886,9 @@ void handleFavoriteToPlaylist() {
   ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
   ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, favoriteToPlaylist.name.c_str());
   if (favoriteToPlaylist.startNow) {
-    if (audio.isRunning()) audio.stopSong();
+    if (audio.isRunning()) saveVolumeAndStopAudio();
     currentItem = playList.size() - 2;
     playerStatus = PLAYING;
-    favoriteToPlaylist.startNow = false;
-    favoriteToPlaylist.requested = false;
     return;
   }
   if (!audio.isRunning() && PAUSED != playerStatus) {
@@ -929,8 +935,10 @@ void startCurrentItem() {
 
   ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
 
-  if (startPlaylistItem(item))
+  if (startPlaylistItem(item)) {
     updateHighlightedItemOnClients();
+    audio.setVolume(savedVolume);
+  }
   else
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
 }
