@@ -54,32 +54,34 @@ a{
   overflow:hidden;
   white-space:nowrap;
 }
-/* Style the tab */
-.tab {
-  overflow: auto;
-  //display:inline-grid;
+.tab{
+  overflow:auto;
 }
 #tabbar{
   overflow:unset;
   width:max-content;
   overflow-y:unset;
 }
-/* Style the buttons that are used to open the tab content */
-.tab button {
-  background-color: inherit;
-  float: left;
-  border: none;
-  outline: none;
-  cursor: pointer;
-  padding: 10px 20px;
-  transition: 0.3s;
+.tab button{
+  background-color:lightgrey;
+  float:left;
+  border:none;
+  outline:none;
+  cursor:pointer;
+  padding:10px 20px;
+  transition:0.3s;
+  padding:10px 20px;
+  transition:0.3s;
+  margin:0 5px;
+  border-top-left-radius:5px;
+  border-top-right-radius:5px;
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
 }
-/* Change background color of buttons on hover */
-.tab button:hover {
+.tab button:hover{
   background-color:#ddd;
 }
-/* Style the tab content */
-.tabcontent {
+.tabcontent{
   width:50%;
   overflow-y:scroll;
   text-align:left;
@@ -154,6 +156,7 @@ a{
   bottom:0;
   left:0;
   right:0;
+  background:inherit;
 }
 #playerstatus{
   margin:0;
@@ -164,7 +167,7 @@ a{
   display:inline;
 }
 #volumeslider{
-  vertical-align: middle
+  vertical-align:middle
 }
 .addfolder:hover,.starticon:hover{
   border:solid 1px black;
@@ -177,13 +180,18 @@ a{
 }
 #overlay{
   position:absolute;
-  left: 15%;
-  right: 15%;
-  top:20px;
+  left:15%;
+  right:15%;
+  top:35px;
   background:cadetblue;
   color:inherit;
-  border:solid 1px black;
   border-radius:5px;
+  -webkit-box-shadow:0 0 20px black;
+  -moz-box-shadow:0 0 20px black;
+  box-shadow:0 0 20px black;
+}
+#overlay:hover{
+  cursor:pointer;
 }
 </style>
 </head>
@@ -208,8 +216,13 @@ a{
 <div id="FAVORITES" class="tabcontent">
   <p class="errormessage">Waiting for favorites...</p>
 </div>
+<div id="overlay">
+  <h3 id="showstation"></h3>
+  <p id="bitrate"></p>
+  <p id="streamtitle"></p>
+  <p id="streaminfo"></p>
+</div>
 <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
-
 <div id="controlpanel">
   <p id="playerstatus">eStreamPlayer32</p>
   <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
@@ -220,15 +233,6 @@ a{
   <!-- //https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range -->
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
 </div>
-
-<div id="overlay">
-  <h3 id="showstation"></h3>
-  <p id="bitrate"></p>
-  <p id="streamtitle"></p>
-  <p id="streaminfo"></p>
-</div>
-
-
 <script>
 var currentpath='/';
 var scrollPos=[]; //array to keep track of nested folders
@@ -523,7 +527,6 @@ $(document).ready(function(){
   $('#newurlbar').css('bottom',$('#controlpanel').css('height'));
   $('.tabcontent').css('top',$('.tab').height() + ($('#locationbar').height() + $('#infobar').height()) + "px");
   $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");
-  $('#overlay').css('top',($('#locationbar').height() + $('#infobar').height() + $('.tab').height() + 20) + "px");
 
   updateLibraryFolder(currentpath);
   $('.tablinks').first().click();
