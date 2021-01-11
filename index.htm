@@ -179,6 +179,7 @@ a{
   background:red;
 }
 #overlay{
+  display:none;
   position:absolute;
   left:15%;
   right:15%;
@@ -234,22 +235,18 @@ a{
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
 </div>
 <script>
+const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
+const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
+
 var currentpath='/';
 var scrollPos=[]; //array to keep track of nested folders
-var url="http://";
-if (window.location.hostname)url+=window.location.hostname;
-else url+=debugip;
-
-var ws_host="ws://";
-if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
-else ws_host+=debugip+"/ws";
 
 function updateLocationBar(){
   $('#locationbar').html("Library path: "+currentpath);
 }
 
 function updateLibraryFolder(folder,oldfolder,restorescroll){
-  var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
+  $.get(libraryURL+"?folder="+encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
@@ -264,7 +261,7 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
 }
 
 function getPresets(){
-  $.get(url+"/stations")
+  $.get(http_host+"/stations")
   .done(function(data){
     var stations=data.split('\n');
     $('#WEBRADIO').html('');
@@ -276,16 +273,30 @@ function getPresets(){
     $('#WEBRADIO').html('<p class="errormessage">ERROR: Could not open station list</p>');
   });
 }
+
+var overlaytimer;
+function setOverlayTimeOut() {
+  clearTimeout(overlaytimer);
+  overlaytimer = setTimeout(function(){$('#overlay').css('display', 'block');}, 6000);
+}
+
+function showMessage(message){
+  $('#infobar').css("opacity","1");
+  $('#infobar').html(message).animate({"opacity":"0"},{queue:false,duration:2000});
+}
+
 const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
+
 $(document).ready(function(){
-  const addicon='<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
-  var ws=new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3000});
-  ws.onmessage=function(e){
-    var command=e.data.split("\n");
+  var waitForData = true;
+  const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
+  var ws = new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3000});
+  ws.onmessage = function(e){
+    var command = e.data.split("\n");
     switch(command[0]){
       case "currentPLitem":
         $('.plitem').css("background-color","");
-        if(-1==command[1]){
+        if(-1 == command[1]){
           $('#playerstatus, #showstation').html("Nothing playing");
         }else{
           $('.plitem').eq(command[1]).css("background-color","cadetblue");
@@ -295,7 +306,7 @@ $(document).ready(function(){
         $('#PLAYLIST').html('');
         console.log("Items in playlist:"+(command.length-2)/2);
         var typeicon ="";
-        for(var i=1;i<command.length-1;i=i+2){
+        for(var i=1; i<command.length-1; i=i+2){
           switch (command[i+1]){
             case "FILE" :
               typeicon = '<img src="/libraryicon.svg" class="icon">';
@@ -313,12 +324,11 @@ $(document).ready(function(){
               typeicon = "";
               break;
           }
-          $('#PLAYLIST').append('<p class="plitem">'+removebutton+typeicon+'<span class="text">'+command[i]+'</span></p>');
+          $('#PLAYLIST').append('<p class="plitem">' + removebutton + typeicon + '<span class="text">' + command[i] + '</span></p>');
         }
       break;
       case "message":
-        $('#infobar').css("opacity","1");
-        $('#infobar').html(command[1]).animate({"opacity":"0"},{queue:false,duration:2000});
+        showMessage(command[1]);
       break;
 
       case "volume":
@@ -329,6 +339,10 @@ $(document).ready(function(){
         if(command[1]!="&nbsp;"){
           $('#playerstatus, #showstation').html(command[1]);
           if(command[2]=="STREAM"||command[2]=="FAVO")$('#showstation').prepend(addicon);
+        }
+        if (waitForData) {
+          $('#overlay').css('display', 'block');
+          waitForData = false;
         }
       break;
 
@@ -352,9 +366,9 @@ $(document).ready(function(){
       break;
 */
       case "favorites":
-        var content=[];
-        for(i=1;i<command.length-1;i++)
-          content.push('<p class="favoritelink">'+removebutton+'<img src="/starticon.svg" class="icon starticon"><span class="text">'+command[i].substring(1)+'</span></p>');
+        var content = [];
+        for(i = 1; i < command.length - 1; i++)
+          content.push('<p class="favoritelink">' + removebutton + '<img src="/starticon.svg" class="icon starticon"><span class="text">' + command[i].substring(1) + '</span></p>');
         content.sort();
         $('#FAVORITES').html(content);
       break
@@ -362,13 +376,14 @@ $(document).ready(function(){
     }
   };
 
-  ws.onopen=function(event){
+  ws.onopen = function(event){
     console.log('[WebSocket] Connected');
+    $('#streamtitle').html('');
   }
-  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>')};
-  ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message);};
+  ws.onclose = function(event){console.log('[WebSocket] Connection died, code=' + event.code + ' reason=' + event.reason); $('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>')};
+  ws.onerror = function(error){console.log('[WebSocket] Error: ' + error.message);};
 
-  $('.tablinks').on('click',function(){
+  $('.tablinks').on('click', function(){
     $('.tablinks').css("background-color","");
     $(this).css("background-color","darkgrey")
     switch($(this).text()){
@@ -388,71 +403,71 @@ $(document).ready(function(){
     }
   });
 
-  $('body').on('click','#uplink',function(){
+  $('body').on('click','#uplink', function(){
     $('#LIBRARY').css({"opacity":0.5});
-    const oldpath=currentpath;
-    if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
-    if(!currentpath)currentpath='/';
+    const oldpath = currentpath;
+    if(currentpath.includes('/'))currentpath = currentpath.split('/').slice(0,-1).join('/');
+    if(!currentpath)currentpath = '/';
     updateLibraryFolder(currentpath,oldpath,true);
   });
 
-  $('body').on('click','.folderlink',function(){
+  $('body').on('click','.folderlink', function(){
     $('#LIBRARY').css({"opacity":0.5});
-    const oldpath=currentpath;
-    if ('/'!=currentpath)currentpath+="/";
-    currentpath+=$(this).text();
+    const oldpath = currentpath;
+    if ('/' != currentpath)currentpath += "/";
+    currentpath += $(this).text();
     scrollPos.push($('#LIBRARY').scrollTop());
-    updateLibraryFolder(currentpath,oldpath);
+    updateLibraryFolder(currentpath, oldpath);
   });
 
   $('body').on('click','.filelink',function(e){
-    ws.send("filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+    ws.send("filetoplaylist\n" + libraryURL.substring(0, libraryURL.lastIndexOf('/')) + currentpath+'/'+$(this).text());
     e.stopPropagation();
   });
 
   $('body').on('click','.filelink .starticon',function(e){
-    ws.send("_filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).parent().text());
+    ws.send("_filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',)) + currentpath + '/'+$(this).parent().text());
     e.stopPropagation();
   });
 
   $('body').on('click','.streamlink .starticon',function(e){
-    ws.send("_presetstation\n"+$(this).parent().index());
+    ws.send("_presetstation\n" + $(this).parent().index());
     e.stopPropagation();
   });
 
   $('body').on('click','.favoritelink',function(e){
-    ws.send("favoritetoplaylist\n"+$(this).text());
+    ws.send("favoritetoplaylist\n" + $(this).text());
     e.stopPropagation();
   });
 
   $('body').on('click','.favoritelink .starticon',function(e){
-    ws.send("_favoritetoplaylist\n"+$(this).parent().text());
+    ws.send("_favoritetoplaylist\n" + $(this).parent().text());
     e.stopPropagation();
   });
 
   $('body').on('click','.favoritelink .deletebutton',function(e){
     e.stopPropagation();
     if(!confirm("Are you sure to delete this favorite?"))return;
-    ws.send("deletefavorite\n"+($(this).parent().text()));
+    ws.send("deletefavorite\n" + ($(this).parent().text()));
   });
 
   $('body').on('click','.addfolder, .folderlink .starticon',function(e){
     //TODO: something goes wrong here!
     // we have to check in the .done callback if there are multiple '/' chars at the start of the path
-    var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
-    var requestpath=currentpath+"/"+$(this).parent().text();
-    var content=($(this).hasClass('starticon'))?"_filetoplaylist\n":"filetoplaylist\n";
-    $.get(libraryURL+"?folder="+encodeURIComponent(currentpath)+"/"+encodeURIComponent($(this).parent().text()))
+    var location = libraryURL.substring(0, libraryURL.lastIndexOf('/', libraryURL.length));
+    var requestpath = currentpath + "/" + $(this).parent().text();
+    var content = ($(this).hasClass('starticon')) ? "_filetoplaylist\n" : "filetoplaylist\n";
+    $.get(libraryURL + "?folder=" + encodeURIComponent(currentpath) + "/" + encodeURIComponent($(this).parent().text()))
     .done(function(data){
       //make an invisible navList
-      const nList=document.createElement("div");
-      nList.style.display="none";
-      nList.id="invisFolder";
+      const nList = document.createElement("div");
+      nList.style.display = "none";
+      nList.id = "invisFolder";
       document.body.appendChild(nList);
       $(nList).html(data);
-      if(requestpath.startsWith("//"))requestpath=requestpath.substring(1);  //TODO: FIX! see above
+      if(requestpath.startsWith("//"))requestpath = requestpath.substring(1);  //TODO: FIX! see above
       $('#invisFolder .filelink').each(function(){
-        content+=location+requestpath+'/'+$(this).text()+"\n";
+        content += location+requestpath+'/'+$(this).text()+"\n";
       });
       document.body.removeChild(nList);
       ws.send(content);
@@ -461,11 +476,11 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.plitem',function(){
-    ws.send("playitem\n"+($(this).index('.plitem')-1));
+    ws.send("playitem\n" + ($(this).index('.plitem')-1));
   });
 
   $('body').on('click','.plitem .deletebutton',function(e){
-    ws.send("deleteitem\n"+($(this).index('.deletebutton')));
+    ws.send("deleteitem\n" + ($(this).index('.deletebutton')));
     e.stopPropagation();
   });
 
@@ -490,24 +505,29 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.streamlink',function(){
-    ws.send("presetstation\n"+$(this).index());
+    ws.send("presetstation\n" + $(this).index());
   });
 
   $('#newurl').on('keydown', function(e) {
-    if(e.which==13)$('#newurlbutton').click();
+    if(e.which == 13)$('#newurlbutton').click();
   });
 
   $('body').on('click','#newurlbutton',function(){
-    if(!$('#newurl').val())return
-    ws.send("newurl\n"+$('#newurl').val());
+    if(!$('#newurl').val())return;
+    var newurl = ($('#newurl').val().startsWith('https')) ? 'http' + $('#newurl').val().substring(5) : $('#newurl').val();
+    ws.send("newurl\n" + newurl.trim());
     $('#newurl').val('');
   });
 
-  $('body').on('click','#addfavorite',function(){
-    var filename=prompt("Enter a filename",$('#showstation').text());
-    if(!filename)return;
-    //TODO: trim the filename from non compliant chars
-    ws.send("currenttofavorites\n"+filename);
+  $('#overlay').on('mouseup','#addfavorite',function(e){
+    e.stopPropagation();
+    const filename = prompt("Enter a filename", $('#showstation').text());
+    if (!filename) return;
+    if (! /^[^\\/:\*\?"<>\|]+$/.test(filename)) {
+      showMessage("not saved - illegal char in name");
+      return;
+    }
+    ws.send("currenttofavorites\n" + filename);
   });
 
   $('body').on('change','#volumeslider',function(e){
@@ -518,10 +538,8 @@ $(document).ready(function(){
     $(this).hide();
   });
 
-  var overlaytimer;
   $('html').on('mouseover mousedown mouseup mousewheel mousemove input scroll resize contextmenu touchstart touchend touchmove touchcancel', function() {
-    clearTimeout(overlaytimer);
-    overlaytimer = setTimeout(function(){$('#overlay').show();}, 6000);
+    setOverlayTimeOut();
   });
 
   $('#newurlbar').css('bottom',$('#controlpanel').css('height'));
@@ -531,6 +549,8 @@ $(document).ready(function(){
   updateLibraryFolder(currentpath);
   $('.tablinks').first().click();
   getPresets();
+
+  setOverlayTimeOut();
 });
 
 </script>
