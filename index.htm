@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <script>
-var libraryURL="http://192.168.0.50/muziek/eSP32.php";
+var libraryURL="http://192.168.0.30/music/eSP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.178";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -54,32 +54,34 @@ a{
   overflow:hidden;
   white-space:nowrap;
 }
-/* Style the tab */
-.tab {
-  overflow: auto;
-  //display:inline-grid;
+.tab{
+  overflow:auto;
 }
 #tabbar{
   overflow:unset;
   width:max-content;
   overflow-y:unset;
 }
-/* Style the buttons that are used to open the tab content */
-.tab button {
-  background-color: inherit;
-  float: left;
-  border: none;
-  outline: none;
-  cursor: pointer;
-  padding: 10px 20px;
-  transition: 0.3s;
+.tab button{
+  background-color:lightgrey;
+  float:left;
+  border:none;
+  outline:none;
+  cursor:pointer;
+  padding:10px 20px;
+  transition:0.3s;
+  padding:10px 20px;
+  transition:0.3s;
+  margin:0 5px;
+  border-top-left-radius:5px;
+  border-top-right-radius:5px;
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
 }
-/* Change background color of buttons on hover */
-.tab button:hover {
+.tab button:hover{
   background-color:#ddd;
 }
-/* Style the tab content */
-.tabcontent {
+.tabcontent{
   width:50%;
   overflow-y:scroll;
   text-align:left;
@@ -154,6 +156,7 @@ a{
   bottom:0;
   left:0;
   right:0;
+  background:inherit;
 }
 #playerstatus{
   margin:0;
@@ -164,7 +167,7 @@ a{
   display:inline;
 }
 #volumeslider{
-  vertical-align: middle
+  vertical-align:middle
 }
 .addfolder:hover,.starticon:hover{
   border:solid 1px black;
@@ -175,6 +178,22 @@ a{
   border-radius:5px;
   background:red;
 }
+#overlay{
+  display:none;
+  position:absolute;
+  left:15%;
+  right:15%;
+  top:35px;
+  background:cadetblue;
+  color:inherit;
+  border-radius:10px;
+  -webkit-box-shadow:0 0 20px black;
+  -moz-box-shadow:0 0 20px black;
+  box-shadow:0 0 20px black;
+}
+#overlay:hover{
+  cursor:pointer;
+}
 </style>
 </head>
 <body class="noselect">
@@ -182,30 +201,27 @@ a{
   <p id="infobar">&nbsp;</p>
 <div class="tab">
   <div id="tabbar">
-  <button class="tablinks">HOME</button>
   <button class="tablinks" id="librarybutton">LIBRARY</button>
   <button class="tablinks">WEBRADIO</button>
   <button class="tablinks">FAVORITES</button>
   </div>
 </div>
-<div id="HOME" class="tabcontent">
-  <h3 id="showstation"></h3>
-  <p id="bitrate"></p>
-  <p id="streamtitle"></p>
-  <p id="streaminfo"></p>
-  <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
-</div>
 <div id="PLAYLIST" class="tabcontent">
   <p class="errormessage">Waiting for playlist...</p>
 </div>
 <div id="LIBRARY" class="tabcontent">
-  <p class="errormessage">Waiting for library...</p>
+  <p class="errormessage"><svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>connect to library...</p>
 </div>
 <div id="WEBRADIO" class="tabcontent">
 </div>
 <div id="FAVORITES" class="tabcontent">
   <p class="errormessage">Waiting for favorites...</p>
 </div>
+<div id="overlay">
+  <h3 id="showstation"></h3>
+  <p id="streamtitle"></p>
+</div>
+<p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
 <div id="controlpanel">
   <p id="playerstatus">eStreamPlayer32</p>
   <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
@@ -213,26 +229,23 @@ a{
   <p class="playercontrol"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
   <!--<p class="playercontrol"><svg class="icon" id="volumebutton" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></p>-->
   <input class="playercontrol" type="range" min="0" max="21" class="" id="volumeslider" autocomplete="off">
-  <!-- //https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range -->
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
 </div>
 <script>
+const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
+const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
+
+const erroricon = '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>';
+
 var currentpath='/';
 var scrollPos=[]; //array to keep track of nested folders
-var url="http://";
-if (window.location.hostname)url+=window.location.hostname;
-else url+=debugip;
-
-var ws_host="ws://";
-if(window.location.hostname)ws_host+=window.location.hostname+"/ws";
-else ws_host+=debugip+"/ws";
 
 function updateLocationBar(){
-  $('#locationbar').html("Library path: "+currentpath);
+  $('#locationbar').html("Library path: " + currentpath);
 }
 
 function updateLibraryFolder(folder,oldfolder,restorescroll){
-  var jqxhr = $.get(libraryURL+"?folder="+encodeURIComponent(folder))
+  $.get(libraryURL + "?folder=" + encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
@@ -240,35 +253,50 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
     updateLocationBar();
   })
   .fail(function(){
-    $('#LIBRARY').html('<p class="errormessage">ERROR: Could not open "'+libraryURL+"?folder="+encodeURIComponent(folder)+'"</p>');
+    $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "'+libraryURL + "?folder=" + encodeURIComponent(folder) + '"</p>');
     currentpath=oldfolder;
     $('#LIBRARY').css({"opacity":1});
   });
 }
 
 function getPresets(){
-  $.get(url+"/stations")
+  $.get(http_host + "/stations")
   .done(function(data){
-    var stations=data.split('\n');
+    var stations = data.split('\n');
     $('#WEBRADIO').html('');
     stations.forEach(function(item){
-      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+item+'</span></p>');
+      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">' + item + '</span></p>');
     })
   })
   .fail(function(){
-    $('#WEBRADIO').html('<p class="errormessage">ERROR: Could not open station list</p>');
+    $('#WEBRADIO').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open station list</p>');
   });
 }
+
+var overlaytimer;
+function setOverlayTimeOut() {
+  clearTimeout(overlaytimer);
+  overlaytimer = setTimeout(function(){$('#overlay').css('display', 'block');}, 6000);
+}
+
+function showMessage(message){
+  $('#infobar').css("opacity","1");
+  $('#infobar').html(message).animate({"opacity":"0"},{queue:false,duration:2000});
+}
+
 const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
+
 $(document).ready(function(){
-  const addicon='<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
-  var ws=new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3000});
-  ws.onmessage=function(e){
-    var command=e.data.split("\n");
+  var waitForData = true;
+  const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
+  var ws = new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3500});
+
+  ws.onmessage = function(e){
+    var command = e.data.split("\n");
     switch(command[0]){
       case "currentPLitem":
         $('.plitem').css("background-color","");
-        if(-1==command[1]){
+        if(-1 == command[1]){
           $('#playerstatus, #showstation').html("Nothing playing");
         }else{
           $('.plitem').eq(command[1]).css("background-color","cadetblue");
@@ -276,10 +304,10 @@ $(document).ready(function(){
       break;
       case "playlist":
         $('#PLAYLIST').html('');
-        console.log("Items in playlist:"+(command.length-2)/2);
-        var typeicon ="";
-        for(var i=1;i<command.length-1;i=i+2){
-          switch (command[i+1]){
+        console.log("Items in playlist:" + (command.length - 2) / 2);
+        var typeicon = "";
+        for (var i = 1; i < command.length - 1; i = i + 2){
+          switch (command[i + 1]){
             case "FILE" :
               typeicon = '<img src="/libraryicon.svg" class="icon">';
               break;
@@ -296,22 +324,21 @@ $(document).ready(function(){
               typeicon = "";
               break;
           }
-          $('#PLAYLIST').append('<p class="plitem">'+removebutton+typeicon+'<span class="text">'+command[i]+'</span></p>');
+          $('#PLAYLIST').append('<p class="plitem">' + removebutton + typeicon + '<span class="text">' + command[i] + '</span></p>');
         }
       break;
       case "message":
-        $('#infobar').css("opacity","1");
-        $('#infobar').html(command[1]).animate({"opacity":"0"},{queue:false,duration:2000});
+        showMessage(command[1]);
       break;
 
       case "volume":
-        if(command[1])$('#volumeslider').val(command[1]);
+        if (command[1])$('#volumeslider').val(command[1]);
       break;
 
       case "showstation":
-        if(command[1]!="&nbsp;"){
+        if (command[1]!="&nbsp;"){
           $('#playerstatus, #showstation').html(command[1]);
-          if(command[2]=="STREAM"||command[2]=="FAVO")$('#showstation').prepend(addicon);
+          if (command[2] == "STREAM" || command[2] == "FAVO") $('#showstation').prepend(addicon);
         }
       break;
 
@@ -321,9 +348,9 @@ $(document).ready(function(){
 
       case "progress":
         console.log(command[1]);
-        var now=new Date(null);
+        var now = new Date();
         now.setSeconds(command[1]);
-        console.log(now.toISOString().substr(11,8));
+        console.log(now.toISOString().substr(11, 8));
       break;
 /*
       case "bitrate":
@@ -335,9 +362,9 @@ $(document).ready(function(){
       break;
 */
       case "favorites":
-        var content=[];
-        for(i=1;i<command.length-1;i++)
-          content.push('<p class="favoritelink">'+removebutton+'<img src="/starticon.svg" class="icon starticon"><span class="text">'+command[i].substring(1)+'</span></p>');
+        var content = [];
+        for(i = 1; i < command.length - 1; i++)
+          content.push('<p class="favoritelink">' + removebutton + '<img src="/starticon.svg" class="icon starticon"><span class="text">' + command[i].substring(1) + '</span></p>');
         content.sort();
         $('#FAVORITES').html(content);
       break
@@ -345,101 +372,111 @@ $(document).ready(function(){
     }
   };
 
-  ws.onopen=function(event){
+  ws.onopen = function(event){
     console.log('[WebSocket] Connected');
+    $('#showstation').html('');
+    $('#streamtitle').html('');
+    updateLibraryFolder(currentpath);
+    setOverlayTimeOut();
+    getPresets();
   }
-  ws.onclose=function(event){console.log('[WebSocket] Connection died, code='+event.code+' reason='+event.reason);$('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>')};
-  ws.onerror=function(error){console.log('[WebSocket] Error: '+error.message);};
 
-  $('.tablinks').on('click',function(){
-    $('.tablinks').css("background-color","");
-    $(this).css("background-color","darkgrey")
+  ws.onclose = function(event){
+    console.log('[WebSocket] Connection died, code=' + event.code + ' reason=' + event.reason);
+    $('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>');
+    ws.connect();
+  }
+
+  ws.onerror = function(error){
+    console.log('[WebSocket] Error: ' + error.message);
+    ws.refresh();
+  }
+
+  $('.tablinks').on('click', function(){
+    $('.tablinks').css("background-color", "");
+    $(this).css("background-color", "darkgrey")
     switch($(this).text()){
-      case 'HOME':
-        $('#LIBRARY, #WEBRADIO, #FAVORITES, #PLAYLIST').hide();
-        $('#HOME').show();
-      break;
       case 'LIBRARY':
-        $('#HOME, #WEBRADIO, #FAVORITES').hide();
+        $('#WEBRADIO, #FAVORITES').hide();
         $('#LIBRARY, #PLAYLIST').show();
       break;
       case 'WEBRADIO':
-        $('#HOME, #LIBRARY, #FAVORITES').hide();
+        $('#LIBRARY, #FAVORITES').hide();
         $('#WEBRADIO, #PLAYLIST').show();
       break;
       case 'FAVORITES':
-        $('#HOME, #LIBRARY, #WEBRADIO').hide();
+        $('#LIBRARY, #WEBRADIO').hide();
         $('#FAVORITES, #PLAYLIST').show();
       break;
       default:
     }
   });
 
-  $('body').on('click','#uplink',function(){
+  $('body').on('click','#uplink', function(){
     $('#LIBRARY').css({"opacity":0.5});
-    const oldpath=currentpath;
-    if(currentpath.includes('/'))currentpath=currentpath.split('/').slice(0,-1).join('/');
-    if(!currentpath)currentpath='/';
+    const oldpath = currentpath;
+    if(currentpath.includes('/'))currentpath = currentpath.split('/').slice(0,-1).join('/');
+    if(!currentpath) currentpath = '/';
     updateLibraryFolder(currentpath,oldpath,true);
   });
 
-  $('body').on('click','.folderlink',function(){
+  $('body').on('click','.folderlink', function(){
     $('#LIBRARY').css({"opacity":0.5});
-    const oldpath=currentpath;
-    if ('/'!=currentpath)currentpath+="/";
-    currentpath+=$(this).text();
+    const oldpath = currentpath;
+    if ('/' != currentpath) currentpath += '/';
+    currentpath += $(this).text();
     scrollPos.push($('#LIBRARY').scrollTop());
-    updateLibraryFolder(currentpath,oldpath);
+    updateLibraryFolder(currentpath, oldpath);
   });
 
   $('body').on('click','.filelink',function(e){
-    ws.send("filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).text());
+    ws.send("filetoplaylist\n" + libraryURL.substring(0, libraryURL.lastIndexOf('/')) + currentpath+'/'+$(this).text());
     e.stopPropagation();
   });
 
   $('body').on('click','.filelink .starticon',function(e){
-    ws.send("_filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',))+currentpath+'/'+$(this).parent().text());
+    ws.send("_filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',)) + currentpath + '/'+$(this).parent().text());
     e.stopPropagation();
   });
 
   $('body').on('click','.streamlink .starticon',function(e){
-    ws.send("_presetstation\n"+$(this).parent().index());
+    ws.send("_presetstation\n" + $(this).parent().index());
     e.stopPropagation();
   });
 
   $('body').on('click','.favoritelink',function(e){
-    ws.send("favoritetoplaylist\n"+$(this).text());
+    ws.send("favoritetoplaylist\n" + $(this).text());
     e.stopPropagation();
   });
 
   $('body').on('click','.favoritelink .starticon',function(e){
-    ws.send("_favoritetoplaylist\n"+$(this).parent().text());
+    ws.send("_favoritetoplaylist\n" + $(this).parent().text());
     e.stopPropagation();
   });
 
   $('body').on('click','.favoritelink .deletebutton',function(e){
     e.stopPropagation();
     if(!confirm("Are you sure to delete this favorite?"))return;
-    ws.send("deletefavorite\n"+($(this).parent().text()));
+    ws.send("deletefavorite\n" + ($(this).parent().text()));
   });
 
   $('body').on('click','.addfolder, .folderlink .starticon',function(e){
     //TODO: something goes wrong here!
     // we have to check in the .done callback if there are multiple '/' chars at the start of the path
-    var location=libraryURL.substring(0,libraryURL.lastIndexOf('/',libraryURL.length));
-    var requestpath=currentpath+"/"+$(this).parent().text();
-    var content=($(this).hasClass('starticon'))?"_filetoplaylist\n":"filetoplaylist\n";
-    $.get(libraryURL+"?folder="+encodeURIComponent(currentpath)+"/"+encodeURIComponent($(this).parent().text()))
+    var location = libraryURL.substring(0, libraryURL.lastIndexOf('/', libraryURL.length));
+    var requestpath = currentpath + "/" + $(this).parent().text();
+    var content = ($(this).hasClass('starticon')) ? "_filetoplaylist\n" : "filetoplaylist\n";
+    $.get(libraryURL + "?folder=" + encodeURIComponent(currentpath) + "/" + encodeURIComponent($(this).parent().text()))
     .done(function(data){
       //make an invisible navList
-      const nList=document.createElement("div");
-      nList.style.display="none";
-      nList.id="invisFolder";
+      const nList = document.createElement("div");
+      nList.style.display = "none";
+      nList.id = "invisFolder";
       document.body.appendChild(nList);
       $(nList).html(data);
-      if(requestpath.startsWith("//"))requestpath=requestpath.substring(1);  //TODO: FIX! see above
+      if(requestpath.startsWith("//"))requestpath = requestpath.substring(1);  //TODO: FIX! see above
       $('#invisFolder .filelink').each(function(){
-        content+=location+requestpath+'/'+$(this).text()+"\n";
+        content += location+requestpath+'/'+$(this).text()+"\n";
       });
       document.body.removeChild(nList);
       ws.send(content);
@@ -448,11 +485,11 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.plitem',function(){
-    ws.send("playitem\n"+($(this).index('.plitem')-1));
+    ws.send("playitem\n" + ($(this).index('.plitem')-1));
   });
 
   $('body').on('click','.plitem .deletebutton',function(e){
-    ws.send("deleteitem\n"+($(this).index('.deletebutton')));
+    ws.send("deleteitem\n" + ($(this).index('.deletebutton')));
     e.stopPropagation();
   });
 
@@ -477,39 +514,49 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.streamlink',function(){
-    ws.send("presetstation\n"+$(this).index());
+    ws.send("presetstation\n" + $(this).index());
   });
 
   $('#newurl').on('keydown', function(e) {
-    if(e.which==13)$('#newurlbutton').click();
+    if(e.which == 13)$('#newurlbutton').click();
   });
 
   $('body').on('click','#newurlbutton',function(){
-    if(!$('#newurl').val())return
-    ws.send("newurl\n"+$('#newurl').val());
+    if(!$('#newurl').val())return;
+    var newurl = ($('#newurl').val().startsWith('https:')) ? 'http' + $('#newurl').val().substring(5) : $('#newurl').val();
+    ws.send("newurl\n" + newurl.trim());
     $('#newurl').val('');
   });
 
-  $('body').on('click','#addfavorite',function(){
-    var filename=prompt("Enter a filename",$('#showstation').text());
-    if(!filename)return;
-    //TODO: trim the filename from non compliant chars
-    ws.send("currenttofavorites\n"+filename);
+  $('#overlay').on('mouseup','#addfavorite',function(e){
+    e.stopPropagation();
+    const filename = prompt("Enter a filename", $('#showstation').text());
+    if (!filename) return;
+    if (! /^[^\\/:\*\?"<>\|]+$/.test(filename)) {
+      showMessage("not saved - illegal char in name");
+      return;
+    }
+    ws.send("currenttofavorites\n" + filename);
   });
 
   $('body').on('change','#volumeslider',function(e){
     ws.send("volume\n" + this.value);
   });
 
-  //setup and handlers done
-  $('.tabcontent').css('top',$('.tab').height()+($('#locationbar').height()+$('#infobar').height())+"px");
-  $('.tabcontent').css('bottom',$('#controlpanel').css('height'));
+  $('#overlay').on('mouseup', function(){
+    $(this).hide();
+  });
 
-  updateLibraryFolder(currentpath);
+  $('html').on('mouseover mousedown mouseup mousewheel mousemove input scroll resize contextmenu touchstart touchend touchmove touchcancel', function() {
+    setOverlayTimeOut();
+  });
+
+  $('#newurlbar').css('bottom',$('#controlpanel').css('height'));
+  $('.tabcontent').css('top',$('.tab').height() + ($('#locationbar').height() + $('#infobar').height()) + "px");
+  $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");
+
   $('.tablinks').first().click();
-  getPresets();
 });
-
 </script>
 </body>
 </html>

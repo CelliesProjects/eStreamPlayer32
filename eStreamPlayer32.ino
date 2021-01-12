@@ -322,9 +322,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               playListHasEnded();
               return;
             }
-          } else {
-            return;
-          }
+          } else return;
+
           if (item < currentItem) {
             currentItem--;
           }
@@ -336,7 +335,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem > 0) {
             saveVolumeAndStopAudio();
-            audio_showstation("&nbsp;");
             currentItem--;
             currentItem--;
             return;
@@ -349,7 +347,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem < playList.size() - 1) {
             saveVolumeAndStopAudio();
-            audio_showstation("&nbsp;");
             return;
           }
           else return;
