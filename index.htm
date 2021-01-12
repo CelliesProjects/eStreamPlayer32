@@ -186,7 +186,7 @@ a{
   top:35px;
   background:cadetblue;
   color:inherit;
-  border-radius:5px;
+  border-radius:10px;
   -webkit-box-shadow:0 0 20px black;
   -moz-box-shadow:0 0 20px black;
   box-shadow:0 0 20px black;
@@ -210,7 +210,7 @@ a{
   <p class="errormessage">Waiting for playlist...</p>
 </div>
 <div id="LIBRARY" class="tabcontent">
-  <p class="errormessage">Waiting for library...</p>
+  <p class="errormessage"><svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>connect to library...</p>
 </div>
 <div id="WEBRADIO" class="tabcontent">
 </div>
@@ -219,9 +219,7 @@ a{
 </div>
 <div id="overlay">
   <h3 id="showstation"></h3>
-  <p id="bitrate"></p>
   <p id="streamtitle"></p>
-  <p id="streaminfo"></p>
 </div>
 <p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
 <div id="controlpanel">
@@ -231,22 +229,23 @@ a{
   <p class="playercontrol"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
   <!--<p class="playercontrol"><svg class="icon" id="volumebutton" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></p>-->
   <input class="playercontrol" type="range" min="0" max="21" class="" id="volumeslider" autocomplete="off">
-  <!-- //https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/range -->
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
 </div>
 <script>
 const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
 const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
 
+const erroricon = '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>';
+
 var currentpath='/';
 var scrollPos=[]; //array to keep track of nested folders
 
 function updateLocationBar(){
-  $('#locationbar').html("Library path: "+currentpath);
+  $('#locationbar').html("Library path: " + currentpath);
 }
 
 function updateLibraryFolder(folder,oldfolder,restorescroll){
-  $.get(libraryURL+"?folder="+encodeURIComponent(folder))
+  $.get(libraryURL + "?folder=" + encodeURIComponent(folder))
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
@@ -254,23 +253,23 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
     updateLocationBar();
   })
   .fail(function(){
-    $('#LIBRARY').html('<p class="errormessage">ERROR: Could not open "'+libraryURL+"?folder="+encodeURIComponent(folder)+'"</p>');
+    $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "'+libraryURL + "?folder=" + encodeURIComponent(folder) + '"</p>');
     currentpath=oldfolder;
     $('#LIBRARY').css({"opacity":1});
   });
 }
 
 function getPresets(){
-  $.get(http_host+"/stations")
+  $.get(http_host + "/stations")
   .done(function(data){
-    var stations=data.split('\n');
+    var stations = data.split('\n');
     $('#WEBRADIO').html('');
     stations.forEach(function(item){
-      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+item+'</span></p>');
+      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">' + item + '</span></p>');
     })
   })
   .fail(function(){
-    $('#WEBRADIO').html('<p class="errormessage">ERROR: Could not open station list</p>');
+    $('#WEBRADIO').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open station list</p>');
   });
 }
 
@@ -290,7 +289,8 @@ const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
 $(document).ready(function(){
   var waitForData = true;
   const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
-  var ws = new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3000});
+  var ws = new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3500});
+
   ws.onmessage = function(e){
     var command = e.data.split("\n");
     switch(command[0]){
@@ -304,10 +304,10 @@ $(document).ready(function(){
       break;
       case "playlist":
         $('#PLAYLIST').html('');
-        console.log("Items in playlist:"+(command.length-2)/2);
-        var typeicon ="";
-        for(var i=1; i<command.length-1; i=i+2){
-          switch (command[i+1]){
+        console.log("Items in playlist:" + (command.length - 2) / 2);
+        var typeicon = "";
+        for (var i = 1; i < command.length - 1; i = i + 2){
+          switch (command[i + 1]){
             case "FILE" :
               typeicon = '<img src="/libraryicon.svg" class="icon">';
               break;
@@ -332,17 +332,13 @@ $(document).ready(function(){
       break;
 
       case "volume":
-        if(command[1])$('#volumeslider').val(command[1]);
+        if (command[1])$('#volumeslider').val(command[1]);
       break;
 
       case "showstation":
-        if(command[1]!="&nbsp;"){
+        if (command[1]!="&nbsp;"){
           $('#playerstatus, #showstation').html(command[1]);
-          if(command[2]=="STREAM"||command[2]=="FAVO")$('#showstation').prepend(addicon);
-        }
-        if (waitForData) {
-          $('#overlay').css('display', 'block');
-          waitForData = false;
+          if (command[2] == "STREAM" || command[2] == "FAVO") $('#showstation').prepend(addicon);
         }
       break;
 
@@ -352,9 +348,9 @@ $(document).ready(function(){
 
       case "progress":
         console.log(command[1]);
-        var now=new Date(null);
+        var now = new Date();
         now.setSeconds(command[1]);
-        console.log(now.toISOString().substr(11,8));
+        console.log(now.toISOString().substr(11, 8));
       break;
 /*
       case "bitrate":
@@ -378,25 +374,38 @@ $(document).ready(function(){
 
   ws.onopen = function(event){
     console.log('[WebSocket] Connected');
+    $('#showstation').html('');
     $('#streamtitle').html('');
+    updateLibraryFolder(currentpath);
+    setOverlayTimeOut();
+    getPresets();
   }
-  ws.onclose = function(event){console.log('[WebSocket] Connection died, code=' + event.code + ' reason=' + event.reason); $('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>')};
-  ws.onerror = function(error){console.log('[WebSocket] Error: ' + error.message);};
+
+  ws.onclose = function(event){
+    console.log('[WebSocket] Connection died, code=' + event.code + ' reason=' + event.reason);
+    $('#PLAYLIST').html('<p class="errormessage">No WS connection. Reconnecting...</p>');
+    ws.connect();
+  }
+
+  ws.onerror = function(error){
+    console.log('[WebSocket] Error: ' + error.message);
+    ws.refresh();
+  }
 
   $('.tablinks').on('click', function(){
-    $('.tablinks').css("background-color","");
-    $(this).css("background-color","darkgrey")
+    $('.tablinks').css("background-color", "");
+    $(this).css("background-color", "darkgrey")
     switch($(this).text()){
       case 'LIBRARY':
-        $('#HOME, #WEBRADIO, #FAVORITES').hide();
+        $('#WEBRADIO, #FAVORITES').hide();
         $('#LIBRARY, #PLAYLIST').show();
       break;
       case 'WEBRADIO':
-        $('#HOME, #LIBRARY, #FAVORITES').hide();
+        $('#LIBRARY, #FAVORITES').hide();
         $('#WEBRADIO, #PLAYLIST').show();
       break;
       case 'FAVORITES':
-        $('#HOME, #LIBRARY, #WEBRADIO').hide();
+        $('#LIBRARY, #WEBRADIO').hide();
         $('#FAVORITES, #PLAYLIST').show();
       break;
       default:
@@ -407,14 +416,14 @@ $(document).ready(function(){
     $('#LIBRARY').css({"opacity":0.5});
     const oldpath = currentpath;
     if(currentpath.includes('/'))currentpath = currentpath.split('/').slice(0,-1).join('/');
-    if(!currentpath)currentpath = '/';
+    if(!currentpath) currentpath = '/';
     updateLibraryFolder(currentpath,oldpath,true);
   });
 
   $('body').on('click','.folderlink', function(){
     $('#LIBRARY').css({"opacity":0.5});
     const oldpath = currentpath;
-    if ('/' != currentpath)currentpath += "/";
+    if ('/' != currentpath) currentpath += '/';
     currentpath += $(this).text();
     scrollPos.push($('#LIBRARY').scrollTop());
     updateLibraryFolder(currentpath, oldpath);
@@ -514,7 +523,7 @@ $(document).ready(function(){
 
   $('body').on('click','#newurlbutton',function(){
     if(!$('#newurl').val())return;
-    var newurl = ($('#newurl').val().startsWith('https')) ? 'http' + $('#newurl').val().substring(5) : $('#newurl').val();
+    var newurl = ($('#newurl').val().startsWith('https:')) ? 'http' + $('#newurl').val().substring(5) : $('#newurl').val();
     ws.send("newurl\n" + newurl.trim());
     $('#newurl').val('');
   });
@@ -546,13 +555,8 @@ $(document).ready(function(){
   $('.tabcontent').css('top',$('.tab').height() + ($('#locationbar').height() + $('#infobar').height()) + "px");
   $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");
 
-  updateLibraryFolder(currentpath);
   $('.tablinks').first().click();
-  getPresets();
-
-  setOverlayTimeOut();
 });
-
 </script>
 </body>
 </html>
