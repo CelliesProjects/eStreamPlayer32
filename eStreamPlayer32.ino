@@ -252,6 +252,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (pch) {
             const uint8_t volume = atoi(pch);
             audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
+            savedVolume = audio.getVolume();
             volumeIsUpdated = true;
           }
           return;
@@ -285,7 +286,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("clearlist", pch)) {
           if (!playList.size()) return;
-          audio.stopSong();
+          saveVolumeAndStopAudio();
           playList.clear();
           playListHasEnded();
           return;
