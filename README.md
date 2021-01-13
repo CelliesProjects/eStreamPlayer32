@@ -38,22 +38,14 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 ### Setup
 
 1.  Install the drivers for your dac. See [hardware needed](#hardware-needed)
-2.  Adjust your credentials and select your dac in `system_setup.h`.
-3.  Copy the php script to your music folder on the server.
-4.  Change the following line in `index.htm` so it points to the script you just copied to your server:
-<br>`var libraryURL="http://192.168.0.50/muziek/ESP32.php";`
-5.  Save and compress `index.htm` with gzip which produces `index.htm.gz`.
-6.  Use (in a terminal) xxd to convert `index.htm.gz` to a C style header file:
-<br>`xxd -i index.htm.gz > index_htm_gz.h`
-7.  Change the first line in `index_htm_gz.h` to: `const uint8_t index_htm_gz[] = {`
-<br>and change the last line to: `const unsigned int index_htm_gz_len = xxxxxx;`
-where you leave the number xxxxxx unchanged. Save this file.
-8.  The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
-9.  (Arduino IDE) Select `ESP32 Dev Module` as board.
-10.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
-11.  Browse to the ip address shown in the serial port.
+2.  Copy the php script to your music folder on the server.
+3.  Open `system_setup.h` and set your wifi credentials, select a board and set `SCRIPT_URL` to the php script location. Save this file.
+4.  (Note) The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
+5.  (In the Arduino IDE) Select `ESP32 Dev Module` as board.
+6.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
+7.  Browse to the ip address shown in the serial port.
 
-### Hardware needed
+### Supported hardware
 
 Select a board or dac by uncommenting the relevant line in `system_setup.h`.
 
@@ -61,7 +53,7 @@ Select a board or dac by uncommenting the relevant line in `system_setup.h`.
 -  <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with `MCLK` on `GPIO0`.<br>You need the [wm8978-esp32](https://github.com/CelliesProjects/wm8978-esp32) library for this dac.
 -  <b>A1S Audio Kit</b> - Select `A1S_AUDIO_KIT` to compile for ESP32-A1S Audio Kit.<br>You need the [AC101](https://github.com/Yveaux/AC101) library for this dac.
 
-## Software needed
+### Software needed
 
 -  [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) (GNU General Public License v3.0)
 -  [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) (LGPL-3.0 License)
@@ -70,7 +62,7 @@ Select a board or dac by uncommenting the relevant line in `system_setup.h`.
 <br>Apache2 and lighttpd were tested and should work. The php script should be fairly version agnostic.
 <br>Note: Mp3 and aac files should have the `Content-Type: audio/mpeg` http headers set or the decoder will not recognise the files.
 
-## Libraries used in the web interface
+### Libraries used in the web interface
 
 -  The used icons are from [material.io](https://material.io/tools/icons/?style=baseline) and are [available under Apache2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
 -  [Reconnecting WebSocket](https://github.com/joewalnes/reconnecting-websocket) which is [avaiable under MIT licence](https://github.com/joewalnes/reconnecting-websocket/blob/master/LICENSE.txt).
