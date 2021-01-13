@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
 <script>
-var libraryURL="http://192.168.0.30/music/eSP32.php";
 //setting for dev/debug */
-const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.102";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -235,6 +234,8 @@ a{
 const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
 const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
 
+var libraryURL = "";
+
 const erroricon = '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>';
 
 var currentpath='/';
@@ -376,9 +377,19 @@ $(document).ready(function(){
     console.log('[WebSocket] Connected');
     $('#showstation').html('');
     $('#streamtitle').html('');
-    updateLibraryFolder(currentpath);
-    setOverlayTimeOut();
-    getPresets();
+    $.get(http_host + "/scripturl")
+    .done(function(data){
+      libraryURL = data;
+      console.log('script url: ' + data);
+      updateLibraryFolder(currentpath);
+    })
+    .fail(function(data){
+      console.log("could not get script url");
+    })
+    .always(function(){
+      setOverlayTimeOut();
+      getPresets();
+    })
   }
 
   ws.onclose = function(event){
