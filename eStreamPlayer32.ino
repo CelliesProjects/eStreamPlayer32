@@ -287,6 +287,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           saveVolumeAndStopAudio();
           playList.clear();
           playListHasEnded();
+          audio.setVolume(savedVolume);
           return;
         }
 
