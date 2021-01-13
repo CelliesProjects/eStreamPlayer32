@@ -130,9 +130,7 @@ struct {
 } currentToFavorites;
 
 struct {
-  bool requested{false};
   bool updated{false};
-  uint32_t clientId;
 } favorites;
 
 struct {
@@ -378,12 +376,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             currentToFavorites.clientId = client->id();
             currentToFavorites.requested = true;
           }
-          return;
-        }
-
-        else if (!strcmp("favorites", pch)) {
-          favorites.clientId = client->id();
-          favorites.requested = true;
           return;
         }
 
@@ -993,13 +985,6 @@ void loop() {
   if (newUrl.waiting) {
     handlePastedUrl();
     newUrl.waiting = false;
-  }
-
-  if (favorites.requested) {
-    static String s;
-    ws.text(favorites.clientId, favoritesToString(s));
-    ESP_LOGI(TAG, "Favorites requested by client %i", favorites.clientId);
-    favorites.requested = false;
   }
 
   if (favorites.updated) {
