@@ -530,6 +530,14 @@ void startWebServer(void * pvParameters) {
     request->send(response);
   });
 
+  server.on("/scripturl", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    response->print(SCRIPT_URL);
+    request->send(200, HTML_MIMETYPE, SCRIPT_URL);
+  });
+
   static const char* SVG_MIMETYPE{"image/svg+xml"};
   static const char* ACCEPT_ENCODING_HEADER{"Accept-Encoding"};
   static const char* ACCEPT_ENCODING_VALUE{"Vary"};
