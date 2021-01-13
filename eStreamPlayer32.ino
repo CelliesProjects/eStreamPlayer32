@@ -942,8 +942,8 @@ void startCurrentItem() {
   ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
 
   if (startPlaylistItem(item)) {
-    updateHighlightedItemOnClients();
     audio.setVolume(savedVolume);
+    updateHighlightedItemOnClients();
   }
   else
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
