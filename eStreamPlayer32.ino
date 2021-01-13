@@ -535,7 +535,7 @@ void startWebServer(void * pvParameters) {
     AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     response->print(SCRIPT_URL);
-    request->send(200, HTML_MIMETYPE, SCRIPT_URL);
+    request->send(response);
   });
 
   static const char* SVG_MIMETYPE{"image/svg+xml"};
