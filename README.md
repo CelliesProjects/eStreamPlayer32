@@ -45,10 +45,11 @@ The M5 with its slick design and rounded corners&trade; also has a rather good [
 
 ### Setup
 
-1.  Install the drivers for your dac. See [hardware needed](#hardware-needed)
-2.  Copy the php script to your music folder on the server.
-3.  Open `system_setup.h` and set your wifi credentials, select a board and set `SCRIPT_URL` to the php script location. Save this file.
-5.  (In the Arduino IDE) Select `ESP32 Dev Module` as board.
+1.  Download the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32/releases/latest).
+2.  Install the drivers for your dac. See [hardware](#hardware-needed).
+3.  Copy the php script to your music folder on the server.
+4.  Open `system_setup.h` and set your wifi credentials, select a board and set `SCRIPT_URL` to the php script location.
+5.  Select `ESP32 Dev Module` as board.
 6.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
 7.  Browse to the ip address shown in the serial port.
 
