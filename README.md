@@ -17,7 +17,15 @@ The esp32 does not speak 'real' filesystems and uses a php script on the server 
 
 But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
 
-## Screenshots
+When flashed to an M5Stack with the Node base you can see some information on the display.
+
+The M5 with its slick design and rounded corners&trade; also has a rather good [WAF](https://en.wikipedia.org/wiki/Wife_acceptance_factor).
+
+## M5 Stack display
+
+![m5screen](https://user-images.githubusercontent.com/24290108/104571384-4e3fa400-5653-11eb-96ae-2202fb19acbf.png)
+
+## Web interface Screenshots
 
 #### File info overlay
 
@@ -40,10 +48,11 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 1.  Install the drivers for your dac. See [hardware needed](#hardware-needed)
 2.  Copy the php script to your music folder on the server.
 3.  Open `system_setup.h` and set your wifi credentials, select a board and set `SCRIPT_URL` to the php script location. Save this file.
-4.  (Note) The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
 5.  (In the Arduino IDE) Select `ESP32 Dev Module` as board.
 6.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
 7.  Browse to the ip address shown in the serial port.
+
+The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
 
 ### Supported hardware
 
