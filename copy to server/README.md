@@ -1,6 +1,4 @@
-### Use notes.
+### Use notes
 
-Make sure your fileserver serves files with the correct MIME type which is a `Content-Type: audio/mpeg` header.
-
-- Copy this file to the root of your music collection.
-- Adjust `libraryURL` at the top of `index.htm`.
+-  Copy this file to the root of your music collection.
+-  Make sure your fileserver serves mp3 files with the correct MIME type in the `Content-Type` header which should be `Content-Type: audio/mpeg`
