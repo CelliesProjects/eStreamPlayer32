@@ -215,6 +215,7 @@ void audio_id3data(const char *info) {
   ws.printfAll("id3data\n%s", info);
 }
 
+// https://sookocheff.com/post/networking/how-do-websockets-work/
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     String s;
@@ -287,6 +288,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           saveVolumeAndStopAudio();
           playList.clear();
           playListHasEnded();
+
           return;
         }
 
@@ -932,8 +934,6 @@ void startCurrentItem() {
     updateHighlightedItemOnClients();
   else
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
-
-  audio.setVolume(savedVolume);
 }
 
 void loop() {
@@ -950,6 +950,8 @@ void loop() {
 #endif  //M5STACK_NODE
 
   audio.loop();
+
+  audio.setVolume(savedVolume);
 
   ws.cleanupClients();
   /*
