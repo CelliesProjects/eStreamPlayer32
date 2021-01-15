@@ -173,7 +173,7 @@ const String urlEncode(const String& s) {
         break;
       case  39 : encodedstr.concat("%27"); //39 == single quote '
         break;
-      default : encodedstr += s.charAt(i);
+      default : encodedstr.concat(s.charAt(i));
     }
   }
   ESP_LOGD(TAG, "encoded url: %s", encodedstr.c_str());
@@ -184,7 +184,7 @@ void playListHasEnded() {
   currentItem = NOTHING_PLAYING_VAL;
   playerStatus = PLAYLISTEND;
   audio_showstation(NOTHING_PLAYING_STR);
-  audio_showstreamtitle("&nbsp;");
+  audio_showstreamtitle("");
   ESP_LOGD(TAG, "End of playlist.");
 
 #if defined (M5STACK_NODE)
@@ -216,6 +216,8 @@ void audio_id3data(const char *info) {
 }
 
 // https://sookocheff.com/post/networking/how-do-websockets-work/
+// https://noio-ws.readthedocs.io/en/latest/overview_of_websockets.html
+
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     String s;
@@ -243,7 +245,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         ESP_LOGD(TAG, "ws request: %s", reinterpret_cast<char*>(data));
 
-        char *pch = strtok((char*)data, "\n");
+        char *pch = strtok(reinterpret_cast<char*>(data), "\n");
         if (!pch) return;
 
         if (!strcmp("volume", pch)) {
@@ -288,7 +290,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           saveVolumeAndStopAudio();
           playList.clear();
           playListHasEnded();
-
           return;
         }
 
@@ -440,7 +441,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         else {
           ESP_LOGE(TAG, "request for buffer with transfer already running. dropping client %i multi frame transfer", client->id());
           client->text("multi frame currently unavailable. please retry later");
-          //client->flush();
+          client->close();
           return;
         }
       }
@@ -831,7 +832,7 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
         audio.loop();
         bool error = !file.print(item.url.c_str());
         if (!error) {
-          ESP_LOGI(TAG, "FFat file %s written", filename.c_str());
+          ESP_LOGD(TAG, "FFat file %s written", filename.c_str());
         }
         else {
           ESP_LOGE(TAG, "FFat writing to %s failed", filename.c_str());
@@ -842,12 +843,17 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
         return !error;
       }
       break;
-    default : ESP_LOGI(TAG, "Unhandled item.type.");
+    default :
+      {
+        ESP_LOGW(TAG, "Unhandled item.type.");
+        return false;
+      }
   }
 }
 
 void handlePastedUrl() {
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+  saveVolumeAndStopAudio();
   if (audio.connecttohost(urlEncode(newUrl.url))) {
     playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
     currentItem = playList.size() - 1;
@@ -930,9 +936,7 @@ void startCurrentItem() {
 
   ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
 
-  if (startPlaylistItem(item))
-    updateHighlightedItemOnClients();
-  else
+  if (!startPlaylistItem(item))
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
 }
 
@@ -1016,9 +1020,9 @@ void loop() {
       currentItem++;
       startCurrentItem();
     }
-    else {
+    else
       playListHasEnded();
-      updateHighlightedItemOnClients();
-    }
+
+    updateHighlightedItemOnClients();
   }
 }
