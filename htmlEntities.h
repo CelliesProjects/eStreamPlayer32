@@ -80,7 +80,21 @@ String htmlEntities(const char* plaintext) {
         case 0xED :
           result.concat("&iacute;"); // í
           break;
-
+/*
+        case 0xEF :   //Byte Order mark -> https://en.wikipedia.org/wiki/Byte_order_mark - see UTF-8 on that page
+          {
+            const uint8_t firstByte = plaintext[cnt];
+            cnt++;
+            const uint8_t secondByte = plaintext[cnt];
+            if (0xBB == secondByte) {
+              cnt++;
+              const uint8_t thirdByte = plaintext[cnt];
+              if (0xBF != thirdByte) {
+                result.concat("?");
+              }
+            }
+          }
+*/
         case 0xF3 :
           result.concat("&oacute; "); // ó
           break;
@@ -94,7 +108,7 @@ String htmlEntities(const char* plaintext) {
           break;
 
         default : result.concat("?");
-          ESP_LOGE(TAG, "ERROR: Unhandled char 0x%x", plaintext[cnt]);
+          ESP_LOGW(TAG, "ERROR: Unhandled char 0x%x", plaintext[cnt]);
       }
     }
     else
