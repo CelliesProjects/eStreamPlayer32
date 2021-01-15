@@ -220,13 +220,15 @@ void audio_id3data(const char *info) {
 
 void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
-    String s;
-    client->text(playList.toString(s));
+    client->text(VOLUME_HEADER + String(audio.getVolume()));
+    {
+      String s;
+      client->text(playList.toString(s));
+      client->text(favoritesToString(s));
+    }
     client->text(CURRENT_HEADER + String(currentItem));
     client->text(showstation);
     client->text(streamtitle);
-    client->text(VOLUME_HEADER + String(audio.getVolume()));
-    client->text(favoritesToString(s));
     ESP_LOGD(TAG, "ws[%s][%u] connect", server->url(), client->id());
     return;
   } else if (type == WS_EVT_DISCONNECT) {
@@ -527,10 +529,10 @@ void startWebServer(void * pvParameters) {
   server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     for (int i = 0; i < sizeof(preset) / sizeof(source); i++) {
       response->printf("%s\n", preset[i].name.c_str());
     }
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
 
@@ -761,12 +763,10 @@ String& favoritesToString(String& s) {
   }
   s = "favorites\n";
   File file = root.openNextFile();
-  auto counter{0};
   while (file) {
     if (!file.isDirectory()) {
       s.concat(file.name());
       s.concat("\n");
-      counter++;
     }
     file = root.openNextFile();
   }
