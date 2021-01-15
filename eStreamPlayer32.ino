@@ -431,16 +431,18 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
         //allocate info->len bytes of memory
 
-        // we need at least twice the amount of free memory that is requested (buffer + playlist data)
-        if (info->len * 2 > ESP.getFreeHeap()) {
-          client->printf("%sOut of memory.", MESSAGE_HEADER);
-          return;
-        }
-        if (!buffer)
+        if (!buffer) {
+          // we need at least twice the amount of free memory that is requested (buffer + playlist data)
+          if (info->len * 2 > ESP.getFreeHeap()) {
+            client->printf("%sout of memory", MESSAGE_HEADER);
+            client->close();
+            return;
+          }
           buffer = new char[info->len + 1];
+        }
         else {
-          ESP_LOGE(TAG, "request for buffer with transfer already running. dropping client %i multi frame transfer", client->id());
-          client->text("multi frame currently unavailable. please retry later");
+          ESP_LOGE(TAG, "request for buffer but transfer already running. dropping client %i multi frame transfer", client->id());
+          client->printf("%sservice currently unavailable", MESSAGE_HEADER);
           client->close();
           return;
         }
