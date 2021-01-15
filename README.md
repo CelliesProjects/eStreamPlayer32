@@ -4,28 +4,29 @@
 
 An web-based esp32 program to play webradio and mp3/aac files from a lamp or llmp server.
 
--  You control eStreamPlayer with your phone, pc or tablet.
+-  Control eStreamPlayer with your phone, pc or tablet.
 -  Play your local files.
 -  Play preset radio stations.
 -  Add new urls and save them to favorites.
 
-Sound output comes from an external i2s dac.<br>Currently <b>generic i2s dacs</b> (with `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
-
-eStreamPlayer is written for local playback over http.
-
-The esp32 does not speak 'real' filesystems and uses a php script on the server to navigate the music folders. You will need to copy this script to the server.
-
-But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
+Sound output comes from an i2s dac.<br>Currently <b>generic i2s dacs</b> (with `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
 
 When flashed to an M5Stack with the Node base you can see some information on the display.
 
-The M5 with its slick design and rounded corners&trade; also has a rather good [WAF](https://en.wikipedia.org/wiki/Wife_acceptance_factor).
-
-## M5 Stack display
+The M5 with its slick design and rounded corners also has a rather good [WAF](https://en.wikipedia.org/wiki/Wife_acceptance_factor).
 
 ![m5screen](https://user-images.githubusercontent.com/24290108/104571384-4e3fa400-5653-11eb-96ae-2202fb19acbf.png)
 
-## Web interface Screenshots
+### Limitations
+
+eStreamPlayer is written for file playback over http.
+
+The esp32 does not speak NFS or SMB which are common ways to share files over a network.
+<br>Instead eStreamPlayer uses a php script on the server to navigate the music folders. You will need to copy this script to the server.
+
+But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
+
+### Web-interface screenshots
 
 #### File info overlay
 
@@ -59,7 +60,7 @@ The file `partitions.csv` in the sketch folder overrides any partition you selec
 
 Select a board or dac by uncommenting the relevant line in `system_setup.h`.
 
--  <b>Generic i2s dac</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `MCLK`, `BCK`, `WS` and `DOUT`.
+-  <b>Generic i2s dac</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `BCK`, `WS` and `DOUT` and no driver setup.<br>Default pins are `BCK` = 21, `WS` = 26, `DOUT` = 22.
 -  <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with `MCLK` on `GPIO0`.<br>You need the [wm8978-esp32](https://github.com/CelliesProjects/wm8978-esp32) library for this dac.
 -  <b>A1S Audio Kit</b> - Select `A1S_AUDIO_KIT` to compile for ESP32-A1S Audio Kit.<br>You need the [AC101](https://github.com/Yveaux/AC101) library for this dac.
 
