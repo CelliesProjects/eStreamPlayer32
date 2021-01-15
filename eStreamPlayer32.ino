@@ -287,7 +287,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           saveVolumeAndStopAudio();
           playList.clear();
           playListHasEnded();
-          audio.setVolume(savedVolume);
           return;
         }
 
@@ -435,7 +434,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           return;
         }
         if (!buffer)
-          buffer = new char[info->len + 1];  //TODO: check if enough mem is available and if allocation succeeds
+          buffer = new char[info->len + 1];
+        else {
+          ESP_LOGE(TAG, "request for buffer with transfer already running. dropping client %i multi frame transfer", client->id());
+          client->text("multi frame currently unavailable. please retry later");
+          //client->flush();
+          return;
+        }
       }
 
       ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
@@ -533,13 +538,10 @@ void startWebServer(void * pvParameters) {
   });
 
   static const char* SVG_MIMETYPE{"image/svg+xml"};
-  static const char* ACCEPT_ENCODING_HEADER{"Accept-Encoding"};
-  static const char* ACCEPT_ENCODING_VALUE{"Vary"};
 
   server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, radioicon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -547,7 +549,6 @@ void startWebServer(void * pvParameters) {
   server.on("/playicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, playicon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -555,7 +556,6 @@ void startWebServer(void * pvParameters) {
   server.on("/libraryicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, libraryicon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -563,7 +563,6 @@ void startWebServer(void * pvParameters) {
   server.on("/favoriteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, favoriteicon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -571,7 +570,6 @@ void startWebServer(void * pvParameters) {
   server.on("/streamicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, pasteicon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -579,7 +577,6 @@ void startWebServer(void * pvParameters) {
   server.on("/deleteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, deleteicon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -587,7 +584,6 @@ void startWebServer(void * pvParameters) {
   server.on("/addfoldericon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, addfoldericon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -595,7 +591,6 @@ void startWebServer(void * pvParameters) {
   server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, emptyicon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -603,7 +598,6 @@ void startWebServer(void * pvParameters) {
   server.on("/starticon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
     if (htmlUnmodified(request, modifiedDate)) return request->send(304);
     AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, starticon);
-    response->addHeader(ACCEPT_ENCODING_HEADER, ACCEPT_ENCODING_VALUE);
     response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
     request->send(response);
   });
@@ -934,12 +928,12 @@ void startCurrentItem() {
 
   ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
 
-  if (startPlaylistItem(item)) {
-    audio.setVolume(savedVolume);
+  if (startPlaylistItem(item))
     updateHighlightedItemOnClients();
-  }
   else
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
+
+  audio.setVolume(savedVolume);
 }
 
 void loop() {
@@ -988,21 +982,14 @@ void loop() {
     newUrl.waiting = false;
   }
 
-  if (favorites.updated) {
-    static String s;
-    ws.textAll(favoritesToString(s));
-    ESP_LOGI(TAG, "Favorites and clients are updated.");
-    favorites.updated = false;
+  if (favoriteToPlaylist.requested) {
+    handleFavoriteToPlaylist();
+    favoriteToPlaylist.requested = false;
   }
 
   if (currentToFavorites.requested) {
     handleCurrentToFavorites();
     currentToFavorites.requested = false;
-  }
-
-  if (favoriteToPlaylist.requested) {
-    handleFavoriteToPlaylist();
-    favoriteToPlaylist.requested = false;
   }
 
   if (deletefavorite.requested) {
@@ -1013,6 +1000,13 @@ void loop() {
       favorites.updated = true;
     }
     deletefavorite.requested = false;
+  }
+
+  if (favorites.updated) {
+    static String s;
+    ws.textAll(favoritesToString(s));
+    ESP_LOGD(TAG, "Favorites and clients are updated.");
+    favorites.updated = false;
   }
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
