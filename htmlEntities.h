@@ -80,8 +80,9 @@ String htmlEntities(const char* plaintext) {
         case 0xED :
           result.concat("&iacute;"); // í
           break;
-/*
-        case 0xEF :   //Byte Order mark -> https://en.wikipedia.org/wiki/Byte_order_mark - see UTF-8 on that page
+
+        // WIP
+        case 0xEF :   //Byte Order Mark -> https://en.wikipedia.org/wiki/Byte_order_mark - see UTF-8 on that page - seen on 'SUBLIME pure jazz'
           {
             const uint8_t firstByte = plaintext[cnt];
             cnt++;
@@ -94,7 +95,8 @@ String htmlEntities(const char* plaintext) {
               }
             }
           }
-*/
+          break;
+
         case 0xF3 :
           result.concat("&oacute; "); // ó
           break;
