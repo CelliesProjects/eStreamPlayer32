@@ -832,17 +832,11 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
           return false;
         }
         audio.loop();
-        bool error = !file.print(item.url.c_str());
-        if (!error) {
-          ESP_LOGD(TAG, "FFat file %s written", filename.c_str());
-        }
-        else {
-          ESP_LOGE(TAG, "FFat writing to %s failed", filename.c_str());
-        }
+        bool result = file.print(item.url.c_str());
         audio.loop();
         file.close();
-        // TODO: fix the logic here!
-        return !error;
+        ESP_LOGD(TAG, "%s writing to '%s'", result ? "ok" : "WARNING - failed", filename);
+        return result;
       }
       break;
     default :
@@ -957,8 +951,6 @@ void loop() {
 
   audio.loop();
 
-  audio.setVolume(savedVolume);
-
   ws.cleanupClients();
   /*
     static uint32_t previousTime;
@@ -1016,6 +1008,8 @@ void loop() {
     ESP_LOGD(TAG, "Favorites and clients are updated.");
     favorites.updated = false;
   }
+
+  if (audio.getVolume() != savedVolume) audio.setVolume(savedVolume);
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
