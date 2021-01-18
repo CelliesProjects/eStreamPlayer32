@@ -180,15 +180,13 @@ a{
 #overlay{
   display:none;
   position:absolute;
-  left:15%;
-  right:15%;
-  top:35px;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
   background:cadetblue;
   color:inherit;
-  border-radius:10px;
-  -webkit-box-shadow:0 0 20px black;
-  -moz-box-shadow:0 0 20px black;
-  box-shadow:0 0 20px black;
+  opacity:0.93;
 }
 #overlay:hover{
   cursor:pointer;
@@ -234,6 +232,7 @@ a{
 const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
 const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
 const erroricon = '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>';
+const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
 
 var libraryURL = "";
 
@@ -254,7 +253,7 @@ function updateLibraryFolder(folder,oldfolder,restorescroll){
     updateLocationBar();
   })
   .fail(function(){
-    $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "'+libraryURL + "?folder=" + encodeURIComponent(folder) + '"</p>');
+    $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "' + libraryURL + "?folder=" + encodeURIComponent(folder) + '"</p>');
     currentpath=oldfolder;
     $('#LIBRARY').css({"opacity":1});
   });
@@ -277,7 +276,7 @@ function getPresets(){
 var overlaytimer;
 function setOverlayTimeOut() {
   clearTimeout(overlaytimer);
-  overlaytimer = setTimeout(function(){$('#overlay').css('display', 'block');}, 6000);
+  overlaytimer = setTimeout(function(){$('#overlay').css('display', 'block');}, 30000);
 }
 
 function showMessage(message){
@@ -293,15 +292,13 @@ function refreshAllTabs() {
     updateLibraryFolder(currentpath);
   })
   .fail(function(data){
-    console.log("could not get script url");
+    console.log("could not get script url - message: " + data);
   })
   .always(function(){
     setOverlayTimeOut();
     getPresets();
   })
 }
-
-const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
 
 $(document).ready(function(){
   const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
