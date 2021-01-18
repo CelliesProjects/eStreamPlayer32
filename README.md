@@ -47,7 +47,7 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 ### Setup
 
 1.  Download the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32/releases/latest).
-2.  Install the drivers for your dac. See [hardware](#hardware-needed).
+2.  Install the drivers for your dac. See [supported hardware](#supported-hardware).
 3.  Copy the php script to your music folder on the server.
 4.  Open `system_setup.h` and set your wifi credentials, select a board and set `SCRIPT_URL` to the php script location.
 5.  Select `ESP32 Dev Module` as board.
