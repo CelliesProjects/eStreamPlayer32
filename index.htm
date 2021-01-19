@@ -3,7 +3,7 @@
 <head>
 <script>
 //setting for dev/debug */
-const debugip="192.168.0.105";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -191,11 +191,21 @@ a{
 #overlay:hover{
   cursor:pointer;
 }
+#messageoverlay{
+  display:none;
+  position:absolute;
+  top:3px;
+  left:15%;
+  right:15%;
+  background:green;
+  border:solid 1px white;
+  border-radius:5px;
+  padding:10px;
+}
 </style>
 </head>
 <body class="noselect">
-  <p id="locationbar">&nbsp;</p>
-  <p id="infobar">&nbsp;</p>
+<p id="locationbar">&nbsp;</p>
 <div class="tab">
   <div id="tabbar">
   <button class="tablinks" id="librarybutton">LIBRARY</button>
@@ -228,6 +238,7 @@ a{
   <input class="playercontrol" type="range" min="0" max="21" id="volumeslider" value="0">
   <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
 </div>
+<div id="messageoverlay">message overlay</div>
 <script>
 const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
 const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
@@ -279,10 +290,18 @@ function setOverlayTimeOut() {
   overlaytimer = setTimeout(function(){$('#overlay').css('display', 'block');}, 30000);
 }
 
+var onComplete = function() {
+  $('#messageoverlay').html('').width('0');
+};
+
 function showMessage(message){
-  $('#infobar').css("opacity","1");
-  $('#infobar').html(message).animate({"opacity":"0"},{queue:false,duration:2000});
-}
+  $('#messageoverlay').stop().html(message).width('').css("opacity","1").show().animate(
+    {"opacity":"0"},
+    {queue:false,
+      duration:1100,
+      complete: onComplete
+    }
+)};
 
 function refreshAllTabs() {
   $.get(http_host + "/scripturl")
@@ -565,7 +584,7 @@ $(document).ready(function(){
   });
 
   $('#newurlbar').css('bottom',$('#controlpanel').css('height'));
-  $('.tabcontent').css('top',$('.tab').height() + ($('#locationbar').height() + $('#infobar').height()) + "px");
+  $('.tabcontent').css('top',$('.tab').height() + $('#locationbar').height() + "px");
   $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");
 
   $('.tablinks').first().click();
