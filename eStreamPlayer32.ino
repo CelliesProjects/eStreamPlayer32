@@ -681,8 +681,8 @@ void setup() {
     while (true) delay(1000); /* system is halted */;
   }
   audio.i2s_mclk_pin_select(I2S_MCLK);
-  dac.SetVolumeSpeaker(50);
-  dac.SetVolumeHeadphone(100);
+  dac.SetVolumeSpeaker(30);
+  dac.SetVolumeHeadphone(63);
 #endif  //A1S_AUDIO_KIT
 
 #if defined (M5STACK_NODE)
@@ -720,7 +720,7 @@ void setup() {
 #endif  //M5STACK_NODE
 
 #if defined ( GENERIC_I2S_DAC )
-  ESP_LOGI(TAG, "Assuming 'GENERIC_I2S_DAC' - BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
+  ESP_LOGI(TAG, "Starting 'GENERIC_I2S_DAC' - BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
 #endif  //GENERIC_I2S_DAC
 
   if (!WiFi.isConnected()) {
