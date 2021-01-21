@@ -850,13 +850,14 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
 void handlePastedUrl() {
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
   saveVolumeAndStopAudio();
+  audio_showstreamtitle("");
+  audio_showstation("");
   if (audio.connecttohost(urlEncode(newUrl.url))) {
     playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
     playList.isUpdated = true;
     audio_showstation(newUrl.url.c_str());
-    audio_showstreamtitle("");
 
 #if defined (M5STACK_NODE)
     M5_displayItemName({HTTP_STREAM, "", newUrl.url});
@@ -936,37 +937,9 @@ void startCurrentItem() {
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
 }
 
-void loop() {
-
-#if defined (M5STACK_NODE)
-  M5.update();
-
-  if (M5.BtnA.wasReleasefor(10)) {
-    static bool speakerstate{false};
-    speakerstate = !speakerstate;
-    dac.setSPKvol(speakerstate ? 40 : 0);
-    ESP_LOGD(TAG, "Speaker %s", speakerstate ? "on" : "off");
-  }
-#endif  //M5STACK_NODE
-
-  audio.loop();
-
+void handleWebsocketClients() {
   ws.cleanupClients();
-  /*
-    static uint32_t previousTime;
-    if (previousTime != audio.getAudioCurrentTime()) {
-      ESP_LOGI(TAG, "filetime: %i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
-      //ws.textAll("progress\n" + String(audio.getAudioCurrentTime()) +"\n" + String(audio.getAudioFileDuration()) +"\n");
-      previousTime = audio.getAudioCurrentTime();
-    }
 
-    static uint32_t previousPos;
-    if (previousPos != audio.getFilePos()) {
-      ESP_LOGI(TAG, "position :%i - %i", audio.getFilePos(), audio.getFileSize());
-      //ws.textAll("progress\n" + String(audio.getFilePos()) +"\n" + String(audio.getFileSize()) +"\n");
-      previousPos = audio.getFilePos();
-    }
-  */
   if (volumeIsUpdated) {
     ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
     volumeIsUpdated = false;
@@ -1008,8 +981,45 @@ void loop() {
     ESP_LOGD(TAG, "Favorites and clients are updated.");
     favorites.updated = false;
   }
+}
 
-  if (audio.getVolume() != savedVolume) audio.setVolume(savedVolume);
+void loop() {
+
+#if defined (M5STACK_NODE)
+  M5.update();
+
+  if (M5.BtnA.wasReleasefor(10)) {
+    static bool speakerstate{false};
+    speakerstate = !speakerstate;
+    dac.setSPKvol(speakerstate ? 40 : 0);
+    ESP_LOGD(TAG, "Speaker %s", speakerstate ? "on" : "off");
+  }
+#endif  //M5STACK_NODE
+
+  audio.loop();
+
+  if (ws.count())
+    handleWebsocketClients();
+
+  /*
+    static uint32_t previousTime;
+    if (previousTime != audio.getAudioCurrentTime()) {
+      ESP_LOGI(TAG, "filetime: %i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
+      //ws.textAll("progress\n" + String(audio.getAudioCurrentTime()) +"\n" + String(audio.getAudioFileDuration()) +"\n");
+      previousTime = audio.getAudioCurrentTime();
+    }
+
+    static uint32_t previousPos;
+    if (previousPos != audio.getFilePos()) {
+      ESP_LOGI(TAG, "position :%i - %i", audio.getFilePos(), audio.getFileSize());
+      //ws.textAll("progress\n" + String(audio.getFilePos()) +"\n" + String(audio.getFileSize()) +"\n");
+      previousPos = audio.getFilePos();
+    }
+  */
+
+  delay(1);
+
+  audio.setVolume(savedVolume);
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
