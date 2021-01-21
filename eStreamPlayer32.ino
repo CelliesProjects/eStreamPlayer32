@@ -40,7 +40,7 @@ playList playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-#if defined ( A1S_AUDIO_KIT )
+#if defined (A1S_AUDIO_KIT)
 #include <AC101.h>                                      /* https://github.com/Yveaux/AC101 */
 /* A1S Audiokit I2S pins */
 #define I2S_BCK     27
@@ -108,7 +108,7 @@ void M5_displayCurrentAndTotal() {
 }
 #endif  //M5STACK_NODE
 
-#if defined ( GENERIC_I2S_DAC )
+#if defined (GENERIC_I2S_DAC)
 /* I2S pins on Cellie's dev board */
 #define I2S_BCK     21
 #define I2S_WS      26
@@ -152,12 +152,12 @@ void updateHighlightedItemOnClients() {
   ws.textAll(CURRENT_HEADER + String(currentItem));
 }
 
-uint32_t savedVolume{I2S_INITIAL_VOLUME};
-inline __attribute__((always_inline))
-void saveVolumeAndStopAudio() {
-  savedVolume = audio.getVolume();
+void muteVolumeAndStopAudio() {
+  uint32_t savedVolume{audio.getVolume()};
   audio.setVolume(0);
   audio.stopSong();
+  delay(1);
+  audio.setVolume(savedVolume);
 }
 
 const String urlEncode(const String& s) {
@@ -255,7 +255,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (pch) {
             const uint8_t volume = atoi(pch);
             audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
-            savedVolume = audio.getVolume();
             volumeIsUpdated = true;
           }
           return;
@@ -274,7 +273,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
           client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
           if (startnow) {
-            if (audio.isRunning()) saveVolumeAndStopAudio();
+            if (audio.isRunning()) muteVolumeAndStopAudio();
             currentItem = previousSize - 1;
             playerStatus = PLAYING;
             return;
@@ -289,7 +288,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("clearlist", pch)) {
           if (!playList.size()) return;
-          saveVolumeAndStopAudio();
+          muteVolumeAndStopAudio();
           playList.clear();
           playListHasEnded();
           return;
@@ -299,7 +298,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           if (pch) {
             currentItem = atoi(pch);
-            saveVolumeAndStopAudio();
+            muteVolumeAndStopAudio();
             playerStatus = PLAYING;
           }
           return;
@@ -311,7 +310,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!pch) return;
           const uint32_t item = atoi(pch);
           if (item == currentItem) {
-            saveVolumeAndStopAudio();
+            muteVolumeAndStopAudio();
             playList.remove(item);
             if (!playList.size()) {
               playListHasEnded();
@@ -338,7 +337,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem > 0) {
-            saveVolumeAndStopAudio();
+            muteVolumeAndStopAudio();
             currentItem--;
             currentItem--;
             return;
@@ -350,7 +349,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem < playList.size() - 1) {
-            saveVolumeAndStopAudio();
+            muteVolumeAndStopAudio();
             return;
           }
           else return;
@@ -408,7 +407,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
             client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
             if (startnow) {
-              if (audio.isRunning()) saveVolumeAndStopAudio();
+              if (audio.isRunning()) muteVolumeAndStopAudio();
               currentItem = playList.size() - 2;
               playerStatus = PLAYING;
               return;
@@ -482,7 +481,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
             client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
             if (startnow) {
-              if (audio.isRunning()) saveVolumeAndStopAudio();
+              if (audio.isRunning()) muteVolumeAndStopAudio();
               currentItem = previousSize - 1;
               playerStatus = PLAYING;
               return;
@@ -673,7 +672,7 @@ void setup() {
 
   ESP_LOGI(TAG, "Found %i presets", sizeof(preset) / sizeof(source));
 
-#if defined ( A1S_AUDIO_KIT )
+#if defined (A1S_AUDIO_KIT)
   ESP_LOGI(TAG, "Starting 'A1S_AUDIO_KIT' dac");
   if (!dac.begin(I2C_SDA, I2C_SCL))
   {
@@ -719,7 +718,7 @@ void setup() {
   dac.setHPvol(63, 63);
 #endif  //M5STACK_NODE
 
-#if defined ( GENERIC_I2S_DAC )
+#if defined (GENERIC_I2S_DAC)
   ESP_LOGI(TAG, "Starting 'GENERIC_I2S_DAC' - BCK=%i LRC=%i DOUT=%i", I2S_BCK, I2S_WS, I2S_DOUT);
 #endif  //GENERIC_I2S_DAC
 
@@ -849,7 +848,7 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
 
 void handlePastedUrl() {
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
-  saveVolumeAndStopAudio();
+  muteVolumeAndStopAudio();
   audio_showstreamtitle("");
   audio_showstation("");
   if (audio.connecttohost(urlEncode(newUrl.url))) {
@@ -884,7 +883,7 @@ void handleFavoriteToPlaylist() {
   ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
   ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, favoriteToPlaylist.name.c_str());
   if (favoriteToPlaylist.startNow) {
-    if (audio.isRunning()) saveVolumeAndStopAudio();
+    if (audio.isRunning()) muteVolumeAndStopAudio();
     currentItem = playList.size() - 2;
     playerStatus = PLAYING;
     return;
@@ -1018,8 +1017,6 @@ void loop() {
   */
 
   delay(1);
-
-  audio.setVolume(savedVolume);
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
