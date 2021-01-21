@@ -3,7 +3,7 @@
 String& playList::toString(String& s) {
   s = "playlist\n";
   if (list.size()) {
-    for (auto& item : list) {
+    for (const auto& item : list) {
       switch (item.type) {
 
         case HTTP_FILE :
