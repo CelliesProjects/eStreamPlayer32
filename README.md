@@ -67,6 +67,7 @@ Select a board or dac by uncommenting the relevant line in `system_setup.h`.
 ### Software needed
 
 -  [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) (GNU General Public License v3.0)
+<br>It seems there is an issue somewhere north of [ESP32-audioI2S@9cdddb4](https://github.com/schreibfaul1/ESP32-audioI2S/commit/9cdddb493bec542aa7478ff91b83e4cd12f59db4). So use this or an earlier version until this issue is resolved.
 -  [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) (LGPL-3.0 License)
 -  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (LGPL-3.0 License)
 -  A [lamp](https://en.wikipedia.org/wiki/LAMP_%28software_bundle%29) or llmp webstack to serve local files.
