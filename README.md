@@ -1,4 +1,4 @@
-# eStreamPlayer32
+#  eStreamPlayer32
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/09914153dbf84e17bd03149ed945e79c)](https://app.codacy.com/gh/CelliesProjects/eStreamPlayer32?utm_source=github.com&utm_medium=referral&utm_content=CelliesProjects/eStreamPlayer32&utm_campaign=Badge_Grade)
 
@@ -17,16 +17,19 @@ The M5 with its slick design and rounded corners also has a rather good [WAF](ht
 
 ![m5screen](https://user-images.githubusercontent.com/24290108/104571384-4e3fa400-5653-11eb-96ae-2202fb19acbf.png)
 
-### Limitations
+###  Limitations
 
-eStreamPlayer is written for file playback over http.
+eStreamPlayer is written for playback over http.
 
 The esp32 does not speak NFS or SMB which are common ways to share files over a network.
-<br>Instead eStreamPlayer uses a php script on the server to navigate the music folders. You will need to copy this script to the server.
+<br>Instead eStreamPlayer uses a php script on the server to navigate the music folders. 
+<br>Copy this script to the server to use your music library.
+
+#### This is totally insecure and should only be used on a LAN! 
 
 But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
 
-### Web-interface screenshots
+###  Web-interface screenshots
 
 #### File info overlay
 
@@ -77,7 +80,7 @@ Select a board or dac by uncommenting the relevant line in `system_setup.h`.
 ### Libraries used in the web interface
 
 -  The used icons are from [material.io](https://material.io/tools/icons/?style=baseline) and are [available under Apache2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
--  [Reconnecting WebSocket](https://github.com/joewalnes/reconnecting-websocket) which is [avaiable under MIT licence](https://github.com/joewalnes/reconnecting-websocket/blob/master/LICENSE.txt).
+-  [Reconnecting WebSocket](https://github.com/joewalnes/reconnecting-websocket) which is [available under MIT licence](https://github.com/joewalnes/reconnecting-websocket/blob/master/LICENSE.txt).
 -  [Google Roboto font](https://fonts.google.com/specimen/Roboto) which is [available under Apache2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
 -  [jQuery 3.4.1](https://code.jquery.com/jquery-3.4.1.js) which is [available under MIT license](https://jquery.org/license/).
 
