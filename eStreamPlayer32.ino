@@ -9,7 +9,7 @@
 #include "index_htm_gz.h"
 #include "icons.h"
 
-#define HTTP_RUN_CORE       1
+#define HTTP_RUN_CORE       0
 
 #define I2S_MAX_VOLUME      21
 #define I2S_INITIAL_VOLUME  5
@@ -778,29 +778,29 @@ bool startPlaylistItem(const playListItem& item) {
       ESP_LOGD(TAG, "STARTING file: %s", item.url.c_str());
       audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
       audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
-      audio.connecttohost(urlEncode(item.url));
+      audio.connecttohost(urlEncode(item.url).c_str());
       break;
     case HTTP_STREAM :
       ESP_LOGD(TAG, "STARTING stream: %s", item.url.c_str());
       audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
       audio_showstreamtitle("");
-      audio.connecttohost(urlEncode(item.url));
+      audio.connecttohost(urlEncode(item.url).c_str());
       break;
     case HTTP_PRESET :
       ESP_LOGD(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
       audio_showstreamtitle("");
       audio_showstation(preset[item.index].name.c_str());
-      audio.connecttohost(urlEncode(preset[item.index].url));
+      audio.connecttohost(urlEncode(preset[item.index].url).c_str());
       break;
     case HTTP_FAVORITE :
       ESP_LOGD(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
       audio_showstation(item.name.c_str());
       audio_showstreamtitle("");
-      audio.connecttohost(urlEncode(item.url));
+      audio.connecttohost(urlEncode(item.url).c_str());
       break;
     case SDCARD_FILE :
       ESP_LOGD(TAG, "STARTING sd file: %s", item.url.c_str());
-      audio.connecttoSD(item.url);
+      audio.connecttoSD(item.url.c_str());
       break;
     default : ESP_LOGE(TAG, "Unhandled item.type.");
   }
@@ -851,7 +851,7 @@ void handlePastedUrl() {
   muteVolumeAndStopAudio();
   audio_showstreamtitle("");
   audio_showstation("");
-  if (audio.connecttohost(urlEncode(newUrl.url))) {
+  if (audio.connecttohost(urlEncode(newUrl.url).c_str())) {
     playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
