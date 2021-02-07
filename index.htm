@@ -3,7 +3,7 @@
 <head>
 <script>
 //setting for dev/debug */
-const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.10";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -308,7 +308,9 @@ function refreshAllTabs() {
   .done(function(data){
     libraryURL = data;
     console.log('script url: ' + data);
-    updateLibraryFolder(currentpath);
+    scrollPos.push($('#LIBRARY').scrollTop());
+    updateLibraryFolder(currentpath, '', true);
+
   })
   .fail(function(data){
     console.log("could not get script url - message: " + data);
@@ -410,8 +412,10 @@ $(document).ready(function(){
 
   ws.onclose = function(event){
     console.log('[WebSocket] Connection died, code=' + event.code + ' reason=' + event.reason);
-    $('#PLAYLIST').html('<p class="errormessage">'+ erroricon + 'No WS connection. Reconnecting...</p>');
-    ws.open();
+    if ('visible' === document.visibilityState) {
+      $('#PLAYLIST').html('<p class="errormessage">'+ erroricon + 'No WS connection. Reconnecting...</p>');
+      ws.open();
+    }
   }
 
   ws.onerror = function(error){
@@ -579,8 +583,15 @@ $(document).ready(function(){
   });
 
   document.addEventListener('visibilitychange', e =>{
-    if (document.visibilityState === 'visible')
-      refreshAllTabs();
+    switch (document.visibilityState) {
+      case 'visible' :
+        ws.open();
+      break;
+      case 'hidden' :
+        ws.close();
+      break;
+      default :
+    }
   });
 
   $('#newurlbar').css('bottom',$('#controlpanel').css('height'));
