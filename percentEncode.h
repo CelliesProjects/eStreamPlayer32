@@ -2,7 +2,7 @@
 
 // https://www.fon.hum.uva.nl/praat/manual/Special_symbols.html
 
-String htmlEntities(const char* plaintext) {
+String percentEncode(const char* plaintext) {
   String result{};
   uint32_t cnt{0};
   while (plaintext[cnt] != 0) {
