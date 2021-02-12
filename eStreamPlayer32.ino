@@ -426,8 +426,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
       //message is comprised of multiple frames or the frame is split into multiple packets
       static char* buffer = nullptr;
       if (info->index == 0) {
-        if (info->num == 0)
+        if (info->num == 0) {
           ESP_LOGD(TAG, "ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
+        }
 
         ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
         //allocate info->len bytes of memory
@@ -622,6 +623,8 @@ void startWebServer(void * pvParameters) {
 }
 
 void setup() {
+  audio.setVolume(0);
+
   btStop();
 
 #if defined (M5STACK_NODE)
@@ -713,8 +716,9 @@ void setup() {
   }
   M5_displayCurrentAndTotal();
   M5.Lcd.display();
-  audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.setSPKvol(0);
+  dac.setHPvol(0, 0);
+  audio.i2s_mclk_pin_select(I2S_MCLK);
   dac.setHPvol(63, 63);
 #endif  //M5STACK_NODE
 
@@ -741,8 +745,6 @@ void setup() {
 
   time(&bootTime);
 
-  audio.setVolume(I2S_INITIAL_VOLUME);
-
   xTaskCreatePinnedToCore(
     startWebServer,
     "http_ws",
@@ -751,6 +753,8 @@ void setup() {
     5,
     NULL,
     HTTP_RUN_CORE);
+
+  audio.setVolume(I2S_INITIAL_VOLUME);
 }
 
 String& favoritesToString(String& s) {
