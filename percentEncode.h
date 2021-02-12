@@ -84,16 +84,22 @@ String percentEncode(const char* plaintext) {
         // WIP
         case 0xEF :   //Byte Order Mark -> https://en.wikipedia.org/wiki/Byte_order_mark - see UTF-8 on that page - seen on 'SUBLIME pure jazz'
           {
-            const uint8_t firstByte = plaintext[cnt];
             cnt++;
             const uint8_t secondByte = plaintext[cnt];
-            if (0xBB == secondByte) {
-              cnt++;
-              const uint8_t thirdByte = plaintext[cnt];
-              if (0xBF != thirdByte) {
-                result.concat("?");
-              }
+            if (0xBB != secondByte) {
+              result.concat("?");
+              ESP_LOGE(TAG, "Invalid byte sequence. Dropped 2 bytes.");
+              break;
             }
+            cnt++;
+            const uint8_t thirdByte = plaintext[cnt];
+            if (0xBF != thirdByte) {
+              result.concat("?");
+              ESP_LOGE(TAG, "Invalid byte sequence. Dropped 3 bytes.");
+              break;
+            }
+            /* if arrived here, we have the sequence 0xEF,0xBB,0xBF which is a BOM and codes for no output */
+            ESP_LOGD(TAG, "Byte Order Mark skipped");
           }
           break;
 
