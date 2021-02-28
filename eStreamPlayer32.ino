@@ -115,7 +115,7 @@ void M5_displayCurrentAndTotal() {
 #define I2S_DOUT    22
 #endif  //GENERIC_I2S_DAC
 
-Audio audio(I2S_BCK, I2S_WS, I2S_DOUT);
+Audio audio;
 
 struct {
   bool waiting{false};
@@ -754,6 +754,7 @@ void setup() {
     NULL,
     HTTP_RUN_CORE);
 
+  audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
   audio.setVolume(I2S_INITIAL_VOLUME);
 }
 
@@ -853,9 +854,10 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
 void handlePastedUrl() {
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
   muteVolumeAndStopAudio();
-  audio_showstreamtitle("");
+  audio_showstreamtitle("starting new stream");
   audio_showstation("");
   if (audio.connecttohost(urlEncode(newUrl.url).c_str())) {
+    ESP_LOGI(TAG, "url started successful");
     playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
@@ -868,9 +870,12 @@ void handlePastedUrl() {
 
   }
   else {
+    char buff[100];
+    snprintf(buff, sizeof(buff), "%sFailed to play stream", MESSAGE_HEADER);
+    ws.text(newUrl.clientId, buff);
     playListHasEnded();
-    ws.printf(newUrl.clientId, "%sFailed to play stream", MESSAGE_HEADER);
     updateHighlightedItemOnClients();
+    ESP_LOGI(TAG, "url failed to start");
   }
 }
 
