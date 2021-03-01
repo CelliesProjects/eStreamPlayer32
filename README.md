@@ -55,11 +55,16 @@ Use [ESP32 Arduino Core v1.0.5](https://github.com/espressif/arduino-esp32/relea
 2.  Install the drivers for your dac. See [supported hardware](#supported-hardware).
 3.  Copy the php script to your music folder on the server.
 4.  Open `system_setup.h` and set your wifi credentials, select a board and set `SCRIPT_URL` to the php script location.
-5.  Select `ESP32 Dev Module` as board.
+5.  Select your board type or `ESP32 Dev Module` as board.
 6.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
-7.  Browse to the ip address shown in the serial port.
+7.  On first boot or after a flash erase the fatfs has to be formatted. This will take a couple of seconds.
+<br>Flashing an update will not erase the fatfs data.
+<br>You can monitor the boot progress on the serial port.
+8.  Browse to the ip address shown on the serial port.
 
-The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258
+### Partition table
+The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258 and https://github.com/espressif/arduino-esp32/pull/3328.  
+<br>The included partition table sets a 2MB app space with 2MB fatfs and no ota.
 
 ### Supported hardware
 
