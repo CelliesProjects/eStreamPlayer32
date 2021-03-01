@@ -594,6 +594,10 @@ $(document).ready(function(){
     }
   });
 
+  document.addEventListener('unload', (event) => {
+    ws.close();
+  });
+
   $('#newurlbar').css('bottom',$('#controlpanel').css('height'));
   $('.tabcontent').css('top',$('.tab').height() + $('#locationbar').height() + "px");
   $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");
