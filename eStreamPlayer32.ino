@@ -637,7 +637,9 @@ void setup() {
   M5.Lcd.drawString("-eStreamPlayer32-", M5.Lcd.width() / 2, 0);
 #endif  //M5STACK_NODE
 
-  if (psramInit()) ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
+  if (psramInit()) {
+    ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
+  }
 
   /* check if a ffat partition is defined and halt the system if it is not defined*/
   if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
@@ -691,8 +693,9 @@ void setup() {
   M5_displayItemName({HTTP_FAVORITE, "Connecting..."});
 #endif  //M5STACK_NODE
 
-  if (SET_STATIC_IP && !WiFi.config(STATIC_IP, GATEWAY, SUBNET, PRIMARY_DNS, SECONDARY_DNS))
+  if (SET_STATIC_IP && !WiFi.config(STATIC_IP, GATEWAY, SUBNET, PRIMARY_DNS, SECONDARY_DNS)) {
     ESP_LOGE(TAG, "Setting static IP failed");
+  }
 
   WiFi.begin(SSID, PSK);
   WiFi.setSleep(false);
