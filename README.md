@@ -63,8 +63,8 @@ Use [ESP32 Arduino Core v1.0.5](https://github.com/espressif/arduino-esp32/relea
 8.  Browse to the ip address shown on the serial port.
 
 ### Partition table
-The file `partitions.csv` in the sketch folder overrides any partition you select in the Arduino IDE. If you want another partition table, you can rename, delete or edit this file. See https://github.com/espressif/arduino-esp32/issues/2258 and https://github.com/espressif/arduino-esp32/pull/3328.  
-<br>The included partition table sets a 2MB app space with 2MB fatfs and no ota.
+
+Select `Tools->Partition Scheme->No OTA(2MB APP/2MB FATFS)`.<br>If your board does not have that option you can select `ESP32 Dev Module` in `Tools->Board`.
 
 ### Supported hardware
 
