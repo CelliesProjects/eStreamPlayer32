@@ -13,7 +13,6 @@ Sound output comes from an i2s dac.<br>Currently <b>generic i2s dacs</b> (with `
 
 When flashed to an M5Stack with the Node base you can see some information on the display.
 
-The M5 with its slick design and rounded corners also has a rather good [WAF](https://en.wikipedia.org/wiki/Wife_acceptance_factor).
 
 ![m5screen](https://user-images.githubusercontent.com/24290108/104571384-4e3fa400-5653-11eb-96ae-2202fb19acbf.png)
 
