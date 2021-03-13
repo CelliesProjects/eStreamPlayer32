@@ -108,13 +108,6 @@ void M5_displayCurrentAndTotal() {
 }
 #endif  //M5STACK_NODE
 
-#if defined (GENERIC_I2S_DAC)
-/* I2S pins on Cellie's dev board */
-#define I2S_BCK     21
-#define I2S_WS      26
-#define I2S_DOUT    22
-#endif  //GENERIC_I2S_DAC
-
 Audio audio;
 
 struct {
@@ -332,7 +325,33 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           return;
         }
-
+        /*
+                else if (!strcmp("pause", pch)) {
+                  switch (playerStatus) {
+                    case PAUSED :{
+                      const uint8_t savedVolume = audio.getVolume();
+                      audio.setVolume(0);
+                      audio.pauseResume();
+                      audio.loop();
+                      audio.setVolume(savedVolume);
+                      playerStatus = PLAYING;
+                      //send play icon to clients
+                    }
+                    break;
+                    case PLAYING : {
+                      const uint8_t savedVolume = audio.getVolume();
+                      audio.setVolume(0);
+                      audio.pauseResume();
+                      delay(2);
+                      audio.setVolume(savedVolume);
+                      playerStatus = PAUSED;
+                      //send pause icon to clients
+                    }
+                    break;
+                    default : {};
+                  }
+                }
+        */
         else if (!strcmp("previous", pch)) {
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
@@ -354,13 +373,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           else return;
         }
-        /*
-                else if (!strcmp("pause", pch)) {
-                  if (PLAYING == playerStatus) playerStatus = PAUSED;
-                  else if (PAUSED == playerStatus) playerStatus = PLAYING;
-                  if (PLAYLISTEND != playerStatus) audio.pauseResume();
-                }
-        */
 
         else if (!strcmp("newurl", pch)) {
           pch = strtok(NULL, "\n");
@@ -859,9 +871,10 @@ void handlePastedUrl() {
   muteVolumeAndStopAudio();
   audio_showstreamtitle("starting new stream");
   audio_showstation("");
-  if (audio.connecttohost(urlEncode(newUrl.url).c_str())) {
+  const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
+  if (startPlaylistItem(item)) {
     ESP_LOGI(TAG, "url started successful");
-    playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
+    playList.add(item);
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
     playList.isUpdated = true;
@@ -884,8 +897,7 @@ void handlePastedUrl() {
 
 void handleFavoriteToPlaylist() {
   File file = FFat.open("/" + favoriteToPlaylist.name);
-  static String url;
-  url = "";
+  String url;
   if (file) {
     while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
       url += (char)file.read();
@@ -907,7 +919,7 @@ void handleFavoriteToPlaylist() {
 }
 
 void handlePlaylistUpdate() {
-  static String s;
+  String s;
   ws.textAll(playList.toString(s));
   updateHighlightedItemOnClients();
 
@@ -919,11 +931,11 @@ void handlePlaylistUpdate() {
 }
 
 void handleCurrentToFavorites() {
-  static playListItem item;
+  playListItem item;
   playList.get(currentItem, item);
 
   if (saveItemToFavorites(item, currentToFavorites.filename)) {
-    static String s;
+    String s;
     ws.textAll(favoritesToString(s));
     ws.printfAll("%sAdded '%s' to favorites!", MESSAGE_HEADER, currentToFavorites.filename.c_str());
   }
@@ -934,7 +946,7 @@ void handleCurrentToFavorites() {
 }
 
 void startCurrentItem() {
-  static playListItem item;
+  playListItem item;
   playList.get(currentItem, item);
 
 #if defined (M5STACK_NODE)
@@ -987,7 +999,7 @@ void handleWebsocketClients() {
   }
 
   if (favorites.updated) {
-    static String s;
+    String s;
     ws.textAll(favoritesToString(s));
     ESP_LOGD(TAG, "Favorites and clients are updated.");
     favorites.updated = false;
@@ -1027,8 +1039,6 @@ void loop() {
       previousPos = audio.getFilePos();
     }
   */
-
-  delay(1);
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {

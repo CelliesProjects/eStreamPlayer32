@@ -8,6 +8,13 @@ const char * PSK = "xxx";
 //#define   A1S_AUDIO_KIT
 //#define   M5STACK_NODE
 
+#if defined (GENERIC_I2S_DAC)
+/* I2S pins on Cellie's dev board */
+#define I2S_BCK     21
+#define I2S_WS      26
+#define I2S_DOUT    22
+#endif  //GENERIC_I2S_DAC
+
 /* SCRIPT_URL should point to the php script on the music file server */
 const char * SCRIPT_URL = "http://192.168.0.30/music/eSP32.php";
 
