@@ -36,7 +36,7 @@ int currentItem {NOTHING_PLAYING_VAL};
 
 bool volumeIsUpdated{false};
 
-playList playList;
+playList_t playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 

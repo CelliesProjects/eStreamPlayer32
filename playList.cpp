@@ -1,6 +1,6 @@
 #include "playList.h"
 
-String& playList::toString(String& s) {
+String& playList_t::toString(String& s) {
   s = "playlist\n";
   if (list.size()) {
     for (const auto& item : list) {

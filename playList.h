@@ -17,14 +17,14 @@ struct playListItem {
   uint32_t index;
 };
 
-class playList {
+class playList_t {
 
   public:
-    playList() {
+    playList_t() {
       ESP_LOGD(TAG, "allocating %i items", PLAYLIST_MAX_ITEMS);
       list.reserve(PLAYLIST_MAX_ITEMS);
     }
-    ~playList() {
+    ~playList_t() {
       list.clear();
     }
     int size() {
