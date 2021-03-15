@@ -887,7 +887,6 @@ void handlePastedUrl() {
     playList.add(item);
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
-    playList.isUpdated = true;
     audio_showstation(newUrl.url.c_str());
 
 #if defined (M5STACK_NODE)
