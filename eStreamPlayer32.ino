@@ -14,6 +14,10 @@
 #define I2S_MAX_VOLUME      21
 #define I2S_INITIAL_VOLUME  5
 
+const char* VERSION_STRING {
+  "eStreamPlayer32 v1.0.3"
+};
+
 enum {
   PAUSED,
   PLAYING,
@@ -177,7 +181,7 @@ void playListHasEnded() {
   currentItem = NOTHING_PLAYING_VAL;
   playerStatus = PLAYLISTEND;
   audio_showstation(NOTHING_PLAYING_STR);
-  audio_showstreamtitle("");
+  audio_showstreamtitle(VERSION_STRING);
   updateHighlightedItemOnClients();
   ESP_LOGD(TAG, "End of playlist.");
 
@@ -222,7 +226,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
     }
     client->text(CURRENT_HEADER + String(currentItem));
     client->text(showstation);
-    client->text(streamtitle);
+    if (currentItem != NOTHING_PLAYING_VAL)
+      client->text(streamtitle);
+    else {
+      char buffer[200];
+      snprintf(buffer, sizeof(buffer), "streamtitle\n%s", VERSION_STRING);
+      client->text(buffer);
+    }
     ESP_LOGD(TAG, "ws[%s][%u] connect", server->url(), client->id());
     return;
   } else if (type == WS_EVT_DISCONNECT) {
@@ -890,7 +900,6 @@ void handlePastedUrl() {
     snprintf(buff, sizeof(buff), "%sFailed to play stream", MESSAGE_HEADER);
     ws.text(newUrl.clientId, buff);
     playListHasEnded();
-    updateHighlightedItemOnClients();
     ESP_LOGI(TAG, "url failed to start");
   }
 }
