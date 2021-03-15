@@ -178,6 +178,7 @@ void playListHasEnded() {
   playerStatus = PLAYLISTEND;
   audio_showstation(NOTHING_PLAYING_STR);
   audio_showstreamtitle("");
+  updateHighlightedItemOnClients();
   ESP_LOGD(TAG, "End of playlist.");
 
 #if defined (M5STACK_NODE)
@@ -301,10 +302,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!playList.size()) return;
           pch = strtok(NULL, "\n");
           if (!pch) return;
-          const uint32_t item = atoi(pch);
-          if (item == currentItem) {
+          const uint32_t index = atoi(pch);
+          if (index == currentItem) {
             muteVolumeAndStopAudio();
-            playList.remove(item);
+            playList.remove(index);
             if (!playList.size()) {
               playListHasEnded();
               return;
@@ -312,17 +313,16 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             currentItem--;
             return;
           }
-          if (item < playList.size()) {
-            playList.remove(item);
+          if (index < playList.size()) {
+            playList.remove(index);
             if (!playList.size()) {
               playListHasEnded();
               return;
             }
           } else return;
 
-          if (item < currentItem) {
+          if (currentItem != NOTHING_PLAYING_VAL && index < currentItem)
             currentItem--;
-          }
           return;
         }
         /*
@@ -958,6 +958,8 @@ void startCurrentItem() {
 
   if (!startPlaylistItem(item))
     ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
+
+  updateHighlightedItemOnClients();
 }
 
 void handleWebsocketClients() {
@@ -1047,7 +1049,5 @@ void loop() {
     }
     else
       playListHasEnded();
-
-    updateHighlightedItemOnClients();
   }
 }
