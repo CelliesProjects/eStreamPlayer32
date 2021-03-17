@@ -911,6 +911,11 @@ void handleFavoriteToPlaylist() {
       url += (char)file.read();
     file.close();
   }
+  else {
+    ESP_LOGE(TAG, "Could not open %s", favoriteToPlaylist.name.c_str());
+    ws.printfAll("%sCould not add '%s' to playlist", MESSAGE_HEADER, favoriteToPlaylist.name.c_str());
+    return;
+  }
   playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
   ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
   ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, favoriteToPlaylist.name.c_str());
