@@ -991,12 +991,7 @@ void handleWebsocketClients() {
     handlePastedUrl();
     newUrl.waiting = false;
   }
-  /*
-    if (favoriteToPlaylist.requested) {
-      handleFavoriteToPlaylist();
-      favoriteToPlaylist.requested = false;
-    }
-  */
+
   if (currentToFavorites.requested) {
     handleCurrentToFavorites();
     currentToFavorites.requested = false;
