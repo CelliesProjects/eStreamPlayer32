@@ -399,10 +399,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("favoritetoplaylist", pch) ||
                  !strcmp("_favoritetoplaylist", pch)) {
+          const bool startNow = (pch[0] == '_');
           pch = strtok(NULL, "\n");
           if (pch) {
             String filename = pch;
-            handleFavoriteToPlaylist(filename, (pch[0] == '_'));
+            handleFavoriteToPlaylist(filename, startNow);
           }
           return;
         }
