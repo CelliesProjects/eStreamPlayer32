@@ -130,12 +130,6 @@ struct {
   bool updated{false};
 } favorites;
 
-struct {
-  bool requested{false};
-  String name;
-  uint32_t clientId;
-} deletefavorite;
-
 time_t bootTime;
 
 inline __attribute__((always_inline))
@@ -414,8 +408,16 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         }
 
         else if (!strcmp("deletefavorite", pch)) {
-          deletefavorite.name = strtok(NULL, "\n");
-          deletefavorite.requested = true;
+          pch = strtok(NULL, "\n");
+          if (pch) {
+            String filename = pch;
+            if (!FFat.remove("/" + filename)) {
+              ws.printf(client->id(), "%sCould not delete %s", MESSAGE_HEADER, filename.c_str());
+            } else {
+              ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, filename.c_str());
+              favorites.updated = true;
+            }
+          }
           return;
         }
 
@@ -995,16 +997,6 @@ void handleWebsocketClients() {
   if (currentToFavorites.requested) {
     handleCurrentToFavorites();
     currentToFavorites.requested = false;
-  }
-
-  if (deletefavorite.requested) {
-    if (!FFat.remove("/" + deletefavorite.name)) {
-      ws.printf(deletefavorite.clientId, "%sCould not delete %s", MESSAGE_HEADER, deletefavorite.name.c_str());
-    } else {
-      ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, deletefavorite.name.c_str());
-      favorites.updated = true;
-    }
-    deletefavorite.requested = false;
   }
 
   if (favorites.updated) {
