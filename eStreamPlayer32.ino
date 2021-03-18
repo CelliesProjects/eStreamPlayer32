@@ -402,8 +402,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           const bool startNow = (pch[0] == '_');
           pch = strtok(NULL, "\n");
           if (pch) {
-            String filename = pch;
-            handleFavoriteToPlaylist(filename, startNow);
+            handleFavoriteToPlaylist((String)pch, startNow);
           }
           return;
         }
@@ -411,11 +410,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         else if (!strcmp("deletefavorite", pch)) {
           pch = strtok(NULL, "\n");
           if (pch) {
-            String filename = pch;
-            if (!FFat.remove("/" + filename)) {
-              ws.printf(client->id(), "%sCould not delete %s", MESSAGE_HEADER, filename.c_str());
+            if (!FFat.remove("/" + (String)pch)) {
+              ws.printf(client->id(), "%sCould not delete %s", MESSAGE_HEADER, pch);
             } else {
-              ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, filename.c_str());
+              ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, pch);
               favorites.updated = true;
             }
           }
