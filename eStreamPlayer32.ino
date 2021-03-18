@@ -38,8 +38,6 @@ const char* MESSAGE_HEADER{"message\n"};
 
 int currentItem {NOTHING_PLAYING_VAL};
 
-bool volumeIsUpdated{false};
-
 playList_t playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -253,7 +251,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (pch) {
             const uint8_t volume = atoi(pch);
             audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
-            volumeIsUpdated = true;
+            ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
           }
           return;
         }
@@ -954,18 +952,6 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
   }
 }
 
-void handlePlaylistUpdate() {
-  String s;
-  ws.textAll(playList.toString(s));
-  updateHighlightedItemOnClients();
-
-#if defined (M5STACK_NODE)
-  M5_displayCurrentAndTotal();
-#endif
-
-  ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
-}
-
 void handleCurrentToFavorites() {
   playListItem item;
   playList.get(currentItem, item);
@@ -1000,13 +986,19 @@ void startCurrentItem() {
 void handleWebsocketClients() {
   ws.cleanupClients();
 
-  if (volumeIsUpdated) {
-    ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
-    volumeIsUpdated = false;
-  }
-
   if (playList.isUpdated) {
-    handlePlaylistUpdate();
+    {
+      String s;
+      ws.textAll(playList.toString(s));
+    }
+    updateHighlightedItemOnClients();
+
+#if defined (M5STACK_NODE)
+    M5_displayCurrentAndTotal();
+#endif
+
+    ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+
     playList.isUpdated = false;
   }
 
