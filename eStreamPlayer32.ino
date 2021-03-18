@@ -435,6 +435,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
             client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
+
             if (startnow) {
               if (audio.isRunning()) muteVolumeAndStopAudio();
               currentItem = playList.size() - 2;
@@ -887,6 +888,12 @@ bool saveItemToFavorites(const playListItem & item, const String & filename) {
 }
 
 void handlePastedUrl() {
+  if (playList.size() > PLAYLIST_MAX_ITEMS - 1) {
+    ESP_LOGD(TAG, "playlist full - make room first");
+    //TODO send message to client
+    return;
+  }
+
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
   muteVolumeAndStopAudio();
   audio_showstreamtitle("starting new stream");
@@ -896,7 +903,7 @@ void handlePastedUrl() {
     ESP_LOGI(TAG, "url started successful");
     playList.add(item);
 
-    if (!playList.isUpdated) return;
+    //if (!playList.isUpdated) return;  //TODO: this will bug!
 
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
