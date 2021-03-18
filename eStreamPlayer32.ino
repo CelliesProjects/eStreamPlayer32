@@ -33,6 +33,7 @@ const char* NOTHING_PLAYING_STR   {
 const char* VOLUME_HEADER {
   "volume\n"
 };
+
 const char* CURRENT_HEADER{"currentPLitem\n"};
 const char* MESSAGE_HEADER{"message\n"};
 
@@ -506,11 +507,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             }
             delete []buffer;
             buffer = nullptr;
+
+            if (!playList.isUpdated) return;
+
             ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
 
             client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
-
-            if (!playList.isUpdated) return;
 
             if (startnow) {
               if (audio.isRunning()) muteVolumeAndStopAudio();
@@ -886,9 +888,11 @@ bool saveItemToFavorites(const playListItem & item, const String & filename) {
 }
 
 void handlePastedUrl() {
+
   if (playList.size() > PLAYLIST_MAX_ITEMS - 1) {
-    ESP_LOGD(TAG, "playlist full - make room first");
-    //TODO send message to client
+    char buffer[50];
+    snprintf(buffer, sizeof(buffer), "%sPlaylist is full.", MESSAGE_HEADER);
+    ws.text(newUrl.clientId, buffer);
     return;
   }
 
@@ -898,10 +902,10 @@ void handlePastedUrl() {
   audio_showstation("");
   const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
   if (startPlaylistItem(item)) {
-    ESP_LOGI(TAG, "url started successful");
+    ESP_LOGD(TAG, "url started successful");
     playList.add(item);
 
-    //if (!playList.isUpdated) return;  //TODO: this will bug!
+    //if (!playList.isUpdated) return;
 
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
