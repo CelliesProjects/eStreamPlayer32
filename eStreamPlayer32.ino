@@ -126,10 +126,6 @@ struct {
   uint32_t clientId;
 } currentToFavorites;
 
-struct {
-  bool updated{false};
-} favorites;
-
 time_t bootTime;
 
 inline __attribute__((always_inline))
@@ -177,6 +173,12 @@ void playListHasEnded() {
   M5_displayItemName({HTTP_FAVORITE});
   M5_displayCurrentAndTotal();
 #endif  //M5STACK_NODE
+}
+
+void updateFavoritesOnClients() {
+  String s;
+  ws.textAll(favoritesToString(s));
+  ESP_LOGD(TAG, "Favorites and clients are updated.");
 }
 
 void audio_lasthost(const char *info) {
@@ -268,6 +270,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
           client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
+
+          if (!playList.isUpdated) return;
+
           if (startnow) {
             if (audio.isRunning()) muteVolumeAndStopAudio();
             currentItem = previousSize - 1;
@@ -401,9 +406,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                  !strcmp("_favoritetoplaylist", pch)) {
           const bool startNow = (pch[0] == '_');
           pch = strtok(NULL, "\n");
-          if (pch) {
+          if (pch)
             handleFavoriteToPlaylist((String)pch, startNow);
-          }
           return;
         }
 
@@ -414,7 +418,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
               ws.printf(client->id(), "%sCould not delete %s", MESSAGE_HEADER, pch);
             } else {
               ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, pch);
-              favorites.updated = true;
+              updateFavoritesOnClients();
             }
           }
           return;
@@ -426,6 +430,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           const uint32_t index = atoi(strtok(NULL, "\n"));
           if (index < sizeof(preset) / sizeof(source)) { // only add really existing presets to the playlist
             playList.add({HTTP_PRESET, "", "", index});
+
+            if (!playList.isUpdated) return;
+
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
             client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
             if (startnow) {
@@ -503,6 +510,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
 
             client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
+
+            if (!playList.isUpdated) return;
+
             if (startnow) {
               if (audio.isRunning()) muteVolumeAndStopAudio();
               currentItem = previousSize - 1;
@@ -885,6 +895,9 @@ void handlePastedUrl() {
   if (startPlaylistItem(item)) {
     ESP_LOGI(TAG, "url started successful");
     playList.add(item);
+
+    if (!playList.isUpdated) return;
+
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
     audio_showstation(newUrl.url.c_str());
@@ -917,6 +930,9 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
     return;
   }
   playList.add({HTTP_FAVORITE, filename, url});
+
+  if (!playList.isUpdated) return;
+
   ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
   ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
   if (startNow) {
@@ -948,9 +964,8 @@ void handleCurrentToFavorites() {
   playList.get(currentItem, item);
 
   if (saveItemToFavorites(item, currentToFavorites.filename)) {
-    String s;
-    ws.textAll(favoritesToString(s));
     ws.printfAll("%sAdded '%s' to favorites!", MESSAGE_HEADER, currentToFavorites.filename.c_str());
+    updateFavoritesOnClients();
   }
   else
     ws.printf(currentToFavorites.clientId, "%sSaving failed!", MESSAGE_HEADER);
@@ -996,13 +1011,6 @@ void handleWebsocketClients() {
   if (currentToFavorites.requested) {
     handleCurrentToFavorites();
     currentToFavorites.requested = false;
-  }
-
-  if (favorites.updated) {
-    String s;
-    ws.textAll(favoritesToString(s));
-    ESP_LOGD(TAG, "Favorites and clients are updated.");
-    favorites.updated = false;
   }
 }
 
