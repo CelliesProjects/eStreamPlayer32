@@ -119,12 +119,6 @@ struct {
   uint32_t clientId;
 } newUrl;
 
-struct {
-  bool requested{false};
-  String filename;
-  uint32_t clientId;
-} currentToFavorites;
-
 time_t bootTime;
 
 inline __attribute__((always_inline))
@@ -389,11 +383,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("currenttofavorites", pch)) {
           pch = strtok(NULL, "\n");
-          if (pch) {
-            currentToFavorites.filename = pch;
-            currentToFavorites.clientId = client->id();
-            currentToFavorites.requested = true;
-          }
+          if (pch)
+            handleCurrentToFavorites((String)pch, client->id());
           return;
         }
 
@@ -867,9 +858,7 @@ bool saveItemToFavorites(const playListItem & item, const String & filename) {
           ESP_LOGE(TAG, "failed to open file for writing");
           return false;
         }
-        audio.loop();
         bool result = file.print(item.url.c_str());
-        audio.loop();
         file.close();
         ESP_LOGD(TAG, "%s writing to '%s'", result ? "ok" : "WARNING - failed", filename);
         return result;
@@ -900,8 +889,6 @@ void handlePastedUrl() {
   if (startPlaylistItem(item)) {
     ESP_LOGD(TAG, "url started successful");
     playList.add(item);
-
-    //if (!playList.isUpdated) return;
 
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
@@ -952,18 +939,16 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
   }
 }
 
-void handleCurrentToFavorites() {
+void handleCurrentToFavorites(const String & filename, uint32_t clientId) {
   playListItem item;
   playList.get(currentItem, item);
 
-  if (saveItemToFavorites(item, currentToFavorites.filename)) {
-    ws.printfAll("%sAdded '%s' to favorites!", MESSAGE_HEADER, currentToFavorites.filename.c_str());
+  if (saveItemToFavorites(item, filename)) {
+    ws.printfAll("%sAdded '%s' to favorites!", MESSAGE_HEADER, filename.c_str());
     updateFavoritesOnClients();
   }
   else
-    ws.printf(currentToFavorites.clientId, "%sSaving failed!", MESSAGE_HEADER);
-
-  currentToFavorites.filename = "";
+    ws.printf(clientId, "%sSaving failed!", MESSAGE_HEADER);
 }
 
 void startCurrentItem() {
@@ -1005,11 +990,6 @@ void handleWebsocketClients() {
   if (newUrl.waiting) {
     handlePastedUrl();
     newUrl.waiting = false;
-  }
-
-  if (currentToFavorites.requested) {
-    handleCurrentToFavorites();
-    currentToFavorites.requested = false;
   }
 }
 
