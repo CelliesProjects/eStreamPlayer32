@@ -180,10 +180,6 @@ void updateFavoritesOnClients() {
   ESP_LOGD(TAG, "Favorites and clients are updated.");
 }
 
-void audio_lasthost(const char *info) {
-  ESP_LOGD(TAG, "lasthost: %s", info);
-}
-
 static char showstation[200]; // These are kept global to update new clients in loop()
 void audio_showstation(const char *info) {
   if (!strcmp(info, "")) return;
