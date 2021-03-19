@@ -495,11 +495,11 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             delete []buffer;
             buffer = nullptr;
 
-            if (!playList.isUpdated) return;
-
             ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
 
             client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
+
+            if (!playList.isUpdated) return;
 
             if (startnow) {
               if (audio.isRunning()) muteVolumeAndStopAudio();
