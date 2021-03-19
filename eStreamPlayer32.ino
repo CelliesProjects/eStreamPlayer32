@@ -939,7 +939,7 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
   }
 }
 
-void handleCurrentToFavorites(const String & filename, uint32_t clientId) {
+void handleCurrentToFavorites(const String & filename, const uint32_t clientId) {
   playListItem item;
   playList.get(currentItem, item);
 
@@ -948,7 +948,7 @@ void handleCurrentToFavorites(const String & filename, uint32_t clientId) {
     updateFavoritesOnClients();
   }
   else
-    ws.printf(clientId, "%sSaving failed!", MESSAGE_HEADER);
+    ws.printf(clientId, "%sSaving '%s' failed!", MESSAGE_HEADER, filename.c_str());
 }
 
 void startCurrentItem() {
