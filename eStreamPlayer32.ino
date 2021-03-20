@@ -9,8 +9,6 @@
 #include "index_htm_gz.h"
 #include "icons.h"
 
-#define HTTP_RUN_CORE       1
-
 #define I2S_MAX_VOLUME      21
 #define I2S_INITIAL_VOLUME  5
 
@@ -22,7 +20,7 @@ enum {
   PAUSED,
   PLAYING,
   PLAYLISTEND,
-} playerStatus{PLAYLISTEND}; //we have an empty playlist after boot
+} playerStatus{PLAYLISTEND};
 
 #define     NOTHING_PLAYING_VAL   -1
 const char* NOTHING_PLAYING_STR   {
@@ -124,14 +122,6 @@ time_t bootTime;
 inline __attribute__((always_inline))
 void updateHighlightedItemOnClients() {
   ws.textAll(CURRENT_HEADER + String(currentItem));
-}
-
-void muteVolumeAndStopAudio() {
-  uint32_t savedVolume{audio.getVolume()};
-  audio.setVolume(0);
-  audio.stopSong();
-  delay(1);
-  audio.setVolume(savedVolume);
 }
 
 const String urlEncode(const String& s) {
@@ -265,7 +255,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!itemsAdded) return;
 
           if (startnow) {
-            if (audio.isRunning()) muteVolumeAndStopAudio();
+            if (audio.isRunning()) audio.stopSong();
             currentItem = previousSize - 1;
             playerStatus = PLAYING;
             return;
@@ -280,7 +270,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("clearlist", pch)) {
           if (!playList.size()) return;
-          muteVolumeAndStopAudio();
+          audio.stopSong();
           playList.clear();
           playListHasEnded();
           return;
@@ -290,7 +280,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           if (pch) {
             currentItem = atoi(pch);
-            muteVolumeAndStopAudio();
+            audio.stopSong();
             playerStatus = PLAYING;
           }
           return;
@@ -302,7 +292,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!pch) return;
           const uint32_t index = atoi(pch);
           if (index == currentItem) {
-            muteVolumeAndStopAudio();
+            audio.stopSong();
             playList.remove(index);
             if (!playList.size()) {
               playListHasEnded();
@@ -354,7 +344,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem > 0) {
-            muteVolumeAndStopAudio();
+            audio.stopSong();
             currentItem--;
             currentItem--;
             return;
@@ -366,7 +356,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem < playList.size() - 1) {
-            muteVolumeAndStopAudio();
+            audio.stopSong();
             return;
           }
           else return;
@@ -425,7 +415,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
 
             if (startnow) {
-              if (audio.isRunning()) muteVolumeAndStopAudio();
+              if (audio.isRunning()) audio.stopSong();
               currentItem = playList.size() - 2;
               playerStatus = PLAYING;
               return;
@@ -504,7 +494,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             if (!playList.isUpdated) return;
 
             if (startnow) {
-              if (audio.isRunning()) muteVolumeAndStopAudio();
+              if (audio.isRunning()) audio.stopSong();
               currentItem = previousSize - 1;
               playerStatus = PLAYING;
               return;
@@ -525,123 +515,6 @@ const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
 
 static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebServerRequest * request, const char* date) {
   return request->hasHeader(HEADER_MODIFIED_SINCE) && request->header(HEADER_MODIFIED_SINCE).equals(date);
-}
-
-void startWebServer(void * pvParameters) {
-
-  static char modifiedDate[30];
-  strftime(modifiedDate, sizeof(modifiedDate), "%a, %d %b %Y %X GMT", gmtime(&bootTime));
-
-  static const char* HTML_MIMETYPE{"text/html"};
-  static const char* HEADER_LASTMODIFIED{"Last-Modified"};
-  static const char* CONTENT_ENCODING_HEADER{"Content-Encoding"};
-  static const char* CONTENT_ENCODING_VALUE{"gzip"};
-
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
-
-  server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_MIMETYPE, index_htm_gz, index_htm_gz_len);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    response->addHeader(CONTENT_ENCODING_HEADER, CONTENT_ENCODING_VALUE);
-    request->send(response);
-  });
-
-  server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    for (int i = 0; i < sizeof(preset) / sizeof(source); i++) {
-      response->printf("%s\n", preset[i].name.c_str());
-    }
-    request->send(response);
-  });
-
-  server.on("/scripturl", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    response->print(SCRIPT_URL);
-    request->send(response);
-  });
-
-  static const char* SVG_MIMETYPE{"image/svg+xml"};
-
-  server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, radioicon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/playicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, playicon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/libraryicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, libraryicon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/favoriteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, favoriteicon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/streamicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, pasteicon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/deleteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, deleteicon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/addfoldericon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, addfoldericon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, emptyicon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.on("/starticon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, starticon);
-    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-    request->send(response);
-  });
-
-  server.onNotFound([](AsyncWebServerRequest * request) {
-    ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
-    request->send(404);
-  });
-
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-
-  server.begin();
-  ESP_LOGI(TAG, "HTTP server started on core %i.", HTTP_RUN_CORE);
-  ESP_LOGI(TAG, "Ready to rock!");
-  vTaskDelete(NULL);
 }
 
 void setup() {
@@ -765,19 +638,124 @@ void setup() {
     0
   };
 
+  ESP_LOGI(TAG, "Waiting for NTP sync..");
+
   while (!getLocalTime(&timeinfo, 0))
     delay(10);
 
   time(&bootTime);
 
-  xTaskCreatePinnedToCore(
-    startWebServer,
-    "http_ws",
-    3000,
-    NULL,
-    5,
-    NULL,
-    HTTP_RUN_CORE);
+  static char modifiedDate[30];
+  strftime(modifiedDate, sizeof(modifiedDate), "%a, %d %b %Y %X GMT", gmtime(&bootTime));
+
+  static const char* HTML_MIMETYPE{"text/html"};
+  static const char* HEADER_LASTMODIFIED{"Last-Modified"};
+  static const char* CONTENT_ENCODING_HEADER{"Content-Encoding"};
+  static const char* CONTENT_ENCODING_VALUE{"gzip"};
+
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+
+  server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_MIMETYPE, index_htm_gz, index_htm_gz_len);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    response->addHeader(CONTENT_ENCODING_HEADER, CONTENT_ENCODING_VALUE);
+    request->send(response);
+  });
+
+  server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    for (int i = 0; i < sizeof(preset) / sizeof(source); i++) {
+      response->printf("%s\n", preset[i].name.c_str());
+    }
+    request->send(response);
+  });
+
+  server.on("/scripturl", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    response->print(SCRIPT_URL);
+    request->send(response);
+  });
+
+  static const char* SVG_MIMETYPE{"image/svg+xml"};
+
+  server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, radioicon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/playicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, playicon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/libraryicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, libraryicon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/favoriteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, favoriteicon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/streamicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, pasteicon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/deleteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, deleteicon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/addfoldericon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, addfoldericon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, emptyicon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.on("/starticon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, starticon);
+    response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+    request->send(response);
+  });
+
+  server.onNotFound([](AsyncWebServerRequest * request) {
+    ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
+    request->send(404);
+  });
+
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+
+  server.begin();
+  ESP_LOGI(TAG, "Ready to rock!");
 
   audio.setPinout(I2S_BCK, I2S_WS, I2S_DOUT);
   audio.setVolume(I2S_INITIAL_VOLUME);
@@ -884,7 +862,7 @@ void handlePastedUrl() {
   }
 
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
-  muteVolumeAndStopAudio();
+  audio.stopSong();
   audio_showstreamtitle("starting new stream");
   audio_showstation("");
   const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
@@ -930,7 +908,7 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
   ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
   ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
   if (startNow) {
-    if (audio.isRunning()) muteVolumeAndStopAudio();
+    if (audio.isRunning()) audio.stopSong();
     currentItem = playList.size() - 2;
     playerStatus = PLAYING;
     return;
