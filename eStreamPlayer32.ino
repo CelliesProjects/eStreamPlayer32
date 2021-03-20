@@ -9,7 +9,7 @@
 #include "index_htm_gz.h"
 #include "icons.h"
 
-#define HTTP_RUN_CORE       0
+#define HTTP_RUN_CORE       1
 
 #define I2S_MAX_VOLUME      21
 #define I2S_INITIAL_VOLUME  5
@@ -257,10 +257,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             playList.add({HTTP_FILE, "", pch});
             pch = strtok(NULL, "\n");
           }
-          ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
-          client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
+          const uint32_t itemsAdded{playList.size() - previousSize};
+          client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, itemsAdded);
 
-          if (!playList.isUpdated) return;
+          ESP_LOGD(TAG, "Added %i items to playlist", addedSongs);
+
+          if (!itemsAdded) return;
 
           if (startnow) {
             if (audio.isRunning()) muteVolumeAndStopAudio();
