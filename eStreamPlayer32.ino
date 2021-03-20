@@ -33,12 +33,11 @@ const char* NOTHING_PLAYING_STR   {
 const char* VOLUME_HEADER {
   "volume\n"
 };
+
 const char* CURRENT_HEADER{"currentPLitem\n"};
 const char* MESSAGE_HEADER{"message\n"};
 
 int currentItem {NOTHING_PLAYING_VAL};
-
-bool volumeIsUpdated{false};
 
 playList_t playList;
 AsyncWebServer server(80);
@@ -120,28 +119,6 @@ struct {
   uint32_t clientId;
 } newUrl;
 
-struct {
-  bool requested{false};
-  String filename;
-  uint32_t clientId;
-} currentToFavorites;
-
-struct {
-  bool updated{false};
-} favorites;
-
-struct {
-  bool requested{false};
-  String name;
-  bool startNow;
-} favoriteToPlaylist;
-
-struct {
-  bool requested{false};
-  String name;
-  uint32_t clientId;
-} deletefavorite;
-
 time_t bootTime;
 
 inline __attribute__((always_inline))
@@ -189,6 +166,12 @@ void playListHasEnded() {
   M5_displayItemName({HTTP_FAVORITE});
   M5_displayCurrentAndTotal();
 #endif  //M5STACK_NODE
+}
+
+void updateFavoritesOnClients() {
+  String s;
+  ws.textAll(favoritesToString(s));
+  ESP_LOGD(TAG, "Favorites and clients are updated.");
 }
 
 static char showstation[200]; // These are kept global to update new clients in loop()
@@ -259,7 +242,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (pch) {
             const uint8_t volume = atoi(pch);
             audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
-            volumeIsUpdated = true;
+            ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
           }
           return;
         }
@@ -276,6 +259,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           }
           ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
           client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
+
+          if (!playList.isUpdated) return;
+
           if (startnow) {
             if (audio.isRunning()) muteVolumeAndStopAudio();
             currentItem = previousSize - 1;
@@ -397,26 +383,30 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("currenttofavorites", pch)) {
           pch = strtok(NULL, "\n");
-          if (pch) {
-            currentToFavorites.filename = pch;
-            currentToFavorites.clientId = client->id();
-            currentToFavorites.requested = true;
-          }
+          if (pch)
+            handleCurrentToFavorites((String)pch, client->id());
           return;
         }
 
         else if (!strcmp("favoritetoplaylist", pch) ||
                  !strcmp("_favoritetoplaylist", pch)) {
-          const bool startnow = (pch[0] == '_');
-          favoriteToPlaylist.name = strtok(NULL, "\n");
-          favoriteToPlaylist.startNow = startnow;
-          favoriteToPlaylist.requested = true;
+          const bool startNow = (pch[0] == '_');
+          pch = strtok(NULL, "\n");
+          if (pch)
+            handleFavoriteToPlaylist((String)pch, startNow);
           return;
         }
 
         else if (!strcmp("deletefavorite", pch)) {
-          deletefavorite.name = strtok(NULL, "\n");
-          deletefavorite.requested = true;
+          pch = strtok(NULL, "\n");
+          if (pch) {
+            if (!FFat.remove("/" + (String)pch)) {
+              ws.printf(client->id(), "%sCould not delete %s", MESSAGE_HEADER, pch);
+            } else {
+              ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, pch);
+              updateFavoritesOnClients();
+            }
+          }
           return;
         }
 
@@ -426,8 +416,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           const uint32_t index = atoi(strtok(NULL, "\n"));
           if (index < sizeof(preset) / sizeof(source)) { // only add really existing presets to the playlist
             playList.add({HTTP_PRESET, "", "", index});
+
+            if (!playList.isUpdated) return;
+
             ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
             client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
+
             if (startnow) {
               if (audio.isRunning()) muteVolumeAndStopAudio();
               currentItem = playList.size() - 2;
@@ -500,9 +494,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             }
             delete []buffer;
             buffer = nullptr;
+
             ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
 
             client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
+
+            if (!playList.isUpdated) return;
+
             if (startnow) {
               if (audio.isRunning()) muteVolumeAndStopAudio();
               currentItem = previousSize - 1;
@@ -523,7 +521,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
 const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
 
-static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebServerRequest* request, const char* date) {
+static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebServerRequest * request, const char* date) {
   return request->hasHeader(HEADER_MODIFIED_SINCE) && request->header(HEADER_MODIFIED_SINCE).equals(date);
 }
 
@@ -783,7 +781,7 @@ void setup() {
   audio.setVolume(I2S_INITIAL_VOLUME);
 }
 
-String& favoritesToString(String& s) {
+String& favoritesToString(String & s) {
   File root = FFat.open("/");
   s = "";
   if (!root || !root.isDirectory()) {
@@ -802,7 +800,7 @@ String& favoritesToString(String& s) {
   return s;
 }
 
-bool startPlaylistItem(const playListItem& item) {
+bool startPlaylistItem(const playListItem & item) {
   switch (item.type) {
     case HTTP_FILE :
       ESP_LOGD(TAG, "STARTING file: %s", item.url.c_str());
@@ -837,7 +835,7 @@ bool startPlaylistItem(const playListItem& item) {
   return audio.isRunning();
 }
 
-bool saveItemToFavorites(const playListItem& item, const String& filename) {
+bool saveItemToFavorites(const playListItem & item, const String & filename) {
   switch (item.type) {
     case HTTP_FILE :
       ESP_LOGD(TAG, "file (wont save)%s", item.url.c_str());
@@ -860,9 +858,7 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
           ESP_LOGE(TAG, "failed to open file for writing");
           return false;
         }
-        audio.loop();
         bool result = file.print(item.url.c_str());
-        audio.loop();
         file.close();
         ESP_LOGD(TAG, "%s writing to '%s'", result ? "ok" : "WARNING - failed", filename);
         return result;
@@ -877,14 +873,23 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
 }
 
 void handlePastedUrl() {
+
+  if (playList.size() > PLAYLIST_MAX_ITEMS - 1) {
+    char buffer[50];
+    snprintf(buffer, sizeof(buffer), "%sPlaylist is full.", MESSAGE_HEADER);
+    ws.text(newUrl.clientId, buffer);
+    return;
+  }
+
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
   muteVolumeAndStopAudio();
   audio_showstreamtitle("starting new stream");
   audio_showstation("");
   const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
   if (startPlaylistItem(item)) {
-    ESP_LOGI(TAG, "url started successful");
+    ESP_LOGD(TAG, "url started successful");
     playList.add(item);
+
     currentItem = playList.size() - 1;
     playerStatus = PLAYING;
     audio_showstation(newUrl.url.c_str());
@@ -903,8 +908,8 @@ void handlePastedUrl() {
   }
 }
 
-void handleFavoriteToPlaylist() {
-  File file = FFat.open("/" + favoriteToPlaylist.name);
+void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
+  File file = FFat.open("/" + filename);
   String url;
   if (file) {
     while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
@@ -912,14 +917,17 @@ void handleFavoriteToPlaylist() {
     file.close();
   }
   else {
-    ESP_LOGE(TAG, "Could not open %s", favoriteToPlaylist.name.c_str());
-    ws.printfAll("%sCould not add '%s' to playlist", MESSAGE_HEADER, favoriteToPlaylist.name.c_str());
+    ESP_LOGE(TAG, "Could not open %s", filename.c_str());
+    ws.printfAll("%sCould not add '%s' to playlist", MESSAGE_HEADER, filename.c_str());
     return;
   }
-  playList.add({HTTP_FAVORITE, favoriteToPlaylist.name, url});
-  ESP_LOGD(TAG, "favorite to playlist: %s -> %s", favoriteToPlaylist.name.c_str(), url.c_str());
-  ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, favoriteToPlaylist.name.c_str());
-  if (favoriteToPlaylist.startNow) {
+  playList.add({HTTP_FAVORITE, filename, url});
+
+  if (!playList.isUpdated) return;
+
+  ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
+  ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
+  if (startNow) {
     if (audio.isRunning()) muteVolumeAndStopAudio();
     currentItem = playList.size() - 2;
     playerStatus = PLAYING;
@@ -931,31 +939,16 @@ void handleFavoriteToPlaylist() {
   }
 }
 
-void handlePlaylistUpdate() {
-  String s;
-  ws.textAll(playList.toString(s));
-  updateHighlightedItemOnClients();
-
-#if defined (M5STACK_NODE)
-  M5_displayCurrentAndTotal();
-#endif
-
-  ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
-}
-
-void handleCurrentToFavorites() {
+void handleCurrentToFavorites(const String & filename, const uint32_t clientId) {
   playListItem item;
   playList.get(currentItem, item);
 
-  if (saveItemToFavorites(item, currentToFavorites.filename)) {
-    String s;
-    ws.textAll(favoritesToString(s));
-    ws.printfAll("%sAdded '%s' to favorites!", MESSAGE_HEADER, currentToFavorites.filename.c_str());
+  if (saveItemToFavorites(item, filename)) {
+    ws.printfAll("%sAdded '%s' to favorites!", MESSAGE_HEADER, filename.c_str());
+    updateFavoritesOnClients();
   }
   else
-    ws.printf(currentToFavorites.clientId, "%sSaving failed!", MESSAGE_HEADER);
-
-  currentToFavorites.filename = "";
+    ws.printf(clientId, "%sSaving '%s' failed!", MESSAGE_HEADER, filename.c_str());
 }
 
 void startCurrentItem() {
@@ -978,46 +971,25 @@ void startCurrentItem() {
 void handleWebsocketClients() {
   ws.cleanupClients();
 
-  if (volumeIsUpdated) {
-    ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
-    volumeIsUpdated = false;
-  }
-
   if (playList.isUpdated) {
-    handlePlaylistUpdate();
+    {
+      String s;
+      ws.textAll(playList.toString(s));
+    }
+    updateHighlightedItemOnClients();
+
+#if defined (M5STACK_NODE)
+    M5_displayCurrentAndTotal();
+#endif
+
+    ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+
     playList.isUpdated = false;
   }
 
   if (newUrl.waiting) {
     handlePastedUrl();
     newUrl.waiting = false;
-  }
-
-  if (favoriteToPlaylist.requested) {
-    handleFavoriteToPlaylist();
-    favoriteToPlaylist.requested = false;
-  }
-
-  if (currentToFavorites.requested) {
-    handleCurrentToFavorites();
-    currentToFavorites.requested = false;
-  }
-
-  if (deletefavorite.requested) {
-    if (!FFat.remove("/" + deletefavorite.name)) {
-      ws.printf(deletefavorite.clientId, "%sCould not delete %s", MESSAGE_HEADER, deletefavorite.name.c_str());
-    } else {
-      ws.printfAll("%sDeleted favorite %s", MESSAGE_HEADER, deletefavorite.name.c_str());
-      favorites.updated = true;
-    }
-    deletefavorite.requested = false;
-  }
-
-  if (favorites.updated) {
-    String s;
-    ws.textAll(favoritesToString(s));
-    ESP_LOGD(TAG, "Favorites and clients are updated.");
-    favorites.updated = false;
   }
 }
 
