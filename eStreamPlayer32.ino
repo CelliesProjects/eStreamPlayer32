@@ -117,11 +117,18 @@ struct {
   uint32_t clientId;
 } newUrl;
 
-time_t bootTime;
-
 inline __attribute__((always_inline))
 void updateHighlightedItemOnClients() {
   ws.textAll(CURRENT_HEADER + String(currentItem));
+}
+
+inline __attribute__((always_inline))
+void muteVolumeAndStopSong() {
+  const auto saved = audio.getVolume();
+  audio.setVolume(0);
+  audio.stopSong();
+  audio.loop();
+  audio.setVolume(saved);
 }
 
 const String urlEncode(const String& s) {
@@ -255,7 +262,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!itemsAdded) return;
 
           if (startnow) {
-            if (audio.isRunning()) audio.stopSong();
+            if (audio.isRunning()) muteVolumeAndStopSong();
             currentItem = previousSize - 1;
             playerStatus = PLAYING;
             return;
@@ -270,7 +277,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
         else if (!strcmp("clearlist", pch)) {
           if (!playList.size()) return;
-          audio.stopSong();
+          muteVolumeAndStopSong();
           playList.clear();
           playListHasEnded();
           return;
@@ -280,7 +287,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           pch = strtok(NULL, "\n");
           if (pch) {
             currentItem = atoi(pch);
-            audio.stopSong();
+            muteVolumeAndStopSong();
             playerStatus = PLAYING;
           }
           return;
@@ -292,7 +299,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (!pch) return;
           const uint32_t index = atoi(pch);
           if (index == currentItem) {
-            audio.stopSong();
+            muteVolumeAndStopSong();
             playList.remove(index);
             if (!playList.size()) {
               playListHasEnded();
@@ -344,7 +351,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem > 0) {
-            audio.stopSong();
+            muteVolumeAndStopSong();
             currentItem--;
             currentItem--;
             return;
@@ -356,7 +363,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (PLAYLISTEND == playerStatus) return;
           ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
           if (currentItem < playList.size() - 1) {
-            audio.stopSong();
+            muteVolumeAndStopSong();
             return;
           }
           else return;
@@ -415,7 +422,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
 
             if (startnow) {
-              if (audio.isRunning()) audio.stopSong();
+              if (audio.isRunning()) muteVolumeAndStopSong();
               currentItem = playList.size() - 2;
               playerStatus = PLAYING;
               return;
@@ -494,7 +501,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             if (!playList.isUpdated) return;
 
             if (startnow) {
-              if (audio.isRunning()) audio.stopSong();
+              if (audio.isRunning()) muteVolumeAndStopSong();
               currentItem = previousSize - 1;
               playerStatus = PLAYING;
               return;
@@ -643,8 +650,8 @@ void setup() {
   while (!getLocalTime(&timeinfo, 0))
     delay(10);
 
+  time_t bootTime;
   time(&bootTime);
-
   static char modifiedDate[30];
   strftime(modifiedDate, sizeof(modifiedDate), "%a, %d %b %Y %X GMT", gmtime(&bootTime));
 
@@ -862,7 +869,7 @@ void handlePastedUrl() {
   }
 
   ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
-  audio.stopSong();
+  muteVolumeAndStopSong();
   audio_showstreamtitle("starting new stream");
   audio_showstation("");
   const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
@@ -888,7 +895,7 @@ void handlePastedUrl() {
   }
 }
 
-void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
+void handleFavoriteToPlaylist(const String & filename, const bool startNow) {
   File file = FFat.open("/" + filename);
   String url;
   if (file) {
@@ -908,7 +915,7 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
   ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
   ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
   if (startNow) {
-    if (audio.isRunning()) audio.stopSong();
+    if (audio.isRunning()) muteVolumeAndStopSong();
     currentItem = playList.size() - 2;
     playerStatus = PLAYING;
     return;
@@ -948,31 +955,6 @@ void startCurrentItem() {
   updateHighlightedItemOnClients();
 }
 
-void handleWebsocketClients() {
-  ws.cleanupClients();
-
-  if (playList.isUpdated) {
-    {
-      String s;
-      ws.textAll(playList.toString(s));
-    }
-    updateHighlightedItemOnClients();
-
-#if defined (M5STACK_NODE)
-    M5_displayCurrentAndTotal();
-#endif
-
-    ESP_LOGD(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
-
-    playList.isUpdated = false;
-  }
-
-  if (newUrl.waiting) {
-    handlePastedUrl();
-    newUrl.waiting = false;
-  }
-}
-
 void loop() {
 
 #if defined (M5STACK_NODE)
@@ -988,9 +970,29 @@ void loop() {
 
   audio.loop();
 
-  if (ws.count())
-    handleWebsocketClients();
+  ws.cleanupClients();
 
+  if (playList.isUpdated) {
+    {
+      String s;
+      ws.textAll(playList.toString(s));
+    }
+
+#if defined (M5STACK_NODE)
+    M5_displayCurrentAndTotal();
+#endif
+
+    ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+
+    updateHighlightedItemOnClients();
+
+    playList.isUpdated = false;
+  }
+
+  if (newUrl.waiting) {
+    handlePastedUrl();
+    newUrl.waiting = false;
+  }
   /*
     static uint32_t previousTime;
     if (previousTime != audio.getAudioCurrentTime()) {
