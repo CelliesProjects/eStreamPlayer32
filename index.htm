@@ -115,8 +115,9 @@ a{
   height:30px;
   vertical-align:middle;
   margin:2px 5px;
+  border-radius:5px;
 }
-.foldericon:hover,.icon:hover,.plitem:hover,#uplink:hover,.folderlink:hover,.filelink:hover,.streamlink:hover,.favoritelink:hover{
+.foldericon:hover,.plitem:hover,#uplink:hover,.folderlink:hover,.filelink:hover,.streamlink:hover,.favoritelink:hover{
   cursor:pointer;
   background:lightgrey;
 }
@@ -165,16 +166,17 @@ a{
 .playercontrol{
   display:inline;
 }
+.playercontrol .icon:hover{
+  cursor:pointer;
+}
 #volumeslider{
   vertical-align:middle;
 }
 .addfolder:hover,.starticon:hover{
   border:solid 1px black;
-  border-radius:5px;
 }
 .deletebutton:hover{
   border:solid 1px black;
-  border-radius:5px;
   background:red;
 }
 #overlay{
