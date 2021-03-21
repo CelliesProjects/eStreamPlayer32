@@ -51,19 +51,18 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 Use [ESP32 Arduino Core v1.0.5](https://github.com/espressif/arduino-esp32/releases/tag/1.0.5) or later to compile.
 
 1.  Download the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32/releases/latest).
-2.  Install the drivers for your dac. See [supported hardware](#supported-hardware).
+2.  Install the [required libraries](#software-needed) and the drivers for your dac. See [supported hardware](#supported-hardware).
 3.  Copy the php script to your music folder on the server.
-4.  Open `system_setup.h` and set your wifi credentials, select a board and set `SCRIPT_URL` to the php script location.
-5.  Select your board type or `ESP32 Dev Module` as board.
-6.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
-7.  On first boot or after a flash erase the fatfs has to be formatted. This will take a couple of seconds.
+4.  Open the Arduino IDE.
+5.  Select Tools->Partition Scheme->No OTA(2MB APP/2MB FATFS).
+<br>If your board does not have that option you can select ESP32 Dev Module in Tools->Board.
+6.  Open `system_setup.h` and set your wifi credentials and set `SCRIPT_URL` to the php script location.
+7.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
+8.  On first boot or after a flash erase the fatfs has to be formatted. This will take a couple of seconds.
 <br>Flashing an update will not erase the fatfs data.
+<br>**Note:** Take care to select the same partition table when updating otherwise the partition will be formatted.
 <br>You can monitor the boot progress on the serial port.
-8.  Browse to the ip address shown on the serial port.
-
-### Partition table
-
-Select `Tools->Partition Scheme->No OTA(2MB APP/2MB FATFS)`.<br>If your board does not have that option you can select `ESP32 Dev Module` in `Tools->Board`.
+9.  Browse to the ip address shown on the serial port.
 
 ### Supported hardware
 
