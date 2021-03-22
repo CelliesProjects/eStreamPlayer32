@@ -13,7 +13,7 @@
 #define I2S_INITIAL_VOLUME  5
 
 const char* VERSION_STRING {
-  "eStreamPlayer32 v1.0.4"
+  "eStreamPlayer32 v1.0.5"
 };
 
 enum {
