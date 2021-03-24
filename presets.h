@@ -1,6 +1,6 @@
 struct source {
-  String name;
-  String url;
+  const String name;
+  const String url;
 };
 
 // https://hendrikjansen.nl/henk/streaming.html
@@ -21,9 +21,10 @@ const source preset[] {
   {"XXL Stenders", "http://streams.robstenders.nl:8063/bonanza_mp3"},
   {"RadioEins", "http://rbb-edge-20b4-fra-lg-cdn.cast.addradio.de/rbb/radioeins/live/mp3/mid?ar-distributor=f0a0"},
   {"Tekno1", "http://212.83.149.66:8591"},
-  {"BBC Radio 1", "http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio1_mf_p"},
-  {"BBC Radio 2", "http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio2_mf_p"},
-  {"BBC Radio 3", "http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio3_mf_p"},
-  {"BBC Radio 4FM", "http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio4fm_mf_p"},
-  {"BBC Radio 6 Music", "http://bbcmedia.ic.llnwd.net/stream/bbcmedia_6music_mf_p"},
+  {"BBC radio 1", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one"},
+  {"BBC radio 2", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_two"},
+  {"BBC radio 3", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_three"},
+  {"BBC radio 4", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_fourfm"},
+  {"BBC radio 5", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_five_live_online_nonuk"},
+  {"BBC radio 6", "http://stream.live.vc.bbcmedia.co.uk/bbc_6music"},
 };
