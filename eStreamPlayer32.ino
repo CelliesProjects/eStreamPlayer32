@@ -286,9 +286,12 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         else if (!strcmp("playitem", pch)) {
           pch = strtok(NULL, "\n");
           if (pch) {
-            currentItem = atoi(pch);
-            muteVolumeAndStopSong();
-            playerStatus = PLAYING;
+            const uint32_t index = atoi(pch);
+            if (index < playList.size()) {
+              currentItem = index - 1;
+              muteVolumeAndStopSong();
+              playerStatus = PLAYING;
+            }
           }
           return;
         }
@@ -993,21 +996,6 @@ void loop() {
     handlePastedUrl();
     newUrl.waiting = false;
   }
-  /*
-    static uint32_t previousTime;
-    if (previousTime != audio.getAudioCurrentTime()) {
-      ESP_LOGI(TAG, "filetime: %i - %i", audio.getAudioCurrentTime(), audio.getAudioFileDuration());
-      //ws.textAll("progress\n" + String(audio.getAudioCurrentTime()) +"\n" + String(audio.getAudioFileDuration()) +"\n");
-      previousTime = audio.getAudioCurrentTime();
-    }
-
-    static uint32_t previousPos;
-    if (previousPos != audio.getFilePos()) {
-      ESP_LOGI(TAG, "position :%i - %i", audio.getFilePos(), audio.getFileSize());
-      //ws.textAll("progress\n" + String(audio.getFilePos()) +"\n" + String(audio.getFileSize()) +"\n");
-      previousPos = audio.getFilePos();
-    }
-  */
 
   if (!audio.isRunning() && playList.size() && PLAYING == playerStatus) {
     if (currentItem < playList.size() - 1) {
