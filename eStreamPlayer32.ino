@@ -288,8 +288,8 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
           if (pch) {
             const uint32_t index = atoi(pch);
             if (index < playList.size()) {
-              currentItem = index - 1;
               muteVolumeAndStopSong();
+              currentItem = index - 1;
               playerStatus = PLAYING;
             }
           }
