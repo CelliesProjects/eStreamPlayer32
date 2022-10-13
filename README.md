@@ -1,7 +1,5 @@
 #  eStreamPlayer32
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/09914153dbf84e17bd03149ed945e79c)](https://app.codacy.com/gh/CelliesProjects/eStreamPlayer32?utm_source=github.com&utm_medium=referral&utm_content=CelliesProjects/eStreamPlayer32&utm_campaign=Badge_Grade)
-
 An web-based esp32 program to play webradio and mp3/aac files from a lamp or llmp server.
 
 -  Control eStreamPlayer with your phone, pc or tablet.
