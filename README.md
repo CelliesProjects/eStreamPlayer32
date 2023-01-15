@@ -16,13 +16,12 @@ When flashed to an M5Stack with the Node base you can see some information on th
 
 ###  Limitations
 
-eStreamPlayer is written for playback over http.
+-  The audioI2S library uses a lot of RAM. eStreamPlayer will only function properly on a board with PSRAM.
 
-The esp32 does not speak NFS or SMB which are common ways to share files over a network.
+-  eStreamPlayer is written for playback over http. The esp32 does not speak NFS or SMB which are common ways to share files over a network.
 <br>Instead eStreamPlayer uses a php script on the server to navigate the music folders. 
 <br>Copy this script to the server to use your music library.
-
-#### This is totally insecure and should only be used on a LAN! 
+<br>**This is totally insecure and should only be used on a LAN!**
 
 But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
 
