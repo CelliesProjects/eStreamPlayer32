@@ -45,7 +45,7 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 
 ### Setup
 
-Use [ESP32 Arduino Core v1.0.6](https://github.com/espressif/arduino-esp32/releases/tag/1.0.6) or earlier to compile. Since core version 2.0.0 HTTPClient has some issues that hopefully will be solved in a future version.
+Use [the latest ESP32 Arduino Core](https://github.com/espressif/arduino-esp32/releases/latest)
 
 1.  Download the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32/releases/latest).
 2.  Install the [required libraries](#software-needed) and the drivers for your dac. See [supported hardware](#supported-hardware).
